@@ -90,7 +90,7 @@ pstar_to_p<-function(Pstar){
 #' MGRM case
 
 #' Can handle 1PL, 2PL, MIRT, GRM, MGRM
-irt_prob<-function(theta, model, ipars, D=1.7){
+item.prob<-function(theta, model, ipars, D=1.7){
   model<-toupper(model)
   
   # Ensure theta is a matrix
@@ -143,8 +143,9 @@ irt_prob<-function(theta, model, ipars, D=1.7){
   
   # MGRM predictor: (a·theta) - (sum(a_j) * b_jk)
   if(model=="MGRM"){
-    a<- ipars[, startsWith(colnames(ipars), "a"), drop = FALSE] # a: J x L matrix (columns whose names start with "a")
-    b<- ipars[, startsWith(colnames(ipars), "b"), drop = FALSE] # b: J x K matrix (columns whose names start with "b")
+    
+    a<- ipars[, 1:L] # a: J x L matrix (first L columns: discrimination parameters)
+    b<- ipars[, (L+1):ncol(ipars)] # b: J x K matrix (category threshold parameters)
     thresh<-ncol(b) # number of thresholds K
     
     # int: J x N matrix of a·theta, then transposed to J x N
@@ -206,7 +207,7 @@ huber<-function(r, H){
 #' thetas <- rnorm(15)  # Example latent traits for 15 subjects
 #' a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
 #' b <- t(apply(matrix(runif(10*4, -2.5,2.5), nrow = 10, ncol = 4), 1, sort))  # Example threshold parameters for 10 items and 4 thresholds (5 categories)
-#' probs <- irt_prob(thetas, "GRM", cbind(a, b))  # Calculate probabilities
+#' probs <- item.prob(thetas, "GRM", cbind(a, b))  # Calculate probabilities
 #' data <- data.gen(probs$P)  # Generate Likert-type data
 
 data.gen<-function(P){
@@ -259,7 +260,7 @@ std.err.dichotomous<- function(theta, d, a, dat, D = 1.7, residual = "standardiz
   dim <- ncol(a)
   
   # Calculate probabilities
-  probs<-irt_prob(theta, "2PL", cbind(a, d))
+  probs<-item.prob(theta, "2PL", cbind(a, d))
   
   # Calculate expected value of response
   expected.value<-probs
@@ -372,7 +373,7 @@ std.err.poly<- function(theta, dat, b, a, weight.type, tuning.par, D = 1.7){
   nthresh<-length(b)/j
   
   # Calculate probabilities
-  probs<-irt_prob(theta, "GRM", cbind(a, b))
+  probs<-item.prob(theta, "GRM", cbind(a, b))
   
   # Initialize the Fisher Information (scalar)
   #    Fisher Information (Dodd, De Ayala, and Koch, 1995)
@@ -509,7 +510,7 @@ std.err.poly<- function(theta, dat, b, a, weight.type, tuning.par, D = 1.7){
 #' ## Generate intercept parameters
 #' d <- matrix(rnorm(n), ncol = 1)
 #' ## Calculate probabilities
-#' probs <- irt_prob(thetas, "MIRT", cbind(a,d))
+#' probs <- item.prob(thetas, "MIRT", cbind(a,d))
 #' ## Generate data from probabilities
 #' dat <- apply(probs, c(1,2), function(x) rbinom(1,1,x))
 #'
@@ -705,7 +706,7 @@ theta.est<-function(dat, a, d, D=1.7, iter=30, cutoff=.01, init.val=rep(0,ncol(a
 #' b<-t(apply(matrix(runif(n*4, -2.5,2.5), nrow = n, ncol =4), 1, sort))
 #' 
 #' # Calculate Probabilities
-#' probs<-irt_prob(thetas, "GRM", cbind(a, b))
+#' probs<-item.prob(thetas, "GRM", cbind(a, b))
 #' 
 #' # Generate Likert data
 #' dat<-data.gen(probs$P)
@@ -924,9 +925,7 @@ theta.est.mgrm<-function(dat, a, b, D=1.7, weight.type="equal", tuning.par=NULL,
       
     P0<-0
     for(p in 1:iter){
-      colnames(a)<-paste0("a", 1:dim)
-      colnames(b)<-paste0("b", 1:nthresh)
-      probs<-irt_prob(t(as.matrix(theta)), "MGRM", cbind(a, b))
+      probs<-item.prob(t(as.matrix(theta)), "MGRM", cbind(a, b))
       
       P<-probs$P[,,1]
       if(J==1){ # if test length only 1
@@ -1026,7 +1025,7 @@ std.err.mgrm<- function(theta, d, a, dat, D = 1.7, weight.type="equal", tuning.p
   nthresh<-ncol(d)
   
   # Calculate probabilities
-  probs<-irt_prob(theta, "MGRM", cbind(a, d))
+  probs<-item.prob(theta, "MGRM", cbind(a, d))
   
   P1<-probs$P[,,1]
   pstars.all<-cbind(rep(1,J), probs$pstar[,,1], rep(0, J))
@@ -1138,7 +1137,7 @@ msr<-function(dat, theta, a, b){
   residual<-matrix(nrow=N, ncol=J)
   for(i in 1:N){
     # Calculate expected response
-    probs<-irt_prob(theta[i,], "MGRM", cbind(a, b))$P[,,1]
+    probs<-item.prob(theta[i,], "MGRM", cbind(a, b))$P[,,1]
     expected.value<-probs%*%matrix(c(1:(nthresh+1))) 
     # Extract the probabilities corresponding to the response
     if(J==1){
@@ -1242,8 +1241,8 @@ cpa.brr<-function(dat, a, b, crit.val=75){
 #' # Introduce response disturbances: working at a suboptimal level (theta minus 1 standard deviation), for last 40% of items
 #' theta.drop<-1
 #' chng.pt<-0.6
-#' probs<-cbind(irt_prob(thetas, "2PL", cbind(a[1:(chng.pt*n)], b[1:(chng.pt*n)])), 
-#'              irt_prob(thetas-theta.drop, "2PL", cbind(a[(chng.pt*n+1):n], b[(chng.pt*n+1):n])))
+#' probs<-cbind(item.prob(thetas, "2PL", cbind(a[1:(chng.pt*n)], b[1:(chng.pt*n)])), 
+#'              item.prob(thetas-theta.drop, "2PL", cbind(a[(chng.pt*n+1):n], b[(chng.pt*n+1):n])))
 #' dat<-apply(probs, c(1, 2), function(x) rbinom(1, 1, x))
 #' 
 #' Estimate thetas
@@ -1263,7 +1262,7 @@ cpa.brr<-function(dat, a, b, crit.val=75){
 #' b<-t(apply(b, 1, sort)) 
 #' 
 #' # Calculate response probabilities and generate data
-#' probs<-irt_prob(thetas, "GRM", cbind(a, b))
+#' probs<-item.prob(thetas, "GRM", cbind(a, b))
 #' dat<-data.gen(probs$P)
 #' 
 #' Introduce response disturbance: random guessing for latter 40% of the exam
@@ -1382,7 +1381,7 @@ choose.tuco<-function(r, H=NULL, B=NULL){
 #' b <- t(apply(b, 1, sort))
 #'
 #' ## Calculate probabilities
-#' probs <- irt_prob(thetas, "GRM", cbind(a, b))
+#' probs <- item.prob(thetas, "GRM", cbind(a, b))
 #'
 #' ## Generate input data from probabilities
 #' abdat <- data.gen(probs$P)
@@ -1687,7 +1686,7 @@ standard.errors <- function(a, thetas, dat, d=NULL, b=NULL, residual = "standard
   if(model=="MIRT"){
     
     # Item Response probability
-    P<-irt_prob(matrix(thetas), "MIRT", cbind(a, d))
+    P<-item.prob(matrix(thetas), "MIRT", cbind(a, d))
     
     # Calculate the residual for each item
     if(residual=="information"){
@@ -1820,7 +1819,7 @@ standard.errors <- function(a, thetas, dat, d=NULL, b=NULL, residual = "standard
   }else if(model=="GRM"){
     
     # Item response probability
-    probs <- irt_prob(thetas, "GRM", cbind(a, b))
+    probs <- item.prob(thetas, "GRM", cbind(a, b))
     # Probability of responding in each category
     P<-probs$P[,,1]
     pstars<-cbind(rep(1, length(a)), probs$pstar[,,1], rep(0, length(a)))
@@ -1881,7 +1880,7 @@ standard.errors <- function(a, thetas, dat, d=NULL, b=NULL, residual = "standard
   }else if(model=="MGRM"){
     
     # Item Response Probability
-    probs<-irt_prob(t(thetas), "MGRM", cbind(a, d))
+    probs<-item.prob(t(thetas), "MGRM", cbind(a, d))
     P<-probs$P[,,1]
     pstars<-cbind(rep(1, nrow(a)), probs$pstar[,,1], rep(0, nrow(a)))
     
@@ -1958,7 +1957,7 @@ bayes.standard.error <- function(thetas, post.var, dat, a, b, weight.function = 
   for (i in 1:l){
     
     # Item response probability
-    probs <- irt_prob(thetas, "GRM", cbind(a, b))
+    probs <- item.prob(thetas, "GRM", cbind(a, b))
     # Probability of responding in each category
     P<-probs$P[,,1]
     pstars<-cbind(rep(1, length(a)), probs$pstar[,,1], rep(0, length(a)))
@@ -2046,7 +2045,7 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
     for (k in 1:iter){ #k iterations at maximum
       
       # Item response probabilities
-      probs <- irt_prob(theta, "GRM", cbind(a, b))
+      probs <- item.prob(theta, "GRM", cbind(a, b))
       
       # subset probabilities
       P.i<-probs$P[,,1]
@@ -2179,7 +2178,7 @@ theta.map.grm <- function(dat, a, b, prior = c(0, 1), iter=30, cutoff=0.01, init
     for (k in 1:iter){ #k iterations at maximum
       
       # Item response probabilities 
-      probs <- irt_prob(theta, "GRM", cbind(a, b))
+      probs <- item.prob(theta, "GRM", cbind(a, b))
       
       # subset probabilities
       P.i<-probs$P[,,1]
@@ -2305,7 +2304,7 @@ theta.eap.grm <- function(dat, a, b, prior=c(0,1), eap.quad.pts =seq(-4, 4, leng
   theta.progression <- matrix(NA, nrow = l, ncol = iter)
   
   # Item response probabilities at each quadrature point
-  probs.q <- irt_prob(eap.quad.pts, "GRM", cbind(a, b))
+  probs.q <- item.prob(eap.quad.pts, "GRM", cbind(a, b))
   
   # Loop to estimate theta for each subject
   for(i in 1:l){
@@ -2323,7 +2322,7 @@ theta.eap.grm <- function(dat, a, b, prior=c(0,1), eap.quad.pts =seq(-4, 4, leng
       dim(probs.quad) <- c(length(dat[i,]), dim(probs.q$P)[3])
       
       # Item response probabilities for person's residual
-      probs<-irt_prob(theta, "GRM", cbind(a, b))
+      probs<-item.prob(theta, "GRM", cbind(a, b))
       
       
       # subset probabilities for person residual
@@ -2381,7 +2380,7 @@ theta.eap.grm <- function(dat, a, b, prior=c(0,1), eap.quad.pts =seq(-4, 4, leng
   return(list(theta = theta.est2, standard.error = standard.error, theta.progression = theta.progression, residual = residual))
 }
 
-#' Response Probability Calculation (MIRT) -- deprecated (see irt_prob)
+#' Response Probability Calculation (MIRT) -- deprecated (see item.prob)
 #'
 #' Calculate the item response probabilities given the item parameters and latent trait vector for person \emph{i}, which is
 #' \eqn{\boldsymbol{\theta}_i = ({\theta}_{i1}, {\theta}_{i2}, ... {\theta}_{iL})'} for \emph{L} dimensions, according to the multidimensional IRT model (MIRT; McKinley & Reckase, 1983):
@@ -2400,7 +2399,7 @@ probs.calc <- function(thetas, a, d){
   return(list(residual=r, P=matrix(P, ncol=1)))
 }
 
-#' GRM Response Probability \eqn{P^*} and Response Category Probabilities (P) Calculation (deprecated - see irt_prob)
+#' GRM Response Probability \eqn{P^*} and Response Category Probabilities (P) Calculation (deprecated - see item.prob)
 #'
 #' Generate \eqn{P^*}, the threshold probability, and \eqn{P}, the probability of responding in each category for a vector of latent traits
 #' using parameters needed for the GRM (Samejima, 1969).
@@ -2442,7 +2441,7 @@ probs.calc.grm<-function(thetas, a, b){
   return(list(pstar = pstar, P = P))
 }
 
-#' Item category response probability for MGRM (deprecated - see irt_prob)
+#' Item category response probability for MGRM (deprecated - see item.prob)
 
 probs.mgrm<-function(thetas, a, b, D=1.7){
   
