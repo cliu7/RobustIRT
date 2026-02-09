@@ -207,6 +207,67 @@ item.prob<-function(theta, model, ipars, D=1.7){
 }
 
 
+#' Residual Calculation
+#' 
+#' Standardized and Modified Standardized Residuals
+#' See `item.prob` for description of models and structure of `ipars`
+#' 
+residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr"), D=1.7){
+  
+  # Ensure theta is a matrix
+  if(is.vector(theta)){
+    Theta <- matrix(theta, ncol = 1)
+  }else{
+    Theta <- as.matrix(theta)
+  }
+  
+  #extract model parameters
+  N <- nrow(Theta) # number of subjects
+  L <- ncol(Theta) # number of dimensions
+  J<-nrow(ipars) # number of items
+  
+  # Item (category) response probability
+  probs<-item.prob(theta, model, ipars, D)
+  
+  if(model %in% c("1PL", "2PL", "MIRT", "Rasch")){ # dichotomous data
+    
+    # standardized residual
+    stz<-(dat-probs)/sqrt(probs*(1-probs))
+    
+    # probability of observed response
+    P.response <- ifelse(dat==1, probs, 1-probs)
+    
+    # modified standardized residual
+    msr<-(dat-probs)/P.response
+    
+  }
+  
+  if(model %in% c("GRM", "MGRM")){ # polytomous data
+    P<-probs$P
+    
+    # expected value of the response
+    expected.val<- apply(P, 1, function(x) t(x) %*% matrix(1:K, K))
+    
+    # expected value of the squared response
+    expected.val2<- apply(P, 1, function(x) t(x) %*% matrix(1:K, K)^2)
+    
+    # variance
+    var.x<-expected.val2-expected.val^2
+    
+    # standardized residual
+    stz<-(dat-expected.val)/sqrt(var.x)
+    
+    # probability of observed response
+    P.response <- t(sapply(seq_len(N), function(x) {P[cbind(seq_len(J), dat[x,], x)]}))
+    
+    # modified standardized residual
+    msr<-(dat-expected.val)/P.response
+  }
+    
+  return(list(standardized = stz, modified.standardized = msr))
+}   
+
+
 #' Bisquare Weighting Function
 #'
 #' Calculate Tukey's bisquare weight (Mosteller & Tukey, 1977) given a residual and bisquare tuning parameter
