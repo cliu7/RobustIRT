@@ -66,28 +66,64 @@ pstar_to_p<-function(Pstar){
   return(P)
 }
 
-#' Response Probability Calculation (Handles Multiple Models)
+#' Item Response Probability
 
-#' Computes item response probabilities for a wide range of IRT models (including 1PL, 2PL, MIRT, GRM, and MGRM)
-#' by constructing the appropriate linear predictors and applying the logistic function to return dichotomous or polytomous category probabilities.
+#' Computes item response probabilities for select IRT models (1PL, 2PL, MIRT, GRM, and MGRM), given ability and item paratemeters.
+#' by constructing the appropriate linear predictors and applying the logistic function. Returns item response probabilities for dichotomous data or item category response probabilities for polytomous data.
 #' @references 
 #' @references 
-#' @param theta 
-#' @param ipars item parameters
-#' @param D A positive scaling constant used in the logistic function, defaults to 1.7; 
-#' @return For dichotomous models (1PL, 2PL, MIRT), 
-#' @return For polytomous models (GRM, MGRM)
+#' @param theta A numeric vector or matrix of latent trait values. 
+#' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilitized.
+#' @param model A character string specifying which IRT model to use.
+#' @param D A positive scaling constant used in the logistic function. Defaults to 1.7.
+#' @return For model accomodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities P(X = 1)
+#' @return For models accomodating polytomous data (GRM, MGRM), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)} 
+#'         and {P}: an array of category probabilities \eqn{P(X = k)}
 #' @examples
 
 #' 1PL case
+#' N <- 4 # subjects
+#' J <- 2 # items
+#' theta <- rnorm(N) # generate ability values
+#' ipars <- rnorm(J) # generate item difficulties
+#' item.prob(theta, "1PL", ipars)
 
 #' 2PL case
+#' N <- 5 # subjects
+#' J <- 3 # items
+#' theta <- rnorm(N)
+#' ipars <- cbind(a = runif(J, 0, 1), # generate item discrimination
+#'                b = rnorm(J)) # generate item difficulty
+#' item.prob(theta, "2PL", ipars) 
  
 #' MIRT case
+#' N <- 7 # subjects
+#' J <- 2 # items
+#' L <- 4 # dimensions
+#' theta <- matrix(rnorm(N * L), ncol = L) # N x L ability matrix
+#' ipars <- cbind(matrix(runif(J * L, 0, 1), ncol = L), d = rnorm(J)) # generate slopes + intercept
+#' item.prob(theta, "MIRT", ipars)
 
 #' GRM case
+#' N <- 5 # subjects
+#' J <- 3 # items
+#' K <- 4 # categories
+#' theta <- rnorm(N)
+#' a <- runif(J, 0, 1) # J discriminations
+#' b <- matrix(sort(rnorm(J * (K - 1))), nrow = J) # J x (K-1) thresholds
+#' ipars <- cbind(a, b) # Combine into a J x K matrix
+#' item.prob(theta, "GRM", ipars)
  
 #' MGRM case
+#' N <- 5 # subjects
+#' J <- 3 # items
+#' l <- 2 # dimensions
+#' K <- 4 # categories
+#' theta <- matrix(rnorm(N * L), ncol = L) 
+#' a <- matrix(runif(J * L, 0, 1), ncol = L) # slopes 
+#' b <- matrix(rnorm(J * (K - 1)), nrow = J) # thresholds 
+#' ipars <- cbind(a, b)
+#' item.prob(theta, "MGRM", ipars)
 
 #' Can handle 1PL, 2PL, MIRT, GRM, MGRM
 item.prob<-function(theta, model, ipars, D=1.7){
@@ -120,7 +156,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   }
   
   # 2PL predictor: a * theta - b
-  if(model=="2PL"){
+  if(model=="2PL" | model=="Rasch"){
     ex<-t(sapply(Theta[,1], function(x) ipars[,1]*(x-ipars[,2]))) # ipars[,1] = a_j (discrimination), ipars[,2] = b_j (difficulty)
   }
   
@@ -198,37 +234,53 @@ huber<-function(r, H){
   return(w)
 }
 
-#' Likert-type data generation function from probabilities of responding in each category
-#'
-#' Generate Likert-type data from probabilities of responding in each category
-#' @param P A \eqn{J \times K \times N} array of probabilities of responding in each of \emph{K} categories over \emph{J} items for \emph{N} subjects
-#' @return dat A \eqn{N \times J} matrix of randomly generated Likert-type data using the sample() function for \emph{N} subjects over \emph{J} items
-#' @examples
-#' thetas <- rnorm(15)  # Example latent traits for 15 subjects
-#' a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
-#' b <- t(apply(matrix(runif(10*4, -2.5,2.5), nrow = 10, ncol = 4), 1, sort))  # Example threshold parameters for 10 items and 4 thresholds (5 categories)
-#' probs <- item.prob(thetas, "GRM", cbind(a, b))  # Calculate probabilities
-#' data <- data.gen(probs$P)  # Generate Likert-type data
-
-data.gen<-function(P){
-  if(is.array(P)){ 
-    # If more than one subject
-    # Initialize matrix for generated data
-    dat<-matrix(nrow = nrow(P), ncol = dim(P)[3])
-    for(i in 1:dim(P)[3]){
-      # Loop over each subject
-      # For each item, sample a response category based on the probabilities
-      dat[,i]<-apply(P[,,i], 1, function(x) sample(c(1:dim(P)[2]), 1, replace = T, prob=x))
-    }
-  }else{
-    # If only one subject
-    # For each item, sample a response category based on the probabilities
-    dat<-apply(P, 1, function(x) sample(c(1:dim(P)[2]), 1, replace = T, prob=x))
-  } 
-  # Return the generated Likert-type data
-  return(t(dat))
+#' Data generation for dichotomous and Likert outcomes based on response probabilities
+#' 
+#' Bernoulli sampling is conducted for dichotomous items, while multinomial sampling is conducted for polytomous items.
+#' @param P Probabilities of a correct response (in the case of dichotomous outcomes) or an array of item category response probabilities. For polytomous data, the number of columns should be equal to the number of response categories. Array structure of P with three dimensions assumes polytomous data generation.
+#' @param anchor Value of the lowest category value. Typical values are 0 or 1; default is 0.
+#' @param polytomous Is polytomous data desired? Must be specified when P is a matrix of category response probabilities for polytomous data. 
+#' 
+dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
+  
+  if(!is.null(seed)){
+    set.seed(seed)
+  }
+  
+  if(!is.null(dim(P)[3])){
+    # If dealing with array of polytomous category probabilities
+    out <- t(apply(P, 1, function(p) sample(1:length(p), size = 1, prob = p))) - (1-anchor)
+    
+  }else if(polytomous==T){
+    # If dealing with matrix of polytomous category probabilities for one subject
+    out <- t(apply(P, c(1, 3), function(p) sample(1:length(p), size = 1, prob = p))) - (1-anchor)
+    
+  }else if(polytomous==F){
+    # If dealing with matrix or vector of item success probabilities on dichotomous items
+    U<-matrix(runif(length(P)), ncol = ncol(P), nrow = nrow(P))
+    out <- ifelse(P>U, 1, 0)
+  }
+  return(out)
 }
 
+#' Standard error function for 2PL, MIRT, GRM, MGRM
+#' 
+#' Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian)
+standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", tuning.par = NULL, bayes = NULL){
+  
+  # Function to determine weights:
+  weight.func <- function(r, weight.type2="equal", tuning.par2=NULL){
+    if(weight.type2 == "equal") return(rep(1, length(r)))
+    if(weight.type2 == "Huber") return(huber(r, tuning.par))
+    if(weight.type2 == "bisquare") return(bisquare(r, tuning.par))
+    if(length(weight.type2) == length(r)) return(weight.type2)
+    stop("Invalid weight.type")
+  }
+  
+  P<-item.prob(theta, model, ipars, D=D)
+  r<-(dat-P)/sqrt(P*(1-P))
+  
+}
 #' Calculate standard errors of ability estimates for MIRT data
 #' 
 #' Calculate the standard errors of ability estimates using the Fisher Information matrix for multidimensional dichotomous data using the MIRT model
@@ -2477,5 +2529,36 @@ probs.mgrm<-function(thetas, a, b, D=1.7){
   return(list(pstar = pstar, P = P, exponent = exponent))
 }
 
+
+#' Deprecated: see dat.gen() Likert-type data generation function
+#'
+#' Generate Likert-type data from probabilities of responding in each category
+#' @param P A \eqn{J \times K \times N} array of probabilities of responding in each of \emph{K} categories over \emph{J} items for \emph{N} subjects
+#' @return dat A \eqn{N \times J} matrix of randomly generated Likert-type data using the sample() function for \emph{N} subjects over \emph{J} items
+#' @examples
+#' thetas <- rnorm(15)  # Example latent traits for 15 subjects
+#' a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
+#' b <- t(apply(matrix(runif(10*4, -2.5,2.5), nrow = 10, ncol = 4), 1, sort))  # Example threshold parameters for 10 items and 4 thresholds (5 categories)
+#' probs <- item.prob(thetas, "GRM", cbind(a, b))  # Calculate probabilities
+#' data <- data.gen(probs$P)  # Generate Likert-type data
+
+data.gen<-function(P){
+  if(is.array(P)){ 
+    # If more than one subject
+    # Initialize matrix for generated data
+    dat<-matrix(nrow = nrow(P), ncol = dim(P)[3])
+    for(i in 1:dim(P)[3]){
+      # Loop over each subject
+      # For each item, sample a response category based on the probabilities
+      dat[,i]<-apply(P[,,i], 1, function(x) sample(c(1:dim(P)[2]), 1, replace = T, prob=x))
+    }
+  }else{
+    # If only one subject
+    # For each item, sample a response category based on the probabilities
+    dat<-apply(P, 1, function(x) sample(c(1:dim(P)[2]), 1, replace = T, prob=x))
+  } 
+  # Return the generated Likert-type data
+  return(t(dat))
+}
 
 
