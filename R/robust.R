@@ -68,31 +68,48 @@ pstar_to_p<-function(Pstar){
 
 #' Item Response Probability
 
-#' Computes item response probabilities for select IRT models (1PL, 2PL, MIRT, GRM, and MGRM), given ability and item paratemeters.
+#' Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item paratemeters.
 #' by constructing the appropriate linear predictors and applying the logistic function. Returns item response probabilities for dichotomous data or item category response probabilities for polytomous data.
-#' @references 
-#' @references 
+#' @references Lord, F. M., & Novick, M. R. (1968). Statistical theories of mental test scores. \emph{Addison-Wesley}.
+#' @references Lord, F. M. (1980). Applications of item response theory to practical testing problems. \emph{Erlbaum}. https://doi.org/10.4324/9780203056615.
+#' @references Muraki, E., & Engelhard, G. (1985). Full-information item factor analysis: Applications of EAP scores. \emph{Applied Psychological Measurement}, 9(4), 417–430
+#' @references Rasch, G. (1960). Probabilistic models for some intelligence and attainment tests. \emph{Danish Institute for Educational Research}, 184.
+#' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @param theta A numeric vector or matrix of latent trait values. 
 #' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilitized.
 #' @param model A character string specifying which IRT model to use.
+#'        * '1PL', '2PL' - 1-2 parameter logistic model. Note that specifying '1PL' will not automatically estimate the variance of the latent trait compared to the 'Rasch' type.
+#'        * 'Rasch' - Rasch/partial credit model by constraining slopes to 1 and freely estimating the variance parameters 
+#'                    (alternatively, can be specified by applying equality constraints to the slope parameters in '2PL'; Rasch, 1960)
+#'        * 'MIRT' - Multidimensional extension of the 2PL model, using item slopes and intercepts across multiple latent dimensions (Muraki and Englelhard, 1985).
+#'        * 'GRM' - Graded response model for ordered polytomous items (Samejima, 1969).
+#'        * 'MGRM' - Multidimensional graded response model, extending Samejima’s GRM to multiple latent dimensions.
 #' @param D A positive scaling constant used in the logistic function. Defaults to 1.7.
-#' @return For model accomodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities P(X = 1)
-#' @return For models accomodating polytomous data (GRM, MGRM), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)} 
+#' @return For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities P(X = 1)
+#' @return For models accommodating polytomous data (GRM, MGRM), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)} 
 #'         and {P}: an array of category probabilities \eqn{P(X = k)}
 #' @examples
 
+#' Rasch case
+#' N <- 4
+#' J <- 3
+#' theta <- rnorm(N) # generate ability values
+#' ipars <- rnorm(J)  # generate item difficulties
+#' item.prob(theta, "Rasch", ipars)
+                        
 #' 1PL case
 #' N <- 4 # subjects
 #' J <- 2 # items
 #' theta <- rnorm(N) # generate ability values
-#' ipars <- rnorm(J) # generate item difficulties
+#' ipars <- cbind(a = rep(1.2, J), # set item discrimination
+#'                b = rnorm(J)) # generate item difficulties
 #' item.prob(theta, "1PL", ipars)
 
 #' 2PL case
 #' N <- 5 # subjects
 #' J <- 3 # items
-#' theta <- rnorm(N)
-#' ipars <- cbind(a = runif(J, 0, 1), # generate item discrimination
+#' theta <- rnorm(N) # generate ability values
+#' ipars <- cbind(a = runif(J, 0.5, 2), # generate item discrimination
 #'                b = rnorm(J)) # generate item difficulty
 #' item.prob(theta, "2PL", ipars) 
  
@@ -109,23 +126,24 @@ pstar_to_p<-function(Pstar){
 #' J <- 3 # items
 #' K <- 4 # categories
 #' theta <- rnorm(N)
-#' a <- runif(J, 0, 1) # J discriminations
-#' b <- matrix(sort(rnorm(J * (K - 1))), nrow = J) # J x (K-1) thresholds
+#' a <- runif(J, 0.5, 2) # J discriminations
+#' b_raw <- matrix(rnorm(J * (K - 1)), nrow = J)  
+#' b <- t(apply(b_raw, 1, sort)) # Sort thresholds within each item (row-wise)
 #' ipars <- cbind(a, b) # Combine into a J x K matrix
 #' item.prob(theta, "GRM", ipars)
  
 #' MGRM case
 #' N <- 5 # subjects
 #' J <- 3 # items
-#' l <- 2 # dimensions
+#' L <- 2 # dimensions
 #' K <- 4 # categories
 #' theta <- matrix(rnorm(N * L), ncol = L) 
 #' a <- matrix(runif(J * L, 0, 1), ncol = L) # slopes 
-#' b <- matrix(rnorm(J * (K - 1)), nrow = J) # thresholds 
+#' b_raw <- matrix(rnorm(J * (K - 1)), nrow = J) # thresholds
+#' b <- t(apply(b_raw, 1, sort))
 #' ipars <- cbind(a, b)
 #' item.prob(theta, "MGRM", ipars)
 
-#' Can handle 1PL, 2PL, MIRT, GRM, MGRM
 item.prob<-function(theta, model, ipars, D=1.7){
   model<-toupper(model)
   
@@ -147,16 +165,16 @@ item.prob<-function(theta, model, ipars, D=1.7){
   
   # Compute linear predictor (ex) depending on the model
   
-  # 1PL predictor: theta - b
+  # Rasch predictor: theta - b
   # sapply loops over each person's theta value (Theta[,1]) 
   # For each x = Theta[n,1], compute x - ipars (vector of item difficulties) 
   # sapply returns J x N, then t() makes it N x J
-   if(model=="1PL"){
+   if(model=="Rasch"){
     ex<-t(sapply(Theta[,1], function(x) x-ipars))
   }
   
-  # 2PL predictor: a * theta - b
-  if(model=="2PL" | model=="Rasch"){
+  # 1PL (a is constrained equal over items) or 2PL predictor: a * (theta - b)
+  if(model=="1PL" | model=="2PL"){
     ex<-t(sapply(Theta[,1], function(x) ipars[,1]*(x-ipars[,2]))) # ipars[,1] = a_j (discrimination), ipars[,2] = b_j (difficulty)
   }
   
@@ -194,7 +212,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   }
   
   # Apply logistic function and return probabilities for dichotomous models
-  if(model %in% c("1PL", "2PL", "MIRT")){
+  if(model %in% c("Rasch", "1PL", "2PL", "MIRT")){
     return(P=invlogit(ex)) #Returns N x J matrix of P(X = 1)
   }
   
@@ -205,8 +223,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   }
   
 }
-
-
+                 
 #' Residual Calculation
 #' 
 #' Standardized and Modified Standardized Residuals
