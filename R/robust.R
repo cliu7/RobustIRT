@@ -312,12 +312,13 @@ huber<-function(r, H){
   return(w)
 }
 
+
 #' Data generation for dichotomous and Likert outcomes based on response probabilities
 #' 
 #' Bernoulli sampling is conducted for dichotomous items, while multinomial sampling is conducted for polytomous items.
 #' @param P Probabilities of a correct response (in the case of dichotomous outcomes) or an array of item category response probabilities. For polytomous data, the number of columns should be equal to the number of response categories. Array structure of P with three dimensions assumes polytomous data generation.
 #' @param anchor Value of the lowest category value. Typical values are 0 or 1; default is 0.
-#' @param polytomous Is polytomous data desired? Must be specified when P is a matrix of category response probabilities for polytomous data. 
+#' @param polytomous Is data Likert-type? Must be specified as `TRUE` when P is a matrix of category response probabilities for polytomous data (e.g., data for one person). 
 #' 
 dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
   
@@ -325,13 +326,13 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
     set.seed(seed)
   }
   
-  if(!is.null(dim(P)[3])){
+  if(length(dim(P))==3){
     # If dealing with array of polytomous category probabilities
-    out <- t(apply(P, 1, function(p) sample(1:length(p), size = 1, prob = p))) - (1-anchor)
+    out <- t(apply(P, c(1,3), function(p) sample(1:length(p), size = 1, prob = p))) - (1-anchor)
     
   }else if(polytomous==T){
     # If dealing with matrix of polytomous category probabilities for one subject
-    out <- t(apply(P, c(1, 3), function(p) sample(1:length(p), size = 1, prob = p))) - (1-anchor)
+    out <- t(apply(P, 1, function(p) sample(1:length(p), size = 1, prob = p))) - (1-anchor)
     
   }else if(polytomous==F){
     # If dealing with matrix or vector of item success probabilities on dichotomous items
