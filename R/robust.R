@@ -169,7 +169,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   # sapply loops over each person's theta value (Theta[,1]) 
   # For each x = Theta[n,1], compute x - ipars (vector of item difficulties) 
   # sapply returns J x N, then t() makes it N x J
-   if(model=="Rasch"){
+   if(model=="RASCH"){
     ex<-t(sapply(Theta[,1], function(x) x-ipars))
   }
   
@@ -212,7 +212,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   }
   
   # Apply logistic function and return probabilities for dichotomous models
-  if(model %in% c("Rasch", "1PL", "2PL", "MIRT")){
+  if(model %in% c("RASCH", "1PL", "2PL", "MIRT")){
     return(P=invlogit(ex)) #Returns N x J matrix of P(X = 1)
   }
   
