@@ -70,60 +70,103 @@ pstar_to_p<-function(Pstar){
 
 #' Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item paratemeters.
 #' by constructing the appropriate linear predictors and applying the logistic function. Returns item response probabilities for dichotomous data or item category response probabilities for polytomous data.
+#' @references Birnbaum, A. (1968). Some latent trait models and their use in inferring an examinee’s ability. In F. M. Lord & M. R. Novick (Eds.), Statistical Theories of Mental Test Scores (pp. 397–479). \emph{Addison‑Wesley}.
 #' @references Lord, F. M., & Novick, M. R. (1968). Statistical theories of mental test scores. \emph{Addison-Wesley}.
 #' @references Lord, F. M. (1980). Applications of item response theory to practical testing problems. \emph{Erlbaum}. https://doi.org/10.4324/9780203056615.
+#' @references McKinley, R. L., & Reckase, M. D. (1983). An extension of the two‑parameter logistic model to the multidimensional latent space. \emph{Psychometrika}, 48(3), 369–382.
+#' @references Mosteller, F., & Tukey, J. W. (1977). Data Analysis and Regression: A Second Course in Statistics. \emph{Addison‑Wesley}.
 #' @references Muraki, E., & Engelhard, G. (1985). Full-information item factor analysis: Applications of EAP scores. \emph{Applied Psychological Measurement}, 9(4), 417–430
 #' @references Rasch, G. (1960). Probabilistic models for some intelligence and attainment tests. \emph{Danish Institute for Educational Research}, 184.
 #' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @param theta A numeric vector or matrix of latent trait values. 
 #' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilitized.
 #' @param model A character string specifying which IRT model to use.
-#'        * '1PL', '2PL' - 1-2 parameter logistic model. Note that specifying '1PL' will not automatically estimate the variance of the latent trait compared to the 'Rasch' type.
+#'        * '1PL', '2PL' - 1-2 parameter logistic model. Note that specifying '1PL' will not automatically estimate the variance of the latent trait compared to the 'Rasch' type (2-parameter logistic (2PL) IRT model (Birnbaum, 1968).
 #'        * 'Rasch' - Rasch/partial credit model by constraining slopes to 1 and freely estimating the variance parameters 
 #'                    (alternatively, can be specified by applying equality constraints to the slope parameters in '2PL'; Rasch, 1960)
-#'        * 'MIRT' - Multidimensional extension of the 2PL model, using item slopes and intercepts across multiple latent dimensions (Muraki and Englelhard, 1985).
+#'        * 'MIRT' - Multidimensional extension of the 2PL model, using item slopes and intercepts across multiple latent dimensions (McKinley & Reckase, 1983; Muraki and Englelhard, 1985).
 #'        * 'GRM' - Graded response model for ordered polytomous items (Samejima, 1969).
-#'        * 'MGRM' - Multidimensional graded response model, extending Samejima’s GRM to multiple latent dimensions.
+#'        * 'MGRM' - Multidimensional graded response model, extending Samejima’s GRM to multiple latent dimensions (Muraki & Carlson, 1995).
 #' @param D A positive scaling constant used in the logistic function. Defaults to 1.7.
 #' @return For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities P(X = 1)
 #' @return For models accommodating polytomous data (GRM, MGRM), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)} 
 #'         and {P}: an array of category probabilities \eqn{P(X = k)}
-#' @examples
+#' @section IRT Models
+#' \strong{Rasch}
+#' \deqn{
+#' P(X_{ij} = 1 \mid \theta_i) =
+#'  \frac{1}{1 + e^{-(\theta_i - b_j)}}
+#' }
 
+#' \strong{1PL}
+#' \deqn{
+#' P(X_{ij} = 1 \mid \theta_i) =
+#'  \frac{1}{1 + e^{-Da(\theta_i - b_j)}}
+#' }
+#' 
+#' \strong{2PL}
+#' \deqn{
+#' P(X_{ij} = 1 \mid \theta_i) =
+#'  \frac{1}{1 + e^{-Da_j(\theta_i - b_j)}}
+#' }
+#' 
+#' \strong{MIRT}
+#' \deqn{
+#' P(X_{ij} = 1 \mid \boldsymbol{\theta}_i) =
+#'  \frac{1}{1 + e^{-D(\boldsymbol{a}_j\boldsymbol{\theta}_i + d_j)}}
+#' }
+#' 
+#' \strong{GRM}
+#' \deqn{
+#' P(X_{ij} = k \mid \theta_i) =
+#'  \frac{1}{1 + e^{-Da_j(\theta_i - b_{jk})}}
+#'  -
+#'  \frac{1}{1 + e^{-Da_j(\theta_i - b_{j(k+1)})}}
+#' }
+#' 
+#' \strong{MGRM}
+#' \deqn{
+#' P(X_{ij} = k \mid \boldsymbol{\theta}_i) =
+#'  \frac{1}{1 + e^{-D \sum_{l=1}^L a_{jl}(\boldsymbol{\theta}_{l} - d_{jk})}}
+#'  -
+#'  \frac{1}{1 + e^{-D \sum_{l=1}^L a_{jl}(\boldsymbol{\theta}_{l} - d_{j(k+1)})}}
+#' }
+#' 
+#' @examples
 #' Rasch case
-#' N <- 4
-#' J <- 3
+#' N <- 3
+#' J <- 5
 #' theta <- rnorm(N) # generate ability values
 #' ipars <- rnorm(J)  # generate item difficulties
 #' item.prob(theta, "Rasch", ipars)
                         
 #' 1PL case
 #' N <- 4 # subjects
-#' J <- 2 # items
+#' J <- 6 # items
 #' theta <- rnorm(N) # generate ability values
 #' ipars <- cbind(a = rep(1.2, J), # set item discrimination
 #'                b = rnorm(J)) # generate item difficulties
 #' item.prob(theta, "1PL", ipars)
 
 #' 2PL case
-#' N <- 5 # subjects
-#' J <- 3 # items
+#' N <- 3 # subjects
+#' J <- 5 # items
 #' theta <- rnorm(N) # generate ability values
 #' ipars <- cbind(a = runif(J, 0.5, 2), # generate item discrimination
 #'                b = rnorm(J)) # generate item difficulty
 #' item.prob(theta, "2PL", ipars) 
  
 #' MIRT case
-#' N <- 7 # subjects
-#' J <- 2 # items
-#' L <- 4 # dimensions
+#' N <- 2 # subjects
+#' J <- 7 # items
+#' L <- 3 # dimensions
 #' theta <- matrix(rnorm(N * L), ncol = L) # N x L ability matrix
 #' ipars <- cbind(matrix(runif(J * L, 0, 1), ncol = L), d = rnorm(J)) # generate slopes + intercept
 #' item.prob(theta, "MIRT", ipars)
 
 #' GRM case
-#' N <- 5 # subjects
-#' J <- 3 # items
+#' N <- 3 # subjects
+#' J <- 5 # items
 #' K <- 4 # categories
 #' theta <- rnorm(N)
 #' a <- runif(J, 0.5, 2) # J discriminations
@@ -133,8 +176,8 @@ pstar_to_p<-function(Pstar){
 #' item.prob(theta, "GRM", ipars)
  
 #' MGRM case
-#' N <- 5 # subjects
-#' J <- 3 # items
+#' N <- 3 # subjects
+#' J <- 5 # items
 #' L <- 2 # dimensions
 #' K <- 4 # categories
 #' theta <- matrix(rnorm(N * L), ncol = L) 
@@ -169,7 +212,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   # sapply loops over each person's theta value (Theta[,1]) 
   # For each x = Theta[n,1], compute x - ipars (vector of item difficulties) 
   # sapply returns J x N, then t() makes it N x J
-   if(model=="RASCH"){
+   if(model=="Rasch"){
     ex<-t(sapply(Theta[,1], function(x) x-ipars))
   }
   
@@ -212,7 +255,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   }
   
   # Apply logistic function and return probabilities for dichotomous models
-  if(model %in% c("RASCH", "1PL", "2PL", "MIRT")){
+  if(model %in% c("Rasch", "1PL", "2PL", "MIRT")){
     return(P=invlogit(ex)) #Returns N x J matrix of P(X = 1)
   }
   
@@ -223,12 +266,61 @@ item.prob<-function(theta, model, ipars, D=1.7){
   }
   
 }
-                 
+ 
 #' Residual Calculation
 #' 
-#' Standardized and Modified Standardized Residuals
+#' Computes standardized and modified standardized residuals for dichotomous and polytomous IRT models.
 #' See `item.prob` for description of models and structure of `ipars`
+#' @param x A response vector or matrix. Rows correspond to persons and columns to items.
+#' @param theta A numeric vector or matrix of latent trait values. 
+#' @param a Item discrimination parameters. 
+#' @param b Item difficulty parameters. 
+#' @param model Character string specifying the model. See `item.prob` for specific model descriptions.
+#' @param D A positive scaling constant used in the logistic function. Defaults to 1.7. 
+#' @return A matrix of residuals with the same dimensions as x. For polytomous models, residuals are computed using expected category scores.
 #' 
+#' @examples
+#' # 2PL model 
+#' x <- c(1, 0, 1, 1) # responses from 4 individuals
+#' theta <- c(-1, 0, 0.5, 1) # abilities
+#' a <- 1.2                  # discrimination
+#' b <- -0.5                 # difficulty
+#'
+#' residual(x, theta, a, b, model = "2PL")
+#'
+#'
+#' # MIRT model
+#' x <- matrix(c(1,0,1,1, 0,1,0,1), nrow = 4, byrow = TRUE)
+#' theta <- matrix(c(
+#'   -1,  0,
+#'    0,  0.5,
+#'    1, -0.5,
+#'    0.5, 1
+#' ), ncol = 2, byrow = TRUE)
+#'
+#' a <- matrix(c(
+#'   1.0, 0.5,
+#'   0.8, 1.2
+#' ), nrow = 2, byrow = TRUE)
+#'
+#' b <- c(-0.5, 0.2)
+#'
+#' residual(x, theta, a, b, model = "MIRT")
+#'
+#'
+#' # GRM model
+#' x <- matrix(c(0,1,2, 1,2,3), nrow = 2, byrow = TRUE)
+#' theta <- c(-0.5, 1.0)
+#'
+#' a <- c(1.3, 0.9)
+#'
+#' b <- list(
+#'   c(-2, -1, 0),  # thresholds for item 1
+#'   c(-1,  0, 1)   # thresholds for item 2
+#' )
+#'
+#' residual(x, theta, a, b, model = "GRM")
+
 residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr"), D=1.7){
   
   # Ensure theta is a matrix
@@ -291,7 +383,21 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
 #' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.
 #' @param B Bisquare tuning parameter. Larger values lead to less downweighting
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
-#' @return Bisquare weight value
+#' @return Bisquare weight value. Note that residuals of value `NA` are assigned values of 0.
+#' @examples 
+#' 
+#' # 1-person case
+#' r <- c(-2, -1, 0, 1, 3)
+#' B <- 4
+#' bisquare(r, B)
+#' 
+#' # multi-person, multi-item case
+#' r <- matrix(c( -2, -1, 0, 1, 
+#'                1, 0.5, -0.2, 3, 
+#'                0, 2.5, -3, 1 ), 
+#'                nrow = 3, byrow = TRUE) 
+#' B <- 4 
+#' bisquare(r, B)
 bisquare<-function(r, B){
   w<-ifelse(is.nan(r), 0, 
             ifelse(abs(r) <= B, (1-(r/B)^2)^2, 0))
@@ -305,13 +411,26 @@ bisquare<-function(r, B){
 #' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.
 #' @param H Huber tuning parameter. Larger values lead to less downweighting.
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
-#' @return Huber weight value
+#' @return Huber weight value. Note that residuals of value `NA` are assigned values of 0.
+#' @examples 
+#'
+#' # 1-person case
+#' r <- c(-3, -1, 0, 1.5, 4) 
+#' H <- 1.5 
+#' huber(r, H)
+#' 
+#' # multi-person, multi-item case
+#' r <- matrix(c( -2, -0.5, 0, 2, 
+#'                 3, 1.2, -1, 0.3 ), 
+#'                 nrow = 2, byrow = TRUE) 
+#' H <- 1 
+#' huber(r, H)
+
 huber<-function(r, H){
   w<-ifelse(is.nan(r), 0, 
             ifelse(abs(r) <= H, 1, H/abs(r)))
   return(w)
 }
-
 
 #' Data generation for dichotomous and Likert outcomes based on response probabilities
 #' 
@@ -319,7 +438,40 @@ huber<-function(r, H){
 #' @param P Probabilities of a correct response (in the case of dichotomous outcomes) or an array of item category response probabilities. For polytomous data, the number of columns should be equal to the number of response categories. Array structure of P with three dimensions assumes polytomous data generation.
 #' @param anchor Value of the lowest category value. Typical values are 0 or 1; default is 0.
 #' @param polytomous Is data Likert-type? Must be specified as `TRUE` when P is a matrix of category response probabilities for polytomous data (e.g., data for one person). 
+#' @return A matrix of simulated item responses.
+#' @examples 
 #' 
+#' # Dichotomous Case with Bernoulli Sampling
+#' # 5x4 matrix (5 persons, 4 items)
+#' P_matrix <- matrix(c(0.2, 0.5, 0.8, 0.9,
+#'                   0.1, 0.4, 0.7, 0.6,
+#'                   0.3, 0.6, 0.9, 0.2,
+#'                   0.5, 0.5, 0.5, 0.5,
+#'                   0.9, 0.8, 0.4, 0.3),
+#'                 nrow = 5, byrow = TRUE)
+#'
+#' dat.gen(P_matrix)
+#' 
+#' # Polytomous Case for One Individual
+#' #3x5 matrix of category probabilities (3 items, 5 response categories per item)
+#' P_matrix <- matrix(c(0.05, 0.10, 0.20, 0.30, 0.35,
+#'                             0.40, 0.30, 0.20, 0.05, 0.05,
+#'                             0.10, 0.20, 0.40, 0.20, 0.10),
+#'                           nrow = 3, byrow = TRUE)
+#'
+#' dat.gen(P_matrix, polytomous = TRUE, anchor = 0)
+#' 
+#' # Polytomous Case For Multiple Individuals
+#' # 4x4x10 array (4 items, 4 response categories, 10 individuals)
+#' P_array <- array(runif(4 * 4 * 10), dim = c(4, 4, 10))
+#'
+#' # Normalize each item–person probability vector
+#' P_array <- apply(P_array, c(1, 3), function(x) x / sum(x))
+#' P_array <- array(P_array, dim = c(4, 4, 10)) # restore array shape
+#'
+#' dat.gen(P_array, anchor = 0)
+#'
+                          
 dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
   
   if(!is.null(seed)){
