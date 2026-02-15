@@ -225,7 +225,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   if(model=="MIRT"){
     a<-ipars[,1:L] # a: J x L matrix of discriminations
     d<-ipars[,L+1] # d: J-length vector of intercepts
-    ex<-(t(a%*%t(Theta))+d)
+    ex<-Theta %*% t(a)+ matrix(d, nrow=N, ncol=J, byrow=TRUE)
   }
   
   # GRM predictor: a * (theta - b_k)
@@ -322,6 +322,8 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' residual(x, theta, a, b, model = "GRM")
 
 residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr"), D=1.7){
+    
+  model<-toupper(model)
   
   # Ensure theta is a matrix
   if(is.vector(theta)){
@@ -367,8 +369,11 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
     stz<-(dat-expected.val)/sqrt(var.x)
     
     # probability of observed response
-    P.response <- t(sapply(seq_len(N), function(x) {P[cbind(seq_len(J), dat[x,], x)]}))
-    
+    if(N==1){
+      P.response <- P[cbind(1:J, c(dat))]
+    }else{
+      P.response <- t(sapply(seq_len(N), function(x) {P[cbind(seq_len(J), dat[x,], x)]}))
+    }
     # modified standardized residual
     msr<-(dat-expected.val)/P.response
   }
