@@ -68,7 +68,7 @@ pstar_to_p<-function(Pstar){
 
 #' Item Response Probability
 
-#' Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item paratemeters.
+#' Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item parameters.
 #' by constructing the appropriate linear predictors and applying the logistic function. Returns item response probabilities for dichotomous data or item category response probabilities for polytomous data.
 #' @references Birnbaum, A. (1968). Some latent trait models and their use in inferring an examinee’s ability. In F. M. Lord & M. R. Novick (Eds.), Statistical Theories of Mental Test Scores (pp. 397–479). \emph{Addison‑Wesley}.
 #' @references Lord, F. M., & Novick, M. R. (1968). Statistical theories of mental test scores. \emph{Addison-Wesley}.
@@ -81,15 +81,15 @@ pstar_to_p<-function(Pstar){
 #' @param theta A numeric vector or matrix of latent trait values. 
 #' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilitized.
 #' @param model A character string specifying which IRT model to use.
-#'        * '1PL', '2PL' - 1-2 parameter logistic model. Note that specifying '1PL' will not automatically estimate the variance of the latent trait compared to the 'Rasch' type (2-parameter logistic (2PL) IRT model (Birnbaum, 1968).
-#'        * 'Rasch' - Rasch/partial credit model by constraining slopes to 1 and freely estimating the variance parameters 
-#'                    (alternatively, can be specified by applying equality constraints to the slope parameters in '2PL'; Rasch, 1960)
-#'        * 'MIRT' - Multidimensional extension of the 2PL model, using item slopes and intercepts across multiple latent dimensions (McKinley & Reckase, 1983; Muraki and Englelhard, 1985).
-#'        * 'GRM' - Graded response model for ordered polytomous items (Samejima, 1969).
-#'        * 'MGRM' - Multidimensional graded response model, extending Samejima’s GRM to multiple latent dimensions (Muraki & Carlson, 1995).
-#' @param D A positive scaling constant used in the logistic function. Defaults to 1.7.
+#'        * 'Rasch' - Allows for item difficulty parameters to vary across items (Rasch, 1960).
+#'        * '1PL' - 1-parameter logistic model. Allows for an item discrimination parameter that is constrained to be equal for all items and item difficulty parameters that vary across items. The Rasch model is a special case of the 1PL model in which all item discrimination values are constrained to 1.
+#'        * '2PL' - 2-parameter logistic model. Allows for both item discrimination and difficulty parameters to vary across items (Birnbaum, 1968).
+#'        * 'MIRT' - Multidimensional extension of the 2PL model, where item slopes can vary across multiple latent dimensions and items, and difficulty parameters which vary only with the item (McKinley & Reckase, 1983; Muraki and Englelhard, 1985).
+#'        * 'GRM' - Graded response model for ordered polytomous items, allowing item discrimination parameters to vary across items and item slopes to vary across items and category thresholds (Samejima, 1969).
+#'        * 'MGRM' - Multidimensional graded response model, extending Samejima’s GRM to multiple latent dimensions. Allows item discrimination parameters to vary across items and latent dimensions and item slopes to vary across items and category thresholds. (Muraki & Carlson, 1995).
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
 #' @return For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities P(X = 1)
-#' @return For models accommodating polytomous data (GRM, MGRM), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)} 
+#' @return For models accommodating polytomous data ("GRM", "MGRM"), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)} 
 #'         and {P}: an array of category probabilities \eqn{P(X = k)}
 #' @section IRT Models
 #' \strong{Rasch}
@@ -212,7 +212,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   # sapply loops over each person's theta value (Theta[,1]) 
   # For each x = Theta[n,1], compute x - ipars (vector of item difficulties) 
   # sapply returns J x N, then t() makes it N x J
-   if(model=="Rasch"){
+   if(model=="RASCH"){
     ex<-t(sapply(Theta[,1], function(x) x-ipars))
   }
   
@@ -255,7 +255,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
   }
   
   # Apply logistic function and return probabilities for dichotomous models
-  if(model %in% c("Rasch", "1PL", "2PL", "MIRT")){
+  if(model %in% c("RASCH", "1PL", "2PL", "MIRT")){
     return(P=invlogit(ex)) #Returns N x J matrix of P(X = 1)
   }
   
@@ -276,7 +276,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' @param a Item discrimination parameters. 
 #' @param b Item difficulty parameters. 
 #' @param model Character string specifying the model. See `item.prob` for specific model descriptions.
-#' @param D A positive scaling constant used in the logistic function. Defaults to 1.7. 
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
 #' @return A matrix of residuals with the same dimensions as x. For polytomous models, residuals are computed using expected category scores.
 #' 
 #' @examples
@@ -338,7 +338,7 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
   # Item (category) response probability
   probs<-item.prob(theta, model, ipars, D)
   
-  if(model %in% c("1PL", "2PL", "MIRT", "Rasch")){ # dichotomous data
+  if(model %in% c("1PL", "2PL", "MIRT", "RASCH")){ # dichotomous data
     
     # standardized residual
     stz<-(dat-probs)/sqrt(probs*(1-probs))
@@ -518,7 +518,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' @param theta Vector of latent traits (abilities) for an individual
 #' @param d Vector of difficulty parameters for the items
 #' @param a Matrix of discrimination parameters for the items (rows are items, columns are dimensions)
-#' @param D Scaling constant. Default is 1.7 to scale the item parameters to align with a normal ogive model. 1.0 may be used alternatively.)
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
 #' @return Vector of standard errors
 #' @export
 #'
@@ -640,7 +640,7 @@ std.err.dichotomous<- function(theta, d, a, dat, D = 1.7, residual = "standardiz
 #' @param a Vector of discrimination parameters for the items of length $J$
 #' @param weight.type Type of weighting function to be used: "equal", "Huber", or "bisquare"
 #' @param tuning.par Tuning parameter to be used for the Huber or bisquare weight function
-#' @param D Scaling constant. Default is 1.7 to scale the item parameters to align with a normal ogive model. 1.0 may be used alternatively.)
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
 #' @return Standard Error Standard error of $\theta$ based on the Fisher information (expected information) matrix
 #' @return Sandwich SE Huber-White sandwich estimator of the standard error
 #' @export
