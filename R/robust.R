@@ -502,21 +502,184 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' Standard error function for 2PL, MIRT, GRM, MGRM
 #' 
 #' Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian)
+
 standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", tuning.par = NULL, bayes = NULL){
   
   # Function to determine weights:
   weight.func <- function(r, weight.type2="equal", tuning.par2=NULL){
-    if(weight.type2 == "equal") return(rep(1, length(r)))
+    if(weight.type2 == "equal") return(r*0+1)
     if(weight.type2 == "Huber") return(huber(r, tuning.par))
     if(weight.type2 == "bisquare") return(bisquare(r, tuning.par))
     if(length(weight.type2) == length(r)) return(weight.type2)
     stop("Invalid weight.type")
   }
   
-  P<-item.prob(theta, model, ipars, D=D)
-  r<-(dat-P)/sqrt(P*(1-P))
+  model<-toupper(model)
   
+  N<-nrow(dat) # number of subjects
+  J<-ncol(dat) # test length
+  
+  P<-item.prob(theta, model, ipars, D=D)
+  r<-residual(theta, model, ipars, dat, D=D)$standardized
+  w<- weight.func(r, weight.type, tuning.par)
+  
+  if(model=="RASCH"){
+    
+    # first derivative
+    D1<-t(sapply(1:N, function(x) D*(dat[x,]-P[x,])))
+    
+    # second derivative
+    D2<-t(sapply(1:N, function(x) D^2*P[x,]*(1-P[x,])))
+    
+    A<- rowSums(w*D2) # expected info
+    V<-rowSums(w^2*D2) # ASE numerator
+    B <- rowSums((w*D1)^2) # sandwich B
+    
+    out<-list(
+      asymptotic_se = sqrt(V)/A,
+      sandwich_se = sqrt(B)/A
+    )
+    
+  }
+  
+  if(model=="1PL"){
+    
+    if(ncol(ipars)==2){
+      a<-ipars[,1] # discrimination parameter
+    }else{
+      a<-rep(1, J)
+    }
+    
+    # first derivative
+    D1<-t(sapply(1:N, function(x) D*a*(dat[x,]-P[x,])))
+    
+    # second derivative
+    D2<-t(sapply(1:N, function(x) D^2*a^2*P[x,]*(1-P[x,])))
+    
+    A<- rowSums(w*D2) # expected info
+    V<-rowSums(w^2*D2) # ASE numerator
+    B <- rowSums((w*D1)^2) # sandwich B
+    
+    out<-list(
+      asymptotic_se = sqrt(V)/A,
+      sandwich_se = sqrt(B)/A
+    )
+    
+  }
+  
+  if(model=="2PL"){
+    
+    a<-ipars[,1] # discrimination parameter
+    
+    # first derivative
+    D1<-t(sapply(1:N, function(x) D*a*(dat[x,]-P[x,])))
+    
+    # second derivative
+    D2<-t(sapply(1:N, function(x) D^2*a^2*P[x,]*(1-P[x,])))
+    
+    A<- rowSums(w*D2) # expected info
+    V<-rowSums(w^2*D2) # ASE numerator
+    B <- rowSums((w*D1)^2) # sandwich B
+    
+    out<-list(
+      asymptotic_se = sqrt(V)/A,
+      sandwich_se = sqrt(B)/A
+    )
+    
+  }
+  
+  if(model=="MIRT"){
+    if(!is.matrix(theta)) theta <- matrix(theta, nrow = 1)
+    L<-ncol(theta)
+    N<-nrow(theta)
+    a<-ipars[,1:L]
+    d<-ipars[,L+1]
+    
+    out_ase <- matrix(NA,N,L)
+    out_sand  <- matrix(NA,N,L)
+    out_singular <- matrix(0,N,L)
+    
+    for(i in 1:N){
+      Pi<-P[i,]
+      xi<-dat[i,]
+
+      # Initialize LxL matrices
+      A <- V <-B <- matrix(0,L,L)
+      
+      for(j in 1:nrow(a)){
+        aj <- matrix(a[j, ], nrow = 1)
+        wij<-w[i,j]
+        gj <- matrix(D*wij*aj* (xi[j] - Pi[j]) , nrow=1) # jth contribution to the first derivative of the log likelihood
+        B <- B + t(gj) %*% gj # sandwich B
+        
+        Ij<-D^2*(t(aj)%*% aj)*Pi[j]*(1-Pi[j]) # jth item information (2nd derivative)
+        
+        A <- A +wij*Ij # jth item expected info contribution
+        V <- V + wij^2*Ij # ASE numerator contribution
+     
+      }
+      
+      if(length(A)==1){
+          Ainv<-1/A
+        } else if(det(A)<1e-12 || any(!is.finite(A))) {
+          out_singular[i,]<-1
+          out_ase[i,] <- NA
+          out_sand[i,]  <- NA
+        }else {
+          Ainv <- solve(A)
+          out_ase[i,] <- sqrt(diag(Ainv %*% V %*% Ainv))
+          out_sand[i,]  <- sqrt(diag(Ainv %*% B %*% Ainv))
+        }
+      
+    }
+    
+    out<-list(asymptotic_se = out_ase,
+              sandwich_se = out_sand,
+              singular.matrix = out_singular)
+    
+  }
+  
+  if(model=="GRM"){
+    a<-ipars[,1] # discrimination parameters
+    b<-ipars[,-1] # threshold parameters
+    K<-ncol(b) # number of thresholds
+    
+    Pcat  <- P$P             
+    Pstar <- array(NA, dim=c(J, K+2, N))
+    Pstar[,1,] <- 1
+    Pstar[,2:(K+1),] <- P$pstar
+    Pstar[,K+2,] <- 0
+    
+    scores <- 1:K
+    
+    k_index <- t(dat)
+    
+    idx1 <- cbind(rep(1:J, N), as.vector(k_index), rep(1:N, each=J))
+    idx2 <- cbind(rep(1:J, N), as.vector(k_index+1), rep(1:N, each=J))
+    
+    P1 <- array(Pstar[idx1], dim=c(J,N))
+    P2 <- array(Pstar[idx2], dim=c(J,N))
+    Pk <- P1 - P2
+    
+    g1 <- D*a*(P1*(1-P1) - P2*(1-P2)) / Pk # first derivative
+    Ij <- -D^2 * a^2 * ((P1*(1-P1)*(1-2*P1) - P2*(1-P2)*(1-2*P2))/Pk -
+        (P1*(1-P1) - P2*(1-P2))^2 / Pk^2)
+    
+    A <- colSums(t(w) * Ij)
+    V <- colSums(t(w)^2 * Ij)
+    B <- colSums((t(w) * g1)^2)
+    
+    A[A <= 0 | !is.finite(A)] <- NA
+    
+    out <- list(
+      asymptotic_se = sqrt(V)/A,
+      sandwich_se  = sqrt(B)/A
+    )
+    
+  }
+  return(out)
 }
+
 #' Calculate standard errors of ability estimates for MIRT data
 #' 
 #' Calculate the standard errors of ability estimates using the Fisher Information matrix for multidimensional dichotomous data using the MIRT model
