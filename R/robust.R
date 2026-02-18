@@ -9,15 +9,15 @@
 #' @param Pstar A \eqn{J \times K-1 \times N} array of \eqn{P^*} threshold probability values, for \eqn{K} categories, \eqn{J} items, and \eqn{N} subjects
 #' @return The probabilities \eqn{P} of responding in each category
 #' @examples
-#' One-subject case
+#' # One-subject case
 #' Pstar <- matrix(c(0.85, 0.50, 0.20,0.70, 0.40, 0.10,0.90, 0.60, 0.30), nrow = 3, byrow = TRUE)
 #' pstar_to_p(Pstar)
 #' 
-#' Multi-subject case
+#' # Multi-subject case
 #' J <- 2   # items
 #' K <- 4   # categories (0–3)
 #' N <- 3   # persons
-#' Simulate P* values
+#' # Simulate P* values
 #' Pstar <- array(runif(J * (K - 1) * N), dim = c(J, K - 1, N))
 #' Pstar <- aperm(apply(Pstar, c(1, 3), sort, decreasing = TRUE), c(2, 1, 3))
 #' pstar_to_p(Pstar)
@@ -133,14 +133,14 @@ pstar_to_p<-function(Pstar){
 #' }
 #' 
 #' @examples
-#' Rasch case
+#' # Rasch case
 #' N <- 3
 #' J <- 5
 #' theta <- rnorm(N) # generate ability values
 #' ipars <- rnorm(J)  # generate item difficulties
 #' item.prob(theta, "Rasch", ipars)
                         
-#' 1PL case
+#' # 1PL case
 #' N <- 4 # subjects
 #' J <- 6 # items
 #' theta <- rnorm(N) # generate ability values
@@ -148,7 +148,7 @@ pstar_to_p<-function(Pstar){
 #'                b = rnorm(J)) # generate item difficulties
 #' item.prob(theta, "1PL", ipars)
 
-#' 2PL case
+#' # 2PL case
 #' N <- 3 # subjects
 #' J <- 5 # items
 #' theta <- rnorm(N) # generate ability values
@@ -156,7 +156,7 @@ pstar_to_p<-function(Pstar){
 #'                b = rnorm(J)) # generate item difficulty
 #' item.prob(theta, "2PL", ipars) 
  
-#' MIRT case
+#' # MIRT case
 #' N <- 2 # subjects
 #' J <- 7 # items
 #' L <- 3 # dimensions
@@ -164,7 +164,7 @@ pstar_to_p<-function(Pstar){
 #' ipars <- cbind(matrix(runif(J * L, 0, 1), ncol = L), d = rnorm(J)) # generate slopes + intercept
 #' item.prob(theta, "MIRT", ipars)
 
-#' GRM case
+#' # GRM case
 #' N <- 3 # subjects
 #' J <- 5 # items
 #' K <- 4 # categories
@@ -175,7 +175,7 @@ pstar_to_p<-function(Pstar){
 #' ipars <- cbind(a, b) # Combine into a J x K matrix
 #' item.prob(theta, "GRM", ipars)
  
-#' MGRM case
+#' # MGRM case
 #' N <- 3 # subjects
 #' J <- 5 # items
 #' L <- 2 # dimensions
@@ -2665,8 +2665,7 @@ std.err.dichotomous<- function(theta, d, a, dat, D = 1.7, residual = "standardiz
 #' @return Standard Error Standard error of $\theta$ based on the Fisher information (expected information) matrix
 #' @return Sandwich SE Huber-White sandwich estimator of the standard error
 #' @export
-#'
-#' @examples
+
 std.err.poly<- function(theta, dat, b, a, weight.type, tuning.par, D = 1.7){
   
   # Takes 1 subject and is unidimensional (theta is a scalar)
