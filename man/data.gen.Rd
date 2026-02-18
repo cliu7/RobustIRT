@@ -2,16 +2,23 @@
 % Please edit documentation in R/robust.R
 \name{data.gen}
 \alias{data.gen}
-\title{Likert-type data generation function from probabilities of responding in each category}
+\title{Deprecated: see dat.gen() Likert-type data generation function}
 \usage{
 data.gen(P)
 }
 \arguments{
-\item{P}{A \eqn{n \times K \times m} array of probabilities of responding in each of \emph{K} categories over \emph{n} items for \emph{m} subjects}
+\item{P}{A \eqn{J \times K \times N} array of probabilities of responding in each of \emph{K} categories over \emph{J} items for \emph{N} subjects}
 }
 \value{
-dat A \eqn{n \times m} matrix of randomly generated Likert-type data using the sample() function for \emph{m} subjects over \emph{n} items
+dat A \eqn{N \times J} matrix of randomly generated Likert-type data using the sample() function for \emph{N} subjects over \emph{J} items
 }
 \description{
-This function generates Likert-type data from probabilities of responding in each category
+Generate Likert-type data from probabilities of responding in each category
+}
+\examples{
+thetas <- rnorm(15)  # Example latent traits for 15 subjects
+a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
+b <- t(apply(matrix(runif(10*4, -2.5,2.5), nrow = 10, ncol = 4), 1, sort))  # Example threshold parameters for 10 items and 4 thresholds (5 categories)
+probs <- item.prob(thetas, "GRM", cbind(a, b))  # Calculate probabilities
+data <- data.gen(probs$P)  # Generate Likert-type data
 }

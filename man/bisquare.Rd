@@ -7,13 +7,31 @@
 bisquare(r, B)
 }
 \arguments{
-\item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item}
+\item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.}
 
-\item{B}{Bisquare tuning parameter}
+\item{B}{Bisquare tuning parameter. Larger values lead to less downweighting}
 }
 \value{
-Bisquare weight value
+Bisquare weight value. Note that residuals of value `NA` are assigned values of 0.
 }
 \description{
-This function returns the value of the bisquare weight given a residual and bisquare tuning paramter
+Calculate Tukey's bisquare weight (Mosteller & Tukey, 1977) given a residual and bisquare tuning parameter
+}
+\examples{
+
+# 1-person case
+r <- c(-2, -1, 0, 1, 3)
+B <- 4
+bisquare(r, B)
+
+# multi-person, multi-item case
+r <- matrix(c( -2, -1, 0, 1, 
+               1, 0.5, -0.2, 3, 
+               0, 2.5, -3, 1 ), 
+               nrow = 3, byrow = TRUE) 
+B <- 4 
+bisquare(r, B)
+}
+\references{
+Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 }

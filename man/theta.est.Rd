@@ -8,91 +8,90 @@ theta.est(
   dat,
   a,
   d,
+  D = 1.7,
   iter = 30,
   cutoff = 0.01,
   init.val = rep(0, ncol(a)),
   weight.type = "equal",
-  tuning.par = NULL
+  tuning.par = NULL,
+  residual = "information"
 )
 }
 \arguments{
-\item{dat}{A \eqn{n \times m} matrix of dichotomously-coded data where 1 represents an endorsed response and 0 represents a non-endorsed response. \emph{n} is the test length and \emph{m} is the number of subjects.}
+\item{dat}{A \eqn{J \times N} matrix of dichotomously-coded data where 1 represents an endorsed response and 0 represents a non-endorsed response. \emph{J} is the test length and \emph{N} is the number of subjects.}
 
-\item{a}{A \eqn{p \times n} matrix containing fixed item slope parameters for \emph{n} items and \emph{p} dimensions}
+\item{a}{A \eqn{L \times J} matrix containing fixed item slope parameters for \emph{J} items and \emph{L} dimensions}
 
-\item{d}{A vector of length \emph{n} containing fixed intercept parameters for n items. If the model is unidimensional, this vector should contain difficulty parameters corresponding to \emph{b} in the unidimensional 2PL model.}
+\item{d}{A vector of length \emph{J} containing fixed intercept parameters for J items. If the model is unidimensional, this vector should contain difficulty parameters corresponding to \emph{b} in the unidimensional 2PL model.}
 
-\item{iter}{Maximum number of iterations for the Newton-Raphson method. Default is 100.}
+\item{iter}{Maximum number of iterations for the Newton-Raphson method. Default is 30.}
 
 \item{cutoff}{Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged. Default is 0.01.}
 
-\item{init.val}{A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions.}
+\item{init.val}{A vector of length \emph{L} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{L} dimensions.}
 
 \item{tuning.par}{The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.}
+
+\item{residual}{Type of residual if using bisquare or Huber weight functions. Default is "information" while "standardized" can alternatively be used.}
 
 \item{weight.category}{The weighting strategy to use: "equal", "bisquare", or "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.}
 }
 \value{
-Theta A \eqn{m \times p} matrix of ability estimates for \emph{m} subjects and \emph{p} dimensions
+theta A \eqn{N \times L} matrix of ability estimates for \emph{N} subjects and \emph{L} dimensions
 
-Convergence \eqn{m \times p} matrix containing indicators of convergence for \emph{m} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
+standard.errors A \eqn{N \times L} matrix of the standard errors of ability estimates for \emph{N} subjects and \emph{L} dimensions, calculated by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values.
 
-theta.progression A \eqn{p \times iter \times m} array for \emph{p} dimensions, \emph{iter} number of iterations supplied to the input, and \emph{m} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error.
+convergence \eqn{N \times L} matrix containing indicators of convergence for \emph{N} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
 
-residual A \eqn{n \times m} matrix with residuals corresponding to the ability estimate for \emph{m} subjects respective to the \emph{n} test items
+theta.progression A \eqn{L \times p \times N} array for \emph{L} dimensions, \emph{p} number of iterations supplied to the input, and \emph{N} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error.
+
+residual A \eqn{J \times N} matrix with residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items
 }
 \description{
-This function return the list of ability estimations based on the given weighting function
+Calculate robust ability estimates using the MIRT item response function with the given weight function, fixed item parameters, and item responses
 }
 \details{
-The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
-Using the multidimensional IRT model for dichotomous data, the probability of a correct response (e.g., "1") on item \emph{i} is given by the formula \eqn{P(X=1 | \boldsymbol{\theta}) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a_i}\boldsymbol\theta+d_i)}},} where \eqn{\boldsymbol{a}} is a \eqn{p \times n} matrix of item slope parameters for \emph{n} items and \emph{p} dimensions. Note that \emph{d} here is considered the intercept parameter and itself is not the item difficulty as is \emph{b} in the 2PL model for unidimensional dichotomous data.
-Unidimensional robust estimations can also be calculated from this model when input parameters have \emph{p}=1 dimensions. The 2PL probability model for unidimensional data is \eqn{P(X=1 | \theta) = \frac{1}{1+ e^{-1.7a_{i}(\theta-b_{i})}}} where \emph{a} is the same as the multidimensional case where \emph{p=1}.
-The contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item \emph{i}:
-\deqn{\sum_i^n \omega(r_i) \frac{\partial}{\partial\boldsymbol\theta} \ln L(\boldsymbol\theta;x_i) = 0 }
-The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \textbf a_i\boldsymbol\theta + d_i } in the multidimensional case.
-Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
-\deqn{\omega(r_i)=\begin{cases}[1-(r_i/B)^2]^2, & \text{if} |r_i|\leq B.\\0, & \text{if} |r_i|>B.\end{cases}}
-and the Huber weighting function (Huber, 1981)
-\deqn{\omega(r_i)=\begin{cases}1, & \text{if} |r_i|\leq H.\\H/|r_i|, & \text{if} |r_i|>H.\end{cases}}
-Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\boldsymbol{\theta}}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
+              Using the multidimensional IRT model for dichotomous data (McKinley & Reckase, 1983), the probability of a correct response (e.g., "1") on item \emph{j} is given by the formula \eqn{P(X_{ij}=1 | \boldsymbol{\theta}_i) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a}_j\boldsymbol\theta_i+d_j)}},} where \eqn{\boldsymbol{a}_j} is a \eqn{L \times J} matrix of item slope parameters for \emph{J} items and \emph{L} dimensions. The intercept parameter is \eqn{d_j}.
 }
 \examples{
-#test length
+# Test length
 n <- 30
 
-## number of iterations of newton's method
-iter <- 15
+## Number of iterations of Newton's method
+iters<-50
 
-## number of dim
+## Number of dimensions
 dim <- 3
 
-## correlation between one person's thetas
+## Correlation between one person's thetas
 cor <- .6
 
-## Covariance Matrix for generating thetas
+## Covariance matrix for generating thetas
 sigma <- matrix(cor, ncol = dim, nrow = dim)
 diag(sigma) <- 1
 s <- rep(1, dim)
 sigma <- s*sigma*s
 
 ## Generate real thetas
-thetas <- matrix(mvrnorm(n = 1, rep(0,dim), Sigma = sigma), ncol = dim)
+thetas <- matrix(mvrnorm(n = 10, rep(0,dim), Sigma = sigma), ncol = dim)
 
 ## Generate slope parameters
-a <- matrix(runif(n*dim, .5, 1.5), nrow = n, ncol = dim)
+a <- matrix(runif(n*dim, 1.5, 3), nrow = n, ncol = dim)
 ## Generate intercept parameters
 d <- matrix(rnorm(n), ncol = 1)
-## Generate probabilities
-probs <- probs.gen(thetas, a, d)
-## Generate input data from probabilities
-dat <- apply(probs$P, c(1,2), function(x) rbinom(1,1,x))
+## Calculate probabilities
+probs <- item.prob(thetas, "MIRT", cbind(a,d))
+## Generate data from probabilities
+dat <- apply(probs, c(1,2), function(x) rbinom(1,1,x))
 
 ## Estimate thetas
-theta.est(dat, a, d, iter = 15, theta0=matrix(rep(0,dim)), weight.type="Huber", tuning.par=1)
+theta.est(dat, a, d, iters, init.val=matrix(rep(0,dim)), weight.type="Huber", tuning.par=1)
 }
 \references{
 Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+
+McKinley, R. L., & Reckase, M. D. (1983, August). \emph{An Extension of the Two-Parameter Logistic Model to the Multidimensional Latent Space} (Research No. ONR83-2). Iowa City, IA: American College Testing Program.
 
 Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 

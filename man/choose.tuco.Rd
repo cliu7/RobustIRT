@@ -17,75 +17,85 @@ choose.tuco(r, H = NULL, B = NULL)
 Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
 }
 \description{
-This function plots a histogram of residuals along the graph of the weighting function (dependent on the tuning parameter) as a function of the residual
+Plot a histogram of residuals along the graph of the weighting function (dependent on the tuning parameter) as a function of the residual
 }
 \details{
 The goal of this plot is to visualize the proportion of residuals that are downweighted based on the tuning parameter and allow the researcher to choose a tuning parameter that suits their data well.
+              For a set of residuals with larger variance, a larger tuning parameter should be used.
+              Generally, the tail end of the weighting function should approach the tail end of the distribution of residuals.
+              To increase the downweighting applied in estimation, use a smaller tuning parameter. To decrease the amount of downweighting, use a greater tuning parameter.
+              The function will plot the histogram of residuals below (1) the Huber weight curve (Huber, 1981) if \emph{H} is supplied to the function, (2) Tukey's bisquare weight curve (Mosteller & Tukey, 1977) if \emph{B} is supplied, or (3) both the Huber and bisquare weight curves if both tuning parameters are supplied.
+              If \emph{H} is supplied, vertical lines will be displayed at \emph{H} and \emph{-H} to highlight the amount of data that is downweighted (a residual greater than \emph{|H|}) versus not downweighted.
+              If no tuning parameter is supplied, just the histogram of residuals is generated.
 }
 \examples{
-########## Choose.tuco example - Unidimensional IRT ######
+## Unidimensional IRT Example
 n=40
-thetas<-matrix(seq(0,2, by=.05), ncol=1)#generate real thetas
-a<-matrix(runif(n, .5, 1.5), ncol=1) #set item slope
-d<-rnorm(n)
-#Generate probabilities of correct response as if working at a suboptimal level of -1
-theta.drop<-.5
+# Generate real thetas
+thetas<-matrix(seq(0,2, by=.05), ncol=1)
+# Set item slope and difficulty
+a<-matrix(runif(n, .5, 1.5), ncol=1) 
+b<-rnorm(n)
+
+# Introduce response disturbances: working at a suboptimal level (theta minus 1 standard deviation), for last 40\% of items
+theta.drop<-1
 chng.pt<-0.6
-probs<-rbind(apply(thetas, 1, function(x) probs.gen(x, matrix(a[1:(chng.pt*n)], ncol=1), d[1:(chng.pt*n)])$P), apply(thetas-theta.drop, 1, function(x) probs.gen(x, matrix(a[(chng.pt*n+1):n,], ncol=1), d[(chng.pt*n+1):n])$P))
+probs<-cbind(item.prob(thetas, "2PL", cbind(a[1:(chng.pt*n)], b[1:(chng.pt*n)])), 
+             item.prob(thetas-theta.drop, "2PL", cbind(a[(chng.pt*n+1):n], b[(chng.pt*n+1):n])))
 dat<-apply(probs, c(1, 2), function(x) rbinom(1, 1, x))
+
+Estimate thetas
 example<-theta.est(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL)
-theta_plots(dat, a, d=d, iter=30, cutoff=0.01, H=1, B=4, type='MIRT')
 choose.tuco(r=matrix(na.omit(example$residual), ncol=1), B=4)
 
-########## Choose.tuco example - MIRT#######
-library(mirt)
-data(SAT12)
-SAT12[SAT12 == 8] <- NA #set 8 as a missing value
-
-#correct answer key
-key <- c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5)
-scoredSAT12 <- key2binary(SAT12, key)
-specific <- c(2, 3, 2, 3, 3, 2, 1, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 3, 2, 3, 1,2) #which factor each item loads on
-b_mod1 <- mirt(scoredSAT12, specific)
-ipars<-matrix(unlist(coef(b_mod1))[1:(32*6)], nrow = length(key), byrow=T) #item parameters
-a <- ipars[,1:3]
-d<- ipars[,4]
-
-########### Choose.tuco example - GRM ######
+## GRM example
 n=40
 nthresh<-4
-thetas<-seq(-2,2.1, by=.1)#generate real thetas
+# Generate real thetas
+thetas<-seq(-2,2.1, by=.1)
 
-a<-runif(n, .90, 2.15) #set item slope
+# Set item slope
+a<-runif(n, .90, 2.15) 
+# Set category threshold parameters
 b<- matrix(runif(n*nthresh, -2.5,2.5), nrow = n, ncol =nthresh)
-b<-t(apply(b, 1, sort)) #category threshold parameters
-probs<-probs.gen.grm(thetas, a, b)
+b<-t(apply(b, 1, sort)) 
+
+# Calculate response probabilities and generate data
+probs<-item.prob(thetas, "GRM", cbind(a, b))
 dat<-data.gen(probs$P)
+
+Introduce response disturbance: random guessing for latter 40\% of the exam
 abdat<-dat
-chng.pt<-.6 #random guessing for latter 30\% of the exam
+chng.pt<-.6 
 abdat[(chng.pt*n+1):n, ]<-sample(c(1:(nthresh+1)), length(thetas)*(n-chng.pt*n), replace = T)
+Calculate ability estimates and residuals
 mle<-theta.est.grm(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal")
 choose.tuco(matrix(mle$residual), H=.1, B=.8)
 
-######## theta_plots example - MIRT ##########
+## MIRT Example
 data(SAT12)
 SAT12[SAT12 == 8] <- NA #set 8 as a missing value
 
-#correct answer key
+# Correct answer key
 key <- c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5)
 scoredSAT12 <- key2binary(SAT12, key)
 specific <- c(2, 3, 2, 3, 3, 2, 1, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 3, 2, 3, 1,2) #which factor each item loads on
 b_mod1 <- mirt(scoredSAT12, specific)
 ipars<-matrix(unlist(coef(b_mod1))[1:(32*6)], nrow = length(key), byrow=T) #item parameters
 
-### Set Parameters
+## Set Parameters
 a <- ipars[,1:3]
 d<- ipars[,4]
-dat<-scoredSAT12[!is.na(rowSums(scoredSAT12)),] # removing vectors with missing data
-colnames(dat)<-NULL
-dat<-scoredSAT12[!is.na(rowSums(scoredSAT12)),] # removing vectors with missing data
+# Remove vectors with missing data
+dat<-scoredSAT12[!is.na(rowSums(scoredSAT12)),] 
 colnames(dat)<-NULL
 
+# Calculate theta estimates and residuals
 out<-theta.est(t(dat), a, d, iter=30, cutoff=.01, weight.type="equal")
 choose.tuco(matrix(out$residual[,,2]), H=1, B=4)
+}
+\references{
+Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+
+Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 }

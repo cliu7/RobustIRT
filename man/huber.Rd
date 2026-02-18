@@ -7,13 +7,30 @@
 huber(r, H)
 }
 \arguments{
-\item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item}
+\item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.}
 
-\item{H}{Huber tuning parameter}
+\item{H}{Huber tuning parameter. Larger values lead to less downweighting.}
 }
 \value{
-Huber weight value
+Huber weight value. Note that residuals of value `NA` are assigned values of 0.
 }
 \description{
-This function returns the value of the Huber weight given a residual and Huber tuning paramter
+Calculate the Huber weight (Huber, 1981) given a residual and Huber tuning parameter
+}
+\examples{
+
+# 1-person case
+r <- c(-3, -1, 0, 1.5, 4) 
+H <- 1.5 
+huber(r, H)
+
+# multi-person, multi-item case
+r <- matrix(c( -2, -0.5, 0, 2, 
+                3, 1.2, -1, 0.3 ), 
+                nrow = 2, byrow = TRUE) 
+H <- 1 
+huber(r, H)
+}
+\references{
+Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 }
