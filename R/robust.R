@@ -514,13 +514,13 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' 
 #' Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian)
 
-standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", tuning.par = NULL, bayes = NULL){
+standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", tuning.par = NULL, est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41)){
   
   # Function to determine weights:
   weight.func <- function(r, weight.type2="equal", tuning.par2=NULL){
     if(weight.type2 == "equal") return(r*0+1)
-    if(weight.type2 == "Huber") return(huber(r, tuning.par))
-    if(weight.type2 == "bisquare") return(bisquare(r, tuning.par))
+    if(weight.type2 == "Huber") return(huber(r, tuning.par2))
+    if(weight.type2 == "bisquare") return(bisquare(r, tuning.par2))
     if(length(weight.type2) == length(r)) return(weight.type2)
     stop("Invalid weight.type")
   }
@@ -534,6 +534,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
   r<-residual(theta, model, ipars, dat, D=D)$standardized
   w<- weight.func(r, weight.type, tuning.par)
   
+  out<-list() # initialize vector for storing output
+  
   if(model=="RASCH"){
     
     # first derivative
@@ -546,10 +548,37 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     V<-rowSums(w^2*D2) # ASE numerator
     B <- rowSums((w*D1)^2) # sandwich B
     
-    out<-list(
-      asymptotic_se = sqrt(V)/A,
-      sandwich_se = sqrt(B)/A
-    )
+    if("MLE"%in%est.type){
+      out$asymptotic_MLE <- sqrt(V)/A
+      out$sandwich_MLE <- sqrt(B)/A
+    }
+    
+    if("MAP"%in%est.type){
+      
+      # Weighted Second Derivative
+      D2.MAP<-rowSums(w*D2) + 1/prior[2]
+      
+      out$post_sd_MAP <- sqrt(1 / D2.MAP)
+      out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+    }
+    
+    if("EAP"%in%est.type){
+      # Prior density according to each density point
+      f_x<-dnorm(eap.quad.pts, prior[1], sqrt(prior[2]))
+      # Item response probabilities at each quadrature point
+      probs.q <- item.prob(eap.quad.pts, "Rasch", ipars) 
+      Q<-length(eap.quad.pts)
+      
+      # (Weighted) Likelihood according to person's data and each quad point
+      likelihood<-matrix(NA, N, Q)
+      for(i in 1:N){
+        likelihood[i,]<- apply(probs.q, 1, function(x) prod((x^dat[i,]*(1-x)^(1-dat[i,]))^w[i,]))
+      }
+      
+      # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
+      out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
+      out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+    } 
     
   }
   
@@ -571,10 +600,38 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     V<-rowSums(w^2*D2) # ASE numerator
     B <- rowSums((w*D1)^2) # sandwich B
     
-    out<-list(
-      asymptotic_se = sqrt(V)/A,
-      sandwich_se = sqrt(B)/A
-    )
+    
+    if("MLE"%in%est.type){
+      out$asymptotic_MLE <- sqrt(V)/A
+      out$sandwich_MLE <- sqrt(B)/A
+    }
+    
+    if("MAP"%in%est.type){
+      
+      # Weighted Second Derivative
+      D2.MAP<-rowSums(w*D2) + 1/prior[2]
+      
+      out$post_sd_MAP <- sqrt(1 / D2.MAP)
+      out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+    }
+    
+    if("EAP"%in%est.type){
+      # Prior density according to each density point
+      f_x<-dnorm(eap.quad.pts, prior[1], sqrt(prior[2]))
+      # Item response probabilities at each quadrature point
+      probs.q <- item.prob(eap.quad.pts, "1PL", ipars) 
+      Q<-length(eap.quad.pts)
+      
+      # (Weighted) Likelihood according to person's data and each quad point
+      likelihood<-matrix(NA, N, Q)
+      for(i in 1:N){
+        likelihood[i,]<- apply(probs.q, 1, function(x) prod((x^dat[i,]*(1-x)^(1-dat[i,]))^w[i,]))
+      }
+      
+      # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
+      out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
+      out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+    } 
     
   }
   
@@ -592,10 +649,38 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     V<-rowSums(w^2*D2) # ASE numerator
     B <- rowSums((w*D1)^2) # sandwich B
     
-    out<-list(
-      asymptotic_se = sqrt(V)/A,
-      sandwich_se = sqrt(B)/A
-    )
+    
+    if("MLE"%in%est.type){
+      out$asymptotic_MLE <- sqrt(V)/A
+      out$sandwich_MLE <- sqrt(B)/A
+    }
+    
+    if("MAP"%in%est.type){
+      
+      # Weighted Second Derivative
+      D2.MAP<-rowSums(w*D2) + 1/prior[2]
+      
+      out$post_sd_MAP <- sqrt(1 / D2.MAP)
+      out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+    }
+    
+    if("EAP"%in%est.type){
+      # Prior density according to each density point
+      f_x<-dnorm(eap.quad.pts, prior[1], sqrt(prior[2]))
+      # Item response probabilities at each quadrature point
+      probs.q <- item.prob(eap.quad.pts, "2PL", ipars) 
+      Q<-length(eap.quad.pts)
+      
+      # (Weighted) Likelihood according to person's data and each quad point
+      likelihood<-matrix(NA, N, Q)
+      for(i in 1:N){
+        likelihood[i,]<- apply(probs.q, 1, function(x) prod((x^dat[i,]*(1-x)^(1-dat[i,]))^w[i,]))
+      }
+      
+      # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
+      out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
+      out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+    } 
     
   }
   
@@ -688,228 +773,13 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     )
     
   }
+  
+  if(model=="MGRM"){
+    
+  }
+  
   return(out)
 }
-
-#' Calculate standard errors of ability estimates for MIRT data
-#' 
-#' Calculate the standard errors of ability estimates using the Fisher Information matrix for multidimensional dichotomous data using the MIRT model
-#' @param theta Vector of latent traits (abilities) for an individual
-#' @param d Vector of difficulty parameters for the items
-#' @param a Matrix of discrimination parameters for the items (rows are items, columns are dimensions)
-#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
-#' @return Vector of standard errors
-#' @export
-#'
-#' @examples
-#' #Define the parameters
-#' theta <- c(0.5, -1.2) # Example vector of latent traits
-#' d <- c(0.0, -0.5, 1.0) # Example vector of difficulty parameters for 3 items
-#' a <- matrix(c(1.0, 0.5,
-#'               0.7, 1.2,
-#'               1.5, 1.0), nrow = 3, byrow = TRUE) # Example matrix of discrimination parameters for 3 items
-#' dat <- c(1,1,0)
-#' D <- 1.7 # Scaling constant
-
-#' #Calculate the standard errors
-#' std.errs <- std.err.dichotomous(theta, d, a, D)
-#' print(std.errs)
-
-std.err.dichotomous<- function(theta, d, a, dat, D = 1.7, residual = "standardized", weight.type="equal", tuning.par=NULL){
-  
-  # Number of items and dimensions
-  n <- nrow(a)
-  dim <- ncol(a)
-  
-  # Calculate probabilities
-  probs<-item.prob(theta, "2PL", cbind(a, d))
-  
-  # Calculate expected value of response
-  expected.value<-probs
-  
-  # Calculate standardized residual # check that this is true
-  if(residual == "standardized"){
-    resid<- (dat-expected.value)/sqrt(probs*(1-probs))
-  }else if(residual=="information"){
-    resid<- a%*%matrix(theta)+d
-  }else{
-    stop(paste(residual, "is not a valid residual type."))
-  }
-  
-  weighting.term <- NULL
-  if (weight.type == "bisquare") { #Bisquare weighting
-    weighting.term <- bisquare(resid, tuning.par)
-  } else if (weight.type == "Huber") { # Huber weighting
-    weighting.term <- huber(resid, tuning.par)
-  } else if (weight.type == "equal") { # Regular Maximum likelihood estimation
-    weighting.term <- rep(1, n)
-  } else{ # User-specified weights
-    weighting.term <- weight.type
-  }
-  if (is.null(weighting.term)) {
-    stop("Cannot determine the weighting function.")
-  }
-  
-  # Initialize  matrices
-  info.mat2.num<-info.mat2.den<-info.mat <- A<-B<-matrix(0, nrow = dim, ncol = dim)
-  
-  # Loop over each item
-  for (j in 1:n) {
-    
-    Hess<-matrix(ncol = dim, nrow = dim) # Initialize Hessian matrix
-    D1<-matrix(nrow=dim) # Initialize First derivative matrix
-    
-    # Calculate the first derivative (D1) and the Hessian matrix
-    for(k in 1:dim){
-      D1[k] <- D*weighting.term[j]*a[j,k]*(dat[j]-probs[j,]) # First derivative
-      for(l in 1:dim){
-        Hess[k,l] <- ((D)^2)*weighting.term[j]*a[j,k]*a[j,l]*(1-probs[j,])*probs[j,] # Hessian matrix of 2nd derivatives
-      }
-    }
-    
-    # Sandwich SE: Update item contributions to A and B matrices
-    B<-B+ D1 %*% t(D1)
-    A<-A-Hess
-    
-    # Calculate unweighted item information
-    I_j <- D^2*probs[j,] *(1-probs[j,]) *(a[j,] %*% t(a[j,])) # need to figure out how to add the weighting term into this
-    
-    # Weighted SE: Update item contribution to Fisher Information (Also denominator for Magis SE)
-    info.mat <- info.mat + weighting.term[j] *I_j
-    
-    # Magis SE: Update numerator
-    info.mat2.num<-info.mat2.num + weighting.term[j]^2 * I_j
-  }
-  
-  # Check if Information matrix is singular
-  if(any(is.na(info.mat))|any(is.nan(info.mat))){
-    standard_errors <- magis_ase<- NA
-  }else if(is.singular.matrix(info.mat)){ 
-    standard_errors <- magis_ase<- "singular"
-  }else {
-    # Calculate the inverse of the Fisher Information matrix
-    inv_info_mat <- if(length(info.mat)>1) solve(info.mat) else 1/info.mat
-    
-    # Weighted SE: square roots of diagonal elements of inverse Fisher Info matrix
-    standard_errors <- sqrt(diag(inv_info_mat))
-    
-    magis_ase<- sqrt(diag(solve(info.mat)%*%info.mat2.num%*%solve(info.mat)))
-  }
-  
-  # Check if A matrix is singular
-  if(any(is.na(A))|any(is.nan(A))){
-    sandwich_se<- NA
-  }else if(is.singular.matrix(A)){ 
-    sandwich_se<- "singular"
-  }else {
-    # Calculate sandwich SE
-    sandwich_se <- sqrt(diag(solve(A)%*%B%*%solve(A)))
-  }
-  
-  return(list(standard_errors=standard_errors, ase_magis = magis_ase, sandwich_se=sandwich_se))
-}
-
-#' Calculate standard errors of ability estimates for GRM data
-#' 
-#' 
-#' Calculate the standard errors of ability estimates using the Fisher Information matrix or Huber-White sandwich standard errors for Likert-type response data using the GRM model
-#' @param theta Vector of latent traits (abilities) for an individual
-#' @param dat Vector of observed item responses for the individual, of length $J$ for $J$ items
-#' @param b Matrix of threshold parameters for the items, with number of rows corresponding to the number of items and number of columns corresponding to the number of thresholds
-#' @param a Vector of discrimination parameters for the items of length $J$
-#' @param weight.type Type of weighting function to be used: "equal", "Huber", or "bisquare"
-#' @param tuning.par Tuning parameter to be used for the Huber or bisquare weight function
-#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
-#' @return Standard Error Standard error of $\theta$ based on the Fisher information (expected information) matrix
-#' @return Sandwich SE Huber-White sandwich estimator of the standard error
-#' @export
-#'
-#' @examples
-std.err.poly<- function(theta, dat, b, a, weight.type, tuning.par, D = 1.7){
-  
-  # Takes 1 subject and is unidimensional (theta is a scalar)
-  
-  # Number of items
-  j<-length(a) 
-  # Number of thresholds between categories
-  nthresh<-length(b)/j
-  
-  # Calculate probabilities
-  probs<-item.prob(theta, "GRM", cbind(a, b))
-  
-  # Initialize the Fisher Information (scalar)
-  #    Fisher Information (Dodd, De Ayala, and Koch, 1995)
-  I_test<-B<-A<-0
-  
-  pstars<-cbind(rep(1, j), probs$pstar[,,1], rep(0, j))
-  # above lowest threshold gets probability 1; above highest threshold gets probability 0
-  
-  expected.value<-probs$P[,,1]%*%matrix(c(1:(nthresh+1))) 
-  # Calculate standardized residual
-  residual<-(dat-expected.value)/sqrt(rowSums(apply(matrix(1:(nthresh+1)), 1, function(x) x-expected.value)^2*probs$P[,,1]))  
-  
-  # Loop over each item
-  for (i in 1:j) {
-    
-    # Discrimination vector for the j-th item
-    a_j <- a[i]
-    
-    # Compute item response weights based on specified weight function (bisquare, Huber, equal)
-    weighting.term <- NULL
-    if (weight.type == "bisquare") {
-      weighting.term <- bisquare(residual[i], tuning.par)
-    } else if (weight.type == "Huber") {
-      weighting.term <- huber(residual[i], tuning.par)
-    } else {
-      weighting.term <- 1
-    }
-    # Check if weighting term is determined
-    if (is.null(weighting.term)) {
-      stop("Cannot determine the weighting function.")
-    }
-    
-    D2<-D1<-D2E<-0
-    
-    # Looping over each category
-    for(k in 1:(nthresh+1)){
-      ps0<-pstars[i,k]
-      qs0<-1-ps0
-      ps1<-pstars[i,(k+1)]
-      qs1<-1-ps1
-      P<-probs$P[i,k,1]
-      
-      #Add contribution of kth category to the information
-      # First and second derivatives of the log-likelihood
-      # Observed Information
-      D1<-D1+ D*a_j*weighting.term*(ps0*qs0-ps1*qs1)/P
-      D2<-D2+ D^2*a_j^2*weighting.term*( (ps0*qs0*(qs0-ps0)-ps1*qs1*(qs1-ps1))/P - (ps0*qs0-ps1*qs1)^2/P^2 )
-      
-      # Expected Information (D2*P)
-      D2E<-D2E+ D^2*a_j^2*weighting.term*( (ps0*qs0*(qs0-ps0)-ps1*qs1*(qs1-ps1)) - (ps0*qs0-ps1*qs1)^2/P )
-      
-    }
-    
-    # Calculate the information of the jth item (Dodd, DeAyala, & Koch, 1995; Embretson & Reise 2001)
-    I_j <- -D2E
-    
-    # Add the jth contribution to the B matrix
-    B<- B + D1^2
-    
-    # Add the jth contribution to the A matrix
-    A<- A - D2
-    
-    # Add the contribution to the test information
-    I_test <- I_test + I_j
-  }
-  
-  # The standard errors are the square roots of the inverse Fisher Information
-  standard_error <- sqrt(I_test^(-1))
-  
-  sandwich_se <- sqrt(A^(-1)*B*A^(-1))
-  
-  return(list("Standard Error" = standard_error, "Sandwich SE" = sandwich_se))
-}
-
 
 #' Ability Estimation Function Using Robust Estimation - Dichotomous Data
 #'
@@ -1579,41 +1449,6 @@ std.err.mgrm<- function(theta, d, a, dat, D = 1.7, weight.type="equal", tuning.p
   return(list(standard_errors=standard_errors, sandwich_se=sandwich_se))
 }
 
-#' Modified Standardized Residual
-#'
-#' Calculate the modified standardized residual (MSR) used to quantify misfit between a response and the IRT model (Yu & Cheng, 2019): 
-#' \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
-#' given data and parameters that follow the multidimensional graded response model (MGRM; Muraki & Carlson, 1995). Handles unidimensional and dichotomous data as well.
-#' @param dat \eqn{N \times J} matrix of data, beginning indexing at 1 for \eqn{N} respondents and \eqn{J} items
-#' @param theta \eqn{N \times L} matrix of \eqn{\theta}s, for \eqn{L} dimensions
-#' @param a \eqn{J \times L} matrix of discrimination parameters
-#' @param b \eqn{J \times (K-1)} matrix of category threshold parameters, for \eqn{K} Likert-type categories
-#' @references  Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
-#' @references Muraki, E. & Carlson, J. E. Full-Information Factor Analysis for Polytomous Item Responses. \emph{Applied Psychological Measurement} (Mar. 1995), pp. 73–90. DOI: 10.1177/014662169501900109.
-#' @return \eqn{N \times J} matrix of residuals
-
-msr<-function(dat, theta, a, b){
-  N<-nrow(dat) # respondents
-  J<-ncol(dat) # items
-  nthresh<-ncol(b) # number of category thresholds
-  residual<-matrix(nrow=N, ncol=J)
-  for(i in 1:N){
-    # Calculate expected response
-    probs<-item.prob(theta[i,], "MGRM", cbind(a, b))$P[,,1]
-    expected.value<-probs%*%matrix(c(1:(nthresh+1))) 
-    # Extract the probabilities corresponding to the response
-    if(J==1){
-      probs.i <- probs[ dat[i,]]
-    } else {
-      probs.i <- probs[cbind(1:J, dat[i,])]
-    }
-    # Calculate MSR residual
-    residual[i,]<-(dat[i,]-expected.value)/probs.i
-    
-  }
-  
-  return(residual)
-}
 
 #' Change-Point Analysis for Back Random Responding
 #'
@@ -2130,282 +1965,7 @@ theta_plots<-function(dat, a, d=NULL, b=NULL, iter=30, cutoff=0.01, H=NULL, B=NU
   }
 }
 
-# An overall function for computing standard errors for multiple models
-standard.errors <- function(a, thetas, dat, d=NULL, b=NULL, residual = "standardized", weight.function = "equal", tuning.par=NULL, model="2PL",  D=1.7){
-  # a = J × K matrix of item discrimination parameters
-  # thetas = vector of K theta values
-  # dat = vector of J responses
-  # d = Jx1 matrix of item difficulty parameters for MIRT model; 
-  #     JxK matrix of category threshold parameters for MGRM model
-  # b = vector of J item difficulty parameters for 2PL model;
-  #     JxK matrix of category threshold parameters for GRM model
-  # residual = information, standardized, MSR, DWMSR, DWSTZ
-  # weight.function = Huber, biweight, equal
-  # tuning.par = tuning parameter for weight function
-  # model = MIRT, 2PL, GRM, MGRM
-  # D = scaling constant
-  
-  if(model=="MIRT"){
-    
-    # Item Response probability
-    P<-item.prob(matrix(thetas), "MIRT", cbind(a, d))
-    
-    # Calculate the residual for each item
-    if(residual=="information"){
-      # Information residual
-      r<-a%*%thetas+d  
-    }else if(residual=="standardized"){
-      # Standardized residual
-      r<-(dat-P)/sqrt(P*(1-P))  
-    }else if(residual=="MSR"){
-      # Modified standardized residual
-      r<-(dat-P)/P
-    }else if(residual=="DWMSR"){
-      # Information residual and MSR
-      r<-cbind(a%*%thetas+d, (dat-P)/P)
-    }else if(residual=="DWSTZ"){
-      # Information residual and STZ
-      r<-cbind(a%*%thetas+d, (dat-P)/sqrt(P*(1-P)))
-    }else{
-      # If the residual is not identifiable
-      stop("Cannot determine the residual type.")
-    }
-    
-    # Calculate the weight based on the residual
-    if(residual=="DWMSR"|residual=="DWSTZ"){
-      # need to add the two weights for the dual methods
-      if(weight.function =="Huber"){
-        w<-huber(r[,1], tuning.par)+huber(r[,2], tuning.par)
-      }else if(weight.function =="bisquare"){
-        w<-bisquare(r[,1], tuning.par)+bisquare(r[,2], tuning.par)
-      }else if(weight.function =="equal"){
-        w<-1
-      }
-    }else{
-      if(weight.function =="Huber"){
-        w<-huber(r, tuning.par)
-      }else if(weight.function =="bisquare"){
-        w<-bisquare(r, tuning.par)
-      }else if(weight.function =="equal"){
-        w<-1
-      }
-    }
-    
-    # Weighted contribution to information (A matrix)
-    wpq   <- c(w*P*(1 - P))
-    # Weighted contribution to V matrix in expected SE
-    w2pq  <- c(w^2*P*(1 - P))
-    
-    # KxK matrix A for expected and observed information (Hessian)
-    A <- D^2 * t(a *wpq)%*%a 
-    # KxK matrix V for expected information
-    V <- D^2 * t(a*w2pq) %*%a   
-    
-    # First derivative of log likelihood
-    D1 <- a * c(D*(w*(dat - P)))
-    # K x K B Matrix for observed SE
-    B <- t(D1)%*%D1
-    
-    
-    # Covariance
-    cov_magis <- solve(A) %*% V %*% solve(A)
-    cov_sand  <- solve(A) %*% B %*% solve(A)
-    
-    return(list(observed_se = sqrt(diag(cov_sand)),
-                expected_se = sqrt(diag(cov_magis))))
-    
-  }else if(model=="2PL"){
-    
-    # Item Response Probability
-    P<- 1/(1+exp((-1.7)*(a*(thetas-b))))
-    
-    # Calculate the residual for each item
-    if(residual=="information"){
-      # Information residual
-      r<-a*(thetas-b)  
-    }else if(residual=="standardized"){
-      # Standardized residual
-      r<-(dat-P)/sqrt(P*(1-P))  
-    }else if(residual=="MSR"){
-      # Modified standardized residual
-      r<-(dat-P)/P
-    }else if(residual=="DWMSR"){
-      # Information residual and MSR
-      r<-cbind(a*(thetas-b), (dat-P)/P)
-    }else if(residual=="DWSTZ"){
-      # Information residual and STZ
-      r<-cbind(a*(thetas-b), (dat-P)/sqrt(P*(1-P)))
-    }else{
-      # If the residual is not identifiable
-      stop("Cannot determine the residual type.")
-    }
-    
-    # Calculate the weight based on the residual
-    if(residual=="DWMSR"|residual=="DWSTZ"){
-      # need to add the two weights for the dual methods
-      if(weight.function =="Huber"){
-        w<-huber(r[,1], tuning.par)+huber(r[,2], tuning.par)
-      }else if(weight.function =="bisquare"){
-        w<-bisquare(r[,1], tuning.par)+bisquare(r[,2], tuning.par)
-      }else if(weight.function =="equal"){
-        w<-1
-      }
-    }else{
-      if(weight.function =="Huber"){
-        w<-huber(r, tuning.par)
-      }else if(weight.function =="bisquare"){
-        w<-bisquare(r, tuning.par)
-      }else if(weight.function =="equal"){
-        w<-1
-      }
-    }
-    
-    # A value for expected and observed information (2nd derivative)
-    A <- D^2 * a*w*P*(1 - P) 
-    # V value for expected information (w* 2nd derivative)
-    V <- D^2 * a*w^2*P*(1 - P)   
-    
-    # First derivative of log likelihood
-    D1 <- a * c(D*(w*(dat - P)))
-    # B value for observed SE
-    B <- sum(D1^2)
-    
-    
-    # Covariance
-    cov_magis <- V/A^2
-    cov_sand  <- B/A^2
-    
-    return(list(observed_se = sqrt(diag(cov_sand)),
-                expected_se = sqrt(diag(cov_magis))))
-    
-  }else if(model=="GRM"){
-    
-    # Item response probability
-    probs <- item.prob(thetas, "GRM", cbind(a, b))
-    # Probability of responding in each category
-    P<-probs$P[,,1]
-    pstars<-cbind(rep(1, length(a)), probs$pstar[,,1], rep(0, length(a)))
-    
-    # Number of category thresholds
-    nthresh<-ncol(b)
-    
-    # Calculate the residual for each item
-    if(residual=="standardized"){
-      
-      expected.value<-P%*%matrix(c(1:(nthresh+1))) 
-      response.variance<-apply(matrix(1:(nthresh+1)), 1, function(x) x-expected.value)^2*P
-      # Standardized residual
-      r<-(dat-expected.value)/sqrt(rowSums(response.variance))
-      
-    }else if(residual=="MSR"){
-      
-      expected.value<-P%*%matrix(c(1:(nthresh+1))) 
-      
-      # Modified standardized residual (does this even apply to polytomous?)
-      r<-(dat-expected.value)/P[cbind(1:length(dat), dat)]
-    }else{
-      # If the residual is not identifiable
-      stop("Residual type cannot be used with the GRM or is otherwise unidentifiable.")
-    }
-    
-    # Calculate residual-based weight
-    if(weight.function =="Huber"){
-      w<-huber(r, tuning.par)
-    }else if(weight.function =="bisquare"){
-      w<-bisquare(r, tuning.par)
-    }else if(weight.function =="equal"){
-      w<-1
-    }
-    
-    # Pstar for k-1
-    P1<-pstars[cbind(1:length(a), dat)]
-    # Pstar for k
-    P2<-pstars[cbind(1:length(a), dat+1)]
-    # P for k
-    Pk<-P1-P2
-    
-    # A value for expected and observed information (2nd Derivative)
-    A <- sum(D^2 * a^2*w*( (P1*(1-P1)*(1-P1-P1)-P2*(1-P2)*((1-P2)-P2))/Pk - (P1*(1-P1)-P2*(1-P2))^2/Pk^2 ) )
-    # V value for expected information - here I have copied A and multiplied it by w again
-    #V <- -sum(D^2 * a^2*w^2*( (P1*(1-P1)*(1-P1-P1)-P2*(1-P2)*((1-P2)-P2))/Pk - (P1*(1-P1)-P2*(1-P2))^2/Pk^2 ) )
-    
-    # First derivative of log likelihood
-    D1 <- a * c(D*(w*(P1*(1-P1)-P2*(1-P2))/Pk))
-    # B value for observed SE
-    B <- sum(D1^2)
-    
-    #cov_magis<-V/A^2 # need to derive the ASE based on Magis SE
-    cov_sand <- B/A^2
-    
-    return(list(observed_se = sqrt(cov_sand), residual = r#,expected_se = sqrt(cov_magis)
-    ))
-  }else if(model=="MGRM"){
-    
-    # Item Response Probability
-    probs<-item.prob(t(thetas), "MGRM", cbind(a, d))
-    P<-probs$P[,,1]
-    pstars<-cbind(rep(1, nrow(a)), probs$pstar[,,1], rep(0, nrow(a)))
-    
-    # Number of category thresholds
-    nthresh<-ncol(d)
-    
-    # Calculate the residual for each item
-    if(residual=="standardized"){
-      
-      expected.value<-P%*%matrix(c(1:(nthresh+1))) 
-      response.variance<-apply(matrix(1:(nthresh+1)), 1, function(x) x-expected.value)^2*P
-      # Standardized residual
-      r<-(dat-expected.value)/sqrt(rowSums(response.variance))
-      
-    }else if(residual=="MSR"){
-      
-      expected.value<-P%*%matrix(c(1:(nthresh+1))) 
-      
-      # Modified standardized residual (does this even apply to polytomous?)
-      r<-(dat-expected.value)/P[cbind(1:length(dat), dat)]
-      
-    }else{
-      # If the residual is not identifiable
-      stop("Residual type cannot be used with the GRM or is otherwise unidentifiable.")
-    }
-    
-    # Calculate residual-based weight
-    if(weight.function =="Huber"){
-      w<-huber(r, tuning.par)
-    }else if(weight.function =="bisquare"){
-      w<-bisquare(r, tuning.par)
-    }else if(weight.function =="equal"){
-      w<-1
-    }
-    
-    # Pstar for k-1
-    P1<-pstars[cbind(1:nrow(a), dat)]
-    # Pstar for k
-    P2<-pstars[cbind(1:nrow(a), dat+1)]
-    # P for k
-    Pk<-P1-P2
-    
-    # A matrix (KxK) for expected and observed information (Hessian)
-    A <- D^2 * t(a*c(w*( (P1*(1-P1)*(1-P1-P1)-P2*(1-P2)*((1-P2)-P2))/Pk - (P1*(1-P1)-P2*(1-P2))^2/Pk^2 )) )%*%a
-    # V matrix (KxK) for expected information - here I have copied A and multiplied it by w again
-    #V <- -D^2 * t(a*w^2*( (P1*(1-P1)*(1-P1-P1)-P2*(1-P2)*((1-P2)-P2))/Pk - (P1*(1-P1)-P2*(1-P2))^2/Pk^2 ) )%*%a
-    
-    # First derivative of log likelihood
-    D1 <- a * c(D*(w*(P1*(1-P1)-P2*(1-P2))/Pk))
-    # K x K B Matrix for observed SE
-    B <- t(D1)%*%D1
-    
-    #cov_magis<-V/A^2 # need to derive the ASE based on Magis SE
-    cov_sand <- B/A^2
-    
-    return(list(observed_se = sqrt(diag(cov_sand))#,expected_se = sqrt(cov_magis)
-    ))
-  }
-  
-  
-}
-
-###### Bayesian SE #######
+###### Bayesian SE
 bayes.standard.error <- function(thetas, post.var, dat, a, b, weight.function = "equal", tuning.par=NULL, D = 1.7, eps = 1e-12) {
   # thetas: vector of posterior means of length l
   # post.var: vector of posterior variances (e.g., (standard.error)^2 from your MAP/EAP)
@@ -2470,7 +2030,7 @@ bayes.standard.error <- function(thetas, post.var, dat, a, b, weight.function = 
   return(list(brse=brse, residual = r))
 }
 
-###### MLE Function #####
+###### MLE Function
 theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal", tuning.par=NULL, D=1.7) {
   
   # Check if the turning parameter is given when the weight.type is not "normal"
@@ -2599,7 +2159,7 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
   return(list(theta = theta.est2, convergence = convergence, standard.error = standard.error, theta.progression = theta.progression, residual = residual))
 }
 
-###### MAP function #####
+###### MAP function
 theta.map.grm <- function(dat, a, b, prior = c(0, 1), iter=30, cutoff=0.01, init.val=0, weight.type="equal", tuning.par=NULL, D=1.7) {
   
   # Check if the turning parameter is given when the weight.type is not "normal"
@@ -2718,7 +2278,7 @@ theta.map.grm <- function(dat, a, b, prior = c(0, 1), iter=30, cutoff=0.01, init
       # Then check: if theta converged outside [-3, 3], replace it with -3 or 3 respectively
       theta <- -3
       # Compute posterior sd
-      post.sd <- sqrt(-1 / D2)
+      post.sd <- sqrt(1 / D2)
       #Compute sandwich standard error 
       bse.int<-bayes.standard.error(theta, post.sd^2, dat[i,], a, b, weight.type, tuning.par, D = D, eps = 1e-12) 
       standard.error[i]<-bse.int$brse
@@ -2741,7 +2301,7 @@ theta.map.grm <- function(dat, a, b, prior = c(0, 1), iter=30, cutoff=0.01, init
   return(list(theta = theta.est2, convergence = convergence, standard.error = standard.error, theta.progression = theta.progression, residual = residual))
 }
 
-###### EAP function #####
+# EAP function
 theta.eap.grm <- function(dat, a, b, prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41), iter=30, cutoff=0.01, init.val=0, weight.type="equal", tuning.par=NULL, D=1.7) {
   
   # Check if the turning parameter is given when the weight.type is not "normal"
@@ -2841,6 +2401,8 @@ theta.eap.grm <- function(dat, a, b, prior=c(0,1), eap.quad.pts =seq(-4, 4, leng
   # Return a list containing the estimated theta,  standard error, and standardized residual
   return(list(theta = theta.est2, standard.error = standard.error, theta.progression = theta.progression, residual = residual))
 }
+
+##### Deprecated - old versions of functions #####
 
 #' Response Probability Calculation (MIRT) -- deprecated (see item.prob)
 #'
@@ -2971,4 +2533,257 @@ data.gen<-function(P){
   return(t(dat))
 }
 
+#' Deprecated - see standard.erors. Calculate standard errors of ability estimates for MIRT data
+#' 
+#' Calculate the standard errors of ability estimates using the Fisher Information matrix for multidimensional dichotomous data using the MIRT model
+#' @param theta Vector of latent traits (abilities) for an individual
+#' @param d Vector of difficulty parameters for the items
+#' @param a Matrix of discrimination parameters for the items (rows are items, columns are dimensions)
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
+#' @return Vector of standard errors
+#' @export
+#'
+#' @examples
+#' #Define the parameters
+#' theta <- c(0.5, -1.2) # Example vector of latent traits
+#' d <- c(0.0, -0.5, 1.0) # Example vector of difficulty parameters for 3 items
+#' a <- matrix(c(1.0, 0.5,
+#'               0.7, 1.2,
+#'               1.5, 1.0), nrow = 3, byrow = TRUE) # Example matrix of discrimination parameters for 3 items
+#' dat <- c(1,1,0)
+#' D <- 1.7 # Scaling constant
 
+#' #Calculate the standard errors
+#' std.errs <- std.err.dichotomous(theta, d, a, D)
+#' print(std.errs)
+
+std.err.dichotomous<- function(theta, d, a, dat, D = 1.7, residual = "standardized", weight.type="equal", tuning.par=NULL){
+  
+  # Number of items and dimensions
+  n <- nrow(a)
+  dim <- ncol(a)
+  
+  # Calculate probabilities
+  probs<-item.prob(theta, "2PL", cbind(a, d))
+  
+  # Calculate expected value of response
+  expected.value<-probs
+  
+  # Calculate standardized residual # check that this is true
+  if(residual == "standardized"){
+    resid<- (dat-expected.value)/sqrt(probs*(1-probs))
+  }else if(residual=="information"){
+    resid<- a%*%matrix(theta)+d
+  }else{
+    stop(paste(residual, "is not a valid residual type."))
+  }
+  
+  weighting.term <- NULL
+  if (weight.type == "bisquare") { #Bisquare weighting
+    weighting.term <- bisquare(resid, tuning.par)
+  } else if (weight.type == "Huber") { # Huber weighting
+    weighting.term <- huber(resid, tuning.par)
+  } else if (weight.type == "equal") { # Regular Maximum likelihood estimation
+    weighting.term <- rep(1, n)
+  } else{ # User-specified weights
+    weighting.term <- weight.type
+  }
+  if (is.null(weighting.term)) {
+    stop("Cannot determine the weighting function.")
+  }
+  
+  # Initialize  matrices
+  info.mat2.num<-info.mat2.den<-info.mat <- A<-B<-matrix(0, nrow = dim, ncol = dim)
+  
+  # Loop over each item
+  for (j in 1:n) {
+    
+    Hess<-matrix(ncol = dim, nrow = dim) # Initialize Hessian matrix
+    D1<-matrix(nrow=dim) # Initialize First derivative matrix
+    
+    # Calculate the first derivative (D1) and the Hessian matrix
+    for(k in 1:dim){
+      D1[k] <- D*weighting.term[j]*a[j,k]*(dat[j]-probs[j,]) # First derivative
+      for(l in 1:dim){
+        Hess[k,l] <- ((D)^2)*weighting.term[j]*a[j,k]*a[j,l]*(1-probs[j,])*probs[j,] # Hessian matrix of 2nd derivatives
+      }
+    }
+    
+    # Sandwich SE: Update item contributions to A and B matrices
+    B<-B+ D1 %*% t(D1)
+    A<-A-Hess
+    
+    # Calculate unweighted item information
+    I_j <- D^2*probs[j,] *(1-probs[j,]) *(a[j,] %*% t(a[j,])) # need to figure out how to add the weighting term into this
+    
+    # Weighted SE: Update item contribution to Fisher Information (Also denominator for Magis SE)
+    info.mat <- info.mat + weighting.term[j] *I_j
+    
+    # Magis SE: Update numerator
+    info.mat2.num<-info.mat2.num + weighting.term[j]^2 * I_j
+  }
+  
+  # Check if Information matrix is singular
+  if(any(is.na(info.mat))|any(is.nan(info.mat))){
+    standard_errors <- magis_ase<- NA
+  }else if(is.singular.matrix(info.mat)){ 
+    standard_errors <- magis_ase<- "singular"
+  }else {
+    # Calculate the inverse of the Fisher Information matrix
+    inv_info_mat <- if(length(info.mat)>1) solve(info.mat) else 1/info.mat
+    
+    # Weighted SE: square roots of diagonal elements of inverse Fisher Info matrix
+    standard_errors <- sqrt(diag(inv_info_mat))
+    
+    magis_ase<- sqrt(diag(solve(info.mat)%*%info.mat2.num%*%solve(info.mat)))
+  }
+  
+  # Check if A matrix is singular
+  if(any(is.na(A))|any(is.nan(A))){
+    sandwich_se<- NA
+  }else if(is.singular.matrix(A)){ 
+    sandwich_se<- "singular"
+  }else {
+    # Calculate sandwich SE
+    sandwich_se <- sqrt(diag(solve(A)%*%B%*%solve(A)))
+  }
+  
+  return(list(standard_errors=standard_errors, ase_magis = magis_ase, sandwich_se=sandwich_se))
+}
+
+#' Deprecated - see standard.erors. Calculate standard errors of ability estimates for GRM data
+#' 
+#' 
+#' Calculate the standard errors of ability estimates using the Fisher Information matrix or Huber-White sandwich standard errors for Likert-type response data using the GRM model
+#' @param theta Vector of latent traits (abilities) for an individual
+#' @param dat Vector of observed item responses for the individual, of length $J$ for $J$ items
+#' @param b Matrix of threshold parameters for the items, with number of rows corresponding to the number of items and number of columns corresponding to the number of thresholds
+#' @param a Vector of discrimination parameters for the items of length $J$
+#' @param weight.type Type of weighting function to be used: "equal", "Huber", or "bisquare"
+#' @param tuning.par Tuning parameter to be used for the Huber or bisquare weight function
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
+#' @return Standard Error Standard error of $\theta$ based on the Fisher information (expected information) matrix
+#' @return Sandwich SE Huber-White sandwich estimator of the standard error
+#' @export
+#'
+#' @examples
+std.err.poly<- function(theta, dat, b, a, weight.type, tuning.par, D = 1.7){
+  
+  # Takes 1 subject and is unidimensional (theta is a scalar)
+  
+  # Number of items
+  j<-length(a) 
+  # Number of thresholds between categories
+  nthresh<-length(b)/j
+  
+  # Calculate probabilities
+  probs<-item.prob(theta, "GRM", cbind(a, b))
+  
+  # Initialize the Fisher Information (scalar)
+  #    Fisher Information (Dodd, De Ayala, and Koch, 1995)
+  I_test<-B<-A<-0
+  
+  pstars<-cbind(rep(1, j), probs$pstar[,,1], rep(0, j))
+  # above lowest threshold gets probability 1; above highest threshold gets probability 0
+  
+  expected.value<-probs$P[,,1]%*%matrix(c(1:(nthresh+1))) 
+  # Calculate standardized residual
+  residual<-(dat-expected.value)/sqrt(rowSums(apply(matrix(1:(nthresh+1)), 1, function(x) x-expected.value)^2*probs$P[,,1]))  
+  
+  # Loop over each item
+  for (i in 1:j) {
+    
+    # Discrimination vector for the j-th item
+    a_j <- a[i]
+    
+    # Compute item response weights based on specified weight function (bisquare, Huber, equal)
+    weighting.term <- NULL
+    if (weight.type == "bisquare") {
+      weighting.term <- bisquare(residual[i], tuning.par)
+    } else if (weight.type == "Huber") {
+      weighting.term <- huber(residual[i], tuning.par)
+    } else {
+      weighting.term <- 1
+    }
+    # Check if weighting term is determined
+    if (is.null(weighting.term)) {
+      stop("Cannot determine the weighting function.")
+    }
+    
+    D2<-D1<-D2E<-0
+    
+    # Looping over each category
+    for(k in 1:(nthresh+1)){
+      ps0<-pstars[i,k]
+      qs0<-1-ps0
+      ps1<-pstars[i,(k+1)]
+      qs1<-1-ps1
+      P<-probs$P[i,k,1]
+      
+      #Add contribution of kth category to the information
+      # First and second derivatives of the log-likelihood
+      # Observed Information
+      D1<-D1+ D*a_j*weighting.term*(ps0*qs0-ps1*qs1)/P
+      D2<-D2+ D^2*a_j^2*weighting.term*( (ps0*qs0*(qs0-ps0)-ps1*qs1*(qs1-ps1))/P - (ps0*qs0-ps1*qs1)^2/P^2 )
+      
+      # Expected Information (D2*P)
+      D2E<-D2E+ D^2*a_j^2*weighting.term*( (ps0*qs0*(qs0-ps0)-ps1*qs1*(qs1-ps1)) - (ps0*qs0-ps1*qs1)^2/P )
+      
+    }
+    
+    # Calculate the information of the jth item (Dodd, DeAyala, & Koch, 1995; Embretson & Reise 2001)
+    I_j <- -D2E
+    
+    # Add the jth contribution to the B matrix
+    B<- B + D1^2
+    
+    # Add the jth contribution to the A matrix
+    A<- A - D2
+    
+    # Add the contribution to the test information
+    I_test <- I_test + I_j
+  }
+  
+  # The standard errors are the square roots of the inverse Fisher Information
+  standard_error <- sqrt(I_test^(-1))
+  
+  sandwich_se <- sqrt(A^(-1)*B*A^(-1))
+  
+  return(list("Standard Error" = standard_error, "Sandwich SE" = sandwich_se))
+}
+
+#' Deprecated - see residual. Modified Standardized Residual
+#'
+#' Calculate the modified standardized residual (MSR) used to quantify misfit between a response and the IRT model (Yu & Cheng, 2019): 
+#' \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
+#' given data and parameters that follow the multidimensional graded response model (MGRM; Muraki & Carlson, 1995). Handles unidimensional and dichotomous data as well.
+#' @param dat \eqn{N \times J} matrix of data, beginning indexing at 1 for \eqn{N} respondents and \eqn{J} items
+#' @param theta \eqn{N \times L} matrix of \eqn{\theta}s, for \eqn{L} dimensions
+#' @param a \eqn{J \times L} matrix of discrimination parameters
+#' @param b \eqn{J \times (K-1)} matrix of category threshold parameters, for \eqn{K} Likert-type categories
+#' @references  Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
+#' @references Muraki, E. & Carlson, J. E. Full-Information Factor Analysis for Polytomous Item Responses. \emph{Applied Psychological Measurement} (Mar. 1995), pp. 73–90. DOI: 10.1177/014662169501900109.
+#' @return \eqn{N \times J} matrix of residuals
+
+msr<-function(dat, theta, a, b){
+  N<-nrow(dat) # respondents
+  J<-ncol(dat) # items
+  nthresh<-ncol(b) # number of category thresholds
+  residual<-matrix(nrow=N, ncol=J)
+  for(i in 1:N){
+    # Calculate expected response
+    probs<-item.prob(theta[i,], "MGRM", cbind(a, b))$P[,,1]
+    expected.value<-probs%*%matrix(c(1:(nthresh+1))) 
+    # Extract the probabilities corresponding to the response
+    if(J==1){
+      probs.i <- probs[ dat[i,]]
+    } else {
+      probs.i <- probs[cbind(1:J, dat[i,])]
+    }
+    # Calculate MSR residual
+    residual[i,]<-(dat[i,]-expected.value)/probs.i
+    
+  }
+  
+  return(residual)
+}
