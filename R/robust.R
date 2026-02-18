@@ -186,6 +186,7 @@ pstar_to_p<-function(Pstar){
 #' b <- t(apply(b_raw, 1, sort))
 #' ipars <- cbind(a, b)
 #' item.prob(theta, "MGRM", ipars)
+#' @export
 
 item.prob<-function(theta, model, ipars, D=1.7){
   model<-toupper(model)
@@ -322,6 +323,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #'   c(a = 0.5, b1 = -1.0, b2 =  0.0, b3 = 1.0)
 #'
 #' residual(theta, model = "GRM", ipars=ipars, dat=dat)
+#' @export
 
 
 residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr"), D=1.7){
@@ -406,6 +408,7 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
 #'                nrow = 3, byrow = TRUE) 
 #' B <- 4 
 #' bisquare(r, B)
+#' @export
 bisquare<-function(r, B){
   w<-ifelse(is.nan(r), 0, 
             ifelse(abs(r) <= B, (1-(r/B)^2)^2, 0))
@@ -433,6 +436,7 @@ bisquare<-function(r, B){
 #'                 nrow = 2, byrow = TRUE) 
 #' H <- 1 
 #' huber(r, H)
+#' @export
 
 huber<-function(r, H){
   w<-ifelse(is.nan(r), 0, 
@@ -487,6 +491,7 @@ huber<-function(r, H){
 #'
 #' dat.gen(P_array, anchor = 0)
 #'
+#' @export
                           
 dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
   
@@ -1465,7 +1470,6 @@ std.err.mgrm<- function(theta, d, a, dat, D = 1.7, weight.type="equal", tuning.p
 #' @return flagged vector of binary indicators: 1 if classified as aberrant, 0 if not.
 #' @return change.point the item number with the largest \eqn{R_j} for each respondent. For response vectors flagged, BRR begins at the next item.  
 #' @return max.residual the largest \eqn{R_j} for each respondent
-#' @export
 #' @examples
 #' data(BFI2)
 #' BFI2<-BFI2[,grep("t1_bfi_N", colnames(BFI2))]
@@ -1479,6 +1483,7 @@ std.err.mgrm<- function(theta, d, a, dat, D = 1.7, weight.type="equal", tuning.p
 #' 
 #' # reparameterize b to align with MGRM 
 #' cpa.brr(BFI2, a, b/a, crit.val=80)
+#' @export
 
 
 cpa.brr<-function(dat, a, b, crit.val=75){
@@ -1525,7 +1530,6 @@ cpa.brr<-function(dat, a, b, crit.val=75){
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 #' @return Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
-#' @export
 #' @examples
 #' ## Unidimensional IRT Example
 #' n=40
@@ -1591,6 +1595,7 @@ cpa.brr<-function(dat, a, b, crit.val=75){
 #' # Calculate theta estimates and residuals
 #' out<-theta.est(t(dat), a, d, iter=30, cutoff=.01, weight.type="equal")
 #' choose.tuco(matrix(out$residual[,,2]), H=1, B=4)
+#' @export
 
 choose.tuco<-function(r, H=NULL, B=NULL){
   # r is a vector of residuals
@@ -1656,7 +1661,6 @@ choose.tuco<-function(r, H=NULL, B=NULL){
 #' @return Plots If same.plot = TRUE and both \emph{H} and \emph{B} are supplied, each robust ability estimate is plotted against the MLE; graphs for each of the Huber- and bisquare-weighted estimates are generated separately but on the same image frame. The identity line \eqn{y=x} is plotted as a reference line.
 #' @return `Huber Plot` If same.plot = FALSE or \emph{B} is not supplied, each Huber-weighted robust ability estimate is plotted against the MLE with the identity line \eqn{y=x} as reference.
 #' @return `Bisquare Plot` If same.plot = FALSE or \emph{H} is not supplied, each bisquare-weighted robust ability estimate is plotted against the MLE with the identity line \eqn{y=x} as reference.
-#' @export
 #' @examples
 #' ## Test length
 #' n <- 30
@@ -1693,6 +1697,8 @@ choose.tuco<-function(r, H=NULL, B=NULL){
 #' out$`Bisquare Plot`
 #' ## Check Huber summary
 #' out$`Summary Statistics (Huber)`
+#' @export
+                                       
 theta_plots<-function(dat, a, d=NULL, b=NULL, iter=30, cutoff=0.01, H=NULL, B=NULL, same.plot.dim = F, same.plot = T, type){
   if(type != "Dichotomous" & type != "GRM"){
     return(print("Please enter a valid type of model (e.g., 'Dichotomous' or 'GRM')."))
@@ -2442,6 +2448,8 @@ probs.calc <- function(thetas, a, d){
 #' a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
 #' b <- t(apply(matrix(runif(10*4, -2.5,2.5), nrow = 10, ncol = 4), 1, sort))  # Example threshold parameters for 10 items and 4 thresholds (5 categories)
 #' result <- probs.calc.grm(thetas, a, b)  # Calculate probabilities
+#' @export
+                         
 probs.calc.grm<-function(thetas, a, b){
   # Number of subjects
   N<-length(thetas)
@@ -2513,6 +2521,7 @@ probs.mgrm<-function(thetas, a, b, D=1.7){
 #' b <- t(apply(matrix(runif(10*4, -2.5,2.5), nrow = 10, ncol = 4), 1, sort))  # Example threshold parameters for 10 items and 4 thresholds (5 categories)
 #' probs <- item.prob(thetas, "GRM", cbind(a, b))  # Calculate probabilities
 #' data <- data.gen(probs$P)  # Generate Likert-type data
+#' @export
 
 data.gen<-function(P){
   if(is.array(P)){ 
@@ -2763,6 +2772,7 @@ std.err.poly<- function(theta, dat, b, a, weight.type, tuning.par, D = 1.7){
 #' @references  Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
 #' @references Muraki, E. & Carlson, J. E. Full-Information Factor Analysis for Polytomous Item Responses. \emph{Applied Psychological Measurement} (Mar. 1995), pp. 73–90. DOI: 10.1177/014662169501900109.
 #' @return \eqn{N \times J} matrix of residuals
+#' @export
 
 msr<-function(dat, theta, a, b){
   N<-nrow(dat) # respondents
