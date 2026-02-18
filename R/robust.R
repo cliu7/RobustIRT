@@ -1467,18 +1467,18 @@ std.err.mgrm<- function(theta, d, a, dat, D = 1.7, weight.type="equal", tuning.p
 #' @return max.residual the largest \eqn{R_j} for each respondent
 #' @export
 #' @examples
-#' data(BFI)
-#' BFI<-BFI[,grep("t1_bfi_N", colnames(BFI))]
+#' data(BFI2)
+#' BFI2<-BFI2[,grep("t1_bfi_N", colnames(BFI2))]
 #' 
 #' # Estimate model parameters using ltm
-#' mod<-grm(BFI) 
-#' ipars<-matrix(unlist(mod$coefficients), nrow = ncol(BFI), byrow = T)
+#' mod<-grm(BFI2) 
+#' ipars<-matrix(unlist(mod$coefficients), nrow = ncol(BFI2), byrow = T)
 #' a<-ipars[,5]
 #' b<-ipars[,1:4]
-#' colnames(BFI)<-rownames(BFI)<-NULL
+#' colnames(BFI2)<-rownames(BFI2)<-NULL
 #' 
 #' # reparameterize b to align with MGRM 
-#' cpa.brr(BFI, a, b/a, crit.val=80)
+#' cpa.brr(BFI2, a, b/a, crit.val=80)
 
 
 cpa.brr<-function(dat, a, b, crit.val=75){
