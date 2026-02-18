@@ -269,57 +269,60 @@ item.prob<-function(theta, model, ipars, D=1.7){
  
 #' Residual Calculation
 #' 
-#' Computes standardized and modified standardized residuals for dichotomous and polytomous IRT models.
-#' See `item.prob` for description of models and structure of `ipars`
-#' @param x A response vector or matrix. Rows correspond to persons and columns to items.
-#' @param theta A numeric vector or matrix of latent trait values. 
-#' @param a Item discrimination parameters. 
-#' @param b Item difficulty parameters. 
-#' @param model Character string specifying the model. See `item.prob` for specific model descriptions.
-#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
-#' @return A matrix of residuals with the same dimensions as x. For polytomous models, residuals are computed using expected category scores.
+#' Computes the standardized and modified standardized residuals for dichotomous and polytomous IRT models. For each observed response 
+#' \eqn{y_j} to item \eqn{j}, the residual reflects the difference between the recorded score and the model’s expected value given the person’s estimated ability \eqn{\hat{\theta}}.
+#' The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
+#' Modified standardized residuals (Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
+#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
+#' See `item.prob` for description of models and structure of `ipars`.
+#' @references Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
+#' @param theta An N × L matrix of latent trait values, where L is the number of dimensions.
+#' @param model Character string specifying the IRT model. See `item.prob` for supported models.
+#' @param ipars A matrix or list of item parameters passed to `item.prob()`. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.
+#' @param dat An N × J response matrix, with N respondents and J items.
+#' @param residual Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.
+#' @param D Positive scaling constant for the normal-ogive approximation. Defaults to 1.7.
+
+#' @return A list containing two N × J matrices, each with the same dimensions as `dat`. For polytomous models, residuals are computed using expected category scores and category response probabilities.
 #' 
 #' @examples
-#' # 2PL model 
-#' x <- c(1, 0, 1, 1) # responses from 4 individuals
-#' theta <- c(-1, 0, 0.5, 1) # abilities
-#' a <- 1.2                  # discrimination
-#' b <- -0.5                 # difficulty
+#' # 2PL model
+#' dat <- matrix(c(1, 0, 1, 1), ncol = 1)
+#' theta <- c(-1.0, 0.0, 0.5, 1.0)
+#' ipars <- cbind(a = 1.0, b = -0.5)
 #'
-#' residual(x, theta, a, b, model = "2PL")
+#' residual(theta, model = "2PL", ipars=ipars, dat=dat)
 #'
 #'
 #' # MIRT model
-#' x <- matrix(c(1,0,1,1, 0,1,0,1), nrow = 4, byrow = TRUE)
+#' dat <- matrix(c(1, 0, 1, 1, 0, 1, 0, 1), nrow = 4, byrow = TRUE)
+#'
 #' theta <- matrix(c(
-#'   -1,  0,
+#'   -1.0,  0,
 #'    0,  0.5,
 #'    1, -0.5,
-#'    0.5, 1
+#'    0.5, 1.0
 #' ), ncol = 2, byrow = TRUE)
 #'
-#' a <- matrix(c(
-#'   1.0, 0.5,
-#'   0.8, 1.2
-#' ), nrow = 2, byrow = TRUE)
+#' ipars <- cbind(
+#'   a1 = c(1.0, 2.0),
+#'   a2 = c(0.5, 1.0),
+#'   b  = c(-0.5, 0.5)
+#' )
 #'
-#' b <- c(-0.5, 0.2)
-#'
-#' residual(x, theta, a, b, model = "MIRT")
+#' residual(theta, model = "MIRT", ipars=ipars, dat=dat)
 #'
 #'
 #' # GRM model
-#' x <- matrix(c(0,1,2, 1,2,3), nrow = 2, byrow = TRUE)
+#' dat <- matrix(c(0,1,2, 1,2,3), nrow = 2, byrow = TRUE)
 #' theta <- c(-0.5, 1.0)
+#' 
+#' ipars <- rbind(
+#'   c(a = 1.0, b1 = -2.0, b2 = -1.0, b3 = 0.0),
+#'   c(a = 0.5, b1 = -1.0, b2 =  0.0, b3 = 1.0)
 #'
-#' a <- c(1.3, 0.9)
-#'
-#' b <- list(
-#'   c(-2, -1, 0),  # thresholds for item 1
-#'   c(-1,  0, 1)   # thresholds for item 2
-#' )
-#'
-#' residual(x, theta, a, b, model = "GRM")
+#' residual(theta, model = "GRM", ipars=ipars, dat=dat)
+
 
 residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr"), D=1.7){
     
@@ -439,11 +442,19 @@ huber<-function(r, H){
 
 #' Data generation for dichotomous and Likert outcomes based on response probabilities
 #' 
-#' Bernoulli sampling is conducted for dichotomous items, while multinomial sampling is conducted for polytomous items.
-#' @param P Probabilities of a correct response (in the case of dichotomous outcomes) or an array of item category response probabilities. For polytomous data, the number of columns should be equal to the number of response categories. Array structure of P with three dimensions assumes polytomous data generation.
-#' @param anchor Value of the lowest category value. Typical values are 0 or 1; default is 0.
-#' @param polytomous Is data Likert-type? Must be specified as `TRUE` when P is a matrix of category response probabilities for polytomous data (e.g., data for one person). 
+#' Generates simulated item responses from model-implied response probabilities. Dichotomous items are sampled using Bernoulli trials, while polytomous (Likert-type) items are sampled using multinomial draws over ordered response categories. 
+#' The function supports three probability formats, each corresponding to a different data-generation scenario. Here, \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories.
+#' 
+#' 1. Dichotomous data (N × J matrix): Each entry \eqn{P[n, j]} is the probability that person \eqn{n} answers item \eqn{j} correctly. Output is an \eqn{N \times J} matrix of 0/1 responses.
+#' 2. Polytomous data for one person (J × K matrix): Each row contains the category probabilities for one item: \eqn{P[j, k]} is the probability of responding in category \eqn{k}. Output is a \eqn{1 \times J} matrix of integer category scores.
+#' 3. Polytomous data for multiple persons (J × K × N array): Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix containing the category response probabilities for person \eqn{n}, where \eqn{J} is the number of items and \eqn{K} is the number of response categories. Output is an \eqn{N \times J} matrix of simulated category scores.
+#' 
+#' @param P A matrix or array of response probabilities. For polytomous data, each probability vector must sum to 1.
+#' @param anchor Integer specifying the lowest category value. Typical values are 0 or 1; default is 0.
+#' @param polytomous Is the data Likert-type? Must be specified as `TRUE` when P is a matrix of category response probabilities for polytomous data (e.g., data for one person). 
 #' @return A matrix of simulated item responses.
+#'         Dichotomous: \eqn{N \times J} matrix of 0/1 responses.
+#'         Polytomous: \eqn{N \times J} matrix of integer category scores beginning at \code{anchor}.
 #' @examples 
 #' 
 #' # Dichotomous Case with Bernoulli Sampling
@@ -457,7 +468,7 @@ huber<-function(r, H){
 #'
 #' dat.gen(P_matrix)
 #' 
-#' # Polytomous Case for One Individual
+#' # Polytomous Case for One Person
 #' #3x5 matrix of category probabilities (3 items, 5 response categories per item)
 #' P_matrix <- matrix(c(0.05, 0.10, 0.20, 0.30, 0.35,
 #'                             0.40, 0.30, 0.20, 0.05, 0.05,
@@ -466,8 +477,8 @@ huber<-function(r, H){
 #'
 #' dat.gen(P_matrix, polytomous = TRUE, anchor = 0)
 #' 
-#' # Polytomous Case For Multiple Individuals
-#' # 4x4x10 array (4 items, 4 response categories, 10 individuals)
+#' # Polytomous Case For Multiple Persons
+#' # 4x4x10 array (4 items, 4 response categories, 10 persons)
 #' P_array <- array(runif(4 * 4 * 10), dim = c(4, 4, 10))
 #'
 #' # Normalize each item–person probability vector
@@ -499,7 +510,7 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
   return(out)
 }
 
-#' Standard error function for 2PL, MIRT, GRM, MGRM
+#' Standard error function for Rasch, 1PL, 2PL, MIRT, GRM, MGRM
 #' 
 #' Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian)
 
