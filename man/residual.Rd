@@ -34,7 +34,7 @@ Computes the standardized and modified standardized residuals for dichotomous an
 \eqn{y_j} to item \eqn{j}, the residual reflects the difference between the recorded score and the model’s expected value given the person’s estimated ability \eqn{\hat{\theta}}.
 The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
 Modified standardized residuals (Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
-\eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
+\eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
 See `item.prob` for description of models and structure of `ipars`.
 }
 \examples{

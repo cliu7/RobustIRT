@@ -19,11 +19,11 @@ theta.est.grm(
 \arguments{
 \item{dat}{A \eqn{J \times N} matrix of polytomously-scored data (e.g., Likert-type) for \emph{J} items and \emph{N} subjects.}
 
-\item{a}{Vector of slope parameters for \emph{J} items}
+\item{a}{Vector of slope parameters for \emph{J} items.}
 
-\item{b}{A \eqn{J \times (K-1)} matrix of category threshold parameters for \emph{K} categories}
+\item{b}{A \eqn{J \times (K-1)} matrix of category threshold parameters for \emph{K} categories.}
 
-\item{iter}{Max number of iterations. Default is 100}
+\item{iter}{Max number of iterations. Default is 100.}
 
 \item{cutoff}{Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.}
 
@@ -45,7 +45,7 @@ theta.progression A matrix with rows corresponding to each subject and columns c
 residual A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
 }
 \description{
-Calculate robust ability estimates using the GRM item response function with the given weight function, fixed item parameters, and item responses
+Calculate robust ability estimates using the GRM item response function with the given weight function, fixed item parameters, and item responses.
 }
 \details{
 The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta_i}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.

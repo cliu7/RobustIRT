@@ -2,7 +2,7 @@
 % Please edit documentation in R/robust.R
 \name{dat.gen}
 \alias{dat.gen}
-\title{Data generation for dichotomous and Likert outcomes based on response probabilities}
+\title{Generates simulated item responses from model-implied response probabilities.}
 \usage{
 dat.gen(P, anchor = 0, polytomous = FALSE, seed = NULL)
 }
@@ -19,13 +19,24 @@ A matrix of simulated item responses.
         Polytomous: \eqn{N \times J} matrix of integer category scores beginning at \code{anchor}.
 }
 \description{
-Generates simulated item responses from model-implied response probabilities. Dichotomous items are sampled using Bernoulli trials, while polytomous (Likert-type) items are sampled using multinomial draws over ordered response categories. 
-The function supports three probability formats, each corresponding to a different data-generation scenario. Here, \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories.
+Dichotomous items are sampled using Bernoulli trials, while polytomous (Likert-type) items are sampled using multinomial draws over ordered response categories. The function accepts three probability formats,
+each corresponding to a different data‑generation scenario. Here, \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories.
 }
 \details{
-1. Dichotomous data (N × J matrix): Each entry \eqn{P[n, j]} is the probability that person \eqn{n} answers item \eqn{j} correctly. Output is an \eqn{N \times J} matrix of 0/1 responses.
-2. Polytomous data for one person (J × K matrix): Each row contains the category probabilities for one item: \eqn{P[j, k]} is the probability of responding in category \eqn{k}. Output is a \eqn{1 \times J} matrix of integer category scores.
-3. Polytomous data for multiple persons (J × K × N array): Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix containing the category response probabilities for person \eqn{n}, where \eqn{J} is the number of items and \eqn{K} is the number of response categories. Output is an \eqn{N \times J} matrix of simulated category scores.
+* **Dichotomous data** (\eqn{N \times J} matrix):  
+  Each entry \eqn{P[n, j]} gives the probability that person \eqn{n}
+  answers item \eqn{j} correctly.  
+  Output: an \eqn{N \times J} matrix of 0/1 responses.
+
+* **Polytomous data for one person** (\eqn{J \times K} matrix):  
+  Each row contains the category probabilities for one item, where
+  \eqn{P[j, k]} is the probability of responding in category \eqn{k}.  
+  Output: a \eqn{1 \times J} matrix of integer category scores.
+
+* **Polytomous data for multiple persons** (\eqn{J \times K \times N} array):  
+  Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix of category
+  response probabilities for person \eqn{n}.  
+  Output: an \eqn{N \times J} matrix of simulated category scores.
 }
 \examples{
 

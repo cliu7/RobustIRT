@@ -2,38 +2,85 @@
 % Please edit documentation in R/robust.R
 \name{item.prob}
 \alias{item.prob}
-\title{Item Response Probability
-Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item parameters.
-by constructing the appropriate linear predictors and applying the logistic function. Returns item response probabilities for dichotomous data or item category response probabilities for polytomous data.}
+\title{Item Response Probability}
 \usage{
 item.prob(theta, model, ipars, D = 1.7)
 }
 \arguments{
 \item{theta}{A numeric vector or matrix of latent trait values.}
 
-\item{model}{A character string specifying which IRT model to use.
-* 'Rasch' - Allows for item difficulty parameters to vary across items (Rasch, 1960).
-* '1PL' - 1-parameter logistic model. Allows for an item discrimination parameter that is constrained to be equal for all items and item difficulty parameters that vary across items. The Rasch model is a special case of the 1PL model in which all item discrimination values are constrained to 1.
-* '2PL' - 2-parameter logistic model. Allows for both item discrimination and difficulty parameters to vary across items (Birnbaum, 1968).
-* 'MIRT' - Multidimensional extension of the 2PL model, where item slopes can vary across multiple latent dimensions and items, and difficulty parameters which vary only with the item (McKinley & Reckase, 1983; Muraki and Englelhard, 1985).
-* 'GRM' - Graded response model for ordered polytomous items, allowing item discrimination parameters to vary across items and item slopes to vary across items and category thresholds (Samejima, 1969).
-* 'MGRM' - Multidimensional graded response model, extending Samejima’s GRM to multiple latent dimensions. Allows item discrimination parameters to vary across items and latent dimensions and item slopes to vary across items and category thresholds. (Muraki & Carlson, 1995).}
+\item{model}{A character string specifying which IRT model to use:
+* **"Rasch"** — Allows item difficulty parameters to vary across items (Rasch, 1960).
+* **"1PL"** — 1‑parameter logistic model with a common discrimination parameter and item‑specific difficulties. The Rasch model is the special case where all discriminations equal 1.
+* **"2PL"** — 2‑parameter logistic model allowing both discrimination and difficulty to vary across items (Birnbaum, 1968).
+* **"MIRT"** — Multidimensional extension of the 2PL model with item slope vectors across latent dimensions and item‑specific intercepts (McKinley & Reckase, 1983; Muraki & Engelhard, 1985).
+* **"GRM"** — Graded response model for ordered polytomous items with item‑specific discrimination and ordered category thresholds (Samejima, 1969).
+* **"MGRM"** — Multidimensional graded response model extending Samejima’s GRM to multiple latent dimensions, with slope vectors and ordered category thresholds (Muraki & Carlson, 1995).}
 
 \item{ipars}{A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilitized.}
 
 \item{D}{A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.}
 }
 \value{
-For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities P(X = 1)
+For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities \eqn{P(X = 1)}.
 
-For models accommodating polytomous data ("GRM", "MGRM"), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)} 
-        and {P}: an array of category probabilities \eqn{P(X = k)}
+For models accommodating polytomous data ("GRM", "MGRM"), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)}.
+        and {P}: an array of category probabilities \eqn{P(X = k)}.
 }
 \description{
-Item Response Probability
 Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item parameters.
 by constructing the appropriate linear predictors and applying the logistic function. Returns item response probabilities for dichotomous data or item category response probabilities for polytomous data.
 }
+\section{IRT Models}{
+
+
+\strong{Rasch}
+
+\deqn{
+  P(X_{ij} = 1 \mid \theta_i) =
+  \frac{1}{1 + e^{-(\theta_i - b_j)}}
+}
+
+\strong{1PL}
+
+\deqn{
+  P(X_{ij} = 1 \mid \theta_i) =
+  \frac{1}{1 + e^{-Da(\theta_i - b_j)}}
+}
+
+\strong{2PL}
+
+\deqn{
+  P(X_{ij} = 1 \mid \theta_i) =
+  \frac{1}{1 + e^{-Da_j(\theta_i - b_j)}}
+}
+
+\strong{MIRT}
+
+\deqn{
+  P(X_{ij} = 1 \mid \boldsymbol{\theta}_i) =
+  \frac{1}{1 + e^{-D(\boldsymbol{a}_j\boldsymbol{\theta}_i + d_j)}}
+}
+
+\strong{GRM}
+
+\deqn{
+  P(X_{ij} = k \mid \theta_i) =
+  \frac{1}{1 + e^{-Da_j(\theta_i - b_{jk})}}
+  -
+  \frac{1}{1 + e^{-Da_j(\theta_i - b_{j(k+1)})}}
+}
+
+\strong{MGRM}
+
+\deqn{
+  P(X_{ij} = k \mid \boldsymbol{\theta}_i) =
+  \frac{1}{1 + e^{-D \sum_{l=1}^L a_{jl}(\boldsymbol{\theta}_{l} - d_{jk})}}
+  -
+  \frac{1}{1 + e^{-D \sum_{l=1}^L a_{jl}(\boldsymbol{\theta}_{l} - d_{j(k+1)})}}
+}
+}
+
 \examples{
 # Rasch case
 N <- 3

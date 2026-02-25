@@ -7,11 +7,11 @@
 cpa.brr(dat, a, b, crit.val = 75)
 }
 \arguments{
-\item{dat}{\eqn{N \times J} matrix of data, beginning indexing at 1 for \eqn{N} respondents and \eqn{J} items}
+\item{dat}{\eqn{N \times J} matrix of data, beginning indexing at 1 for \eqn{N} respondents and \eqn{J} items.}
 
-\item{a}{\eqn{J \times L} matrix of discrimination parameters}
+\item{a}{\eqn{J \times L} matrix of discrimination parameters.}
 
-\item{b}{\eqn{J \times (K-1)} matrix of category threshold parameters, for \eqn{K} Likert-type categories}
+\item{b}{\eqn{J \times (K-1)} matrix of category threshold parameters, for \eqn{K} Likert-type categories.}
 
 \item{crit.val}{Critical value to separate normal responders from those exhibiting BRR; an \eqn{R_j} greater than this value is classified as exhibiting BRR}
 }
@@ -20,12 +20,12 @@ flagged vector of binary indicators: 1 if classified as aberrant, 0 if not.
 
 change.point the item number with the largest \eqn{R_j} for each respondent. For response vectors flagged, BRR begins at the next item.
 
-max.residual the largest \eqn{R_j} for each respondent
+max.residual the largest \eqn{R_j} for each respondent.
 }
 \description{
 Uses the modified standardized residual (MSR) to identify shifts in response behavior from normal responding to random responding. Details: This change-point analysis, as outlined in Yu and Cheng, 2019, is designed to detect respondents who exhibits back-random responding (BRR; Clark et al., 2003), which is defined as switching from a normal response behavior to random responding for the remaining test items. For each possible change point, the MSR, 
- #' \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
-  of items beforehe difference in the average absolute weighted residual (ABWR) of items before the change point is taken from that of items after the change point. A subject who exhibits BRR is expected to have large absolute residuals, indicating greater misfit, after the change point, as compared to smaller residuals before the change point. An \eqn{R_j} greater than the user-specified critical value indicates that the subject is likely exhibiting BRR. 
+ \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
+ of items beforehe difference in the average absolute weighted residual (ABWR) of items before the change point is taken from that of items after the change point. A subject who exhibits BRR is expected to have large absolute residuals, indicating greater misfit, after the change point, as compared to smaller residuals before the change point. An \eqn{R_j} greater than the user-specified critical value indicates that the subject is likely exhibiting BRR. 
 given data and parameters that follow the multidimensional graded response model (MGRM; Muraki & Carlson, 1995). Handles unidimensional and dichotomous data as well.
 }
 \examples{

@@ -18,5 +18,5 @@ standard.errors(
 )
 }
 \description{
-Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian)
+Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian).
 }

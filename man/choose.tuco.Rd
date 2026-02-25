@@ -14,7 +14,7 @@ choose.tuco(r, H = NULL, B = NULL)
 \item{B}{Bisquare tuning parameter}
 }
 \value{
-Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
+Histogram plot of residuals beneath a graph of the weight functions vs. the residuals.
 }
 \description{
 Plot a histogram of residuals along the graph of the weighting function (dependent on the tuning parameter) as a function of the residual

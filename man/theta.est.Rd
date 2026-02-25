@@ -37,7 +37,7 @@ theta.est(
 \item{weight.category}{The weighting strategy to use: "equal", "bisquare", or "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.}
 }
 \value{
-theta A \eqn{N \times L} matrix of ability estimates for \emph{N} subjects and \emph{L} dimensions
+theta A \eqn{N \times L} matrix of ability estimates for \emph{N} subjects and \emph{L} dimensions.
 
 standard.errors A \eqn{N \times L} matrix of the standard errors of ability estimates for \emph{N} subjects and \emph{L} dimensions, calculated by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values.
 
@@ -45,7 +45,7 @@ convergence \eqn{N \times L} matrix containing indicators of convergence for \em
 
 theta.progression A \eqn{L \times p \times N} array for \emph{L} dimensions, \emph{p} number of iterations supplied to the input, and \emph{N} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error.
 
-residual A \eqn{J \times N} matrix with residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items
+residual A \eqn{J \times N} matrix with residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items.
 }
 \description{
 Calculate robust ability estimates using the MIRT item response function with the given weight function, fixed item parameters, and item responses
@@ -89,11 +89,11 @@ dat <- apply(probs, c(1,2), function(x) rbinom(1,1,x))
 theta.est(dat, a, d, iters, init.val=matrix(rep(0,dim)), weight.type="Huber", tuning.par=1)
 }
 \references{
-Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250.
 
 McKinley, R. L., & Reckase, M. D. (1983, August). \emph{An Extension of the Two-Parameter Logistic Model to the Multidimensional Latent Space} (Research No. ONR83-2). Iowa City, IA: American College Testing Program.
 
 Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 
-Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
+Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890.
 }

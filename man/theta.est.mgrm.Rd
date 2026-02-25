@@ -19,9 +19,9 @@ theta.est.mgrm(
 \arguments{
 \item{dat}{A \eqn{N \times J} matrix of polytomously-scored data (e.g., Likert-type) for \emph{N} subjects and \emph{J} items. Indexing begins at 0.}
 
-\item{a}{A \eqn{J \times L} matrix of fixed slope parameters for \emph{J} items and \emph{L} dimensions}
+\item{a}{A \eqn{J \times L} matrix of fixed slope parameters for \emph{J} items and \emph{L} dimensions.}
 
-\item{b}{A \eqn{J \times (K-1)} matrix of category threshold parameters for \emph{J} items and \emph{K} categories}
+\item{b}{A \eqn{J \times (K-1)} matrix of category threshold parameters for \emph{J} items and \emph{K} categories.}
 
 \item{D}{Constant to scale the normal ogive model.}
 
@@ -29,12 +29,12 @@ theta.est.mgrm(
 
 \item{init.val}{Initial latent traits for the estimation. Accepts a \eqn{N \times L} matrix for \emph{N} subjects and \emph{L} dimensions, a vector of length \emph{L} to be used for all subjects, or a single value be used for all subjects and dimensions. Default is 0.}
 
-\item{iter}{Max number of iterations for the Newton-Rapshon algorithm. Default is 30}
+\item{iter}{Max number of iterations for the Newton-Rapshon algorithm. Default is 30.}
 
 \item{cutoff}{Threshold value to terminate the Newton-Rapshon algorithm when the likelihood change is below this value, to deem the estimation converged. Default is 0.01.}
 
 \item{weight.category}{The weighting strategy to use: "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.}
 }
 \description{
-Calculate robust ability estimates using the MGRM item response function with the given weight function, fixed item parameters, and item responses
+Calculate robust ability estimates using the MGRM item response function with the given weight function, fixed item parameters, and item responses.
 }

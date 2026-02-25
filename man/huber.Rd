@@ -15,7 +15,7 @@ huber(r, H)
 Huber weight value. Note that residuals of value `NA` are assigned values of 0.
 }
 \description{
-Calculate the Huber weight (Huber, 1981) given a residual and Huber tuning parameter
+Calculate the Huber weight (Huber, 1981) given a residual and Huber tuning parameter.
 }
 \examples{
 
@@ -32,5 +32,5 @@ H <- 1
 huber(r, H)
 }
 \references{
-Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250.
 }
