@@ -2,12 +2,12 @@
 #'
 #' Calculate \eqn{P}, the probabilities of responding in each category, from the \eqn{P^*} threshold values using the graded response model (GRM; Samejima, 1969).
 #' The probability that a subject responds in or above a category \eqn{k} for item \eqn{j} is \eqn{P^*_{jk}(\theta) = \frac{1}{1+ e^{-a_j (\theta-b_{jk})}}},
-#' for \eqn{K} categories and \eqn{K-1} threshold parameters  (\eqn{b_{j,1}, ..., b_{j,K-1}}), where \eqn{b_{j,k}} separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}) (Embretson & Reise, 2000).
+#' for \eqn{K} categories and \eqn{K-1} threshold parameters  (\eqn{b_{j,1}, ..., b_{j,K-1}}), where \eqn{b_{j,k}} separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,...K-1}) (Embretson & Reise, 2000).
 #' \eqn{a_j} is the item discrimination parameter.  The probability of endorsing exactly category \eqn{k} is \eqn{P_{jk}(\theta) = P^*_{j,k}(\theta) - P^*_{j,k+1}(\theta),} where \eqn{P^*_{j1}(\theta) \equiv 1.0} and \eqn{P^*_{jK}(\theta) \equiv 0.0.}
 #' @references Embretson, S. E., & Reise, S. P. (2000). \emph{Item response theory for psychologists.} Mahwah, N.J: L. Erlbaum Associates.
 #' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @param Pstar A \eqn{J \times K-1 \times N} array of \eqn{P^*} threshold probability values, for \eqn{K} categories, \eqn{J} items, and \eqn{N} subjects
-#' @return The probabilities \eqn{P} of responding in each category
+#' @return The probabilities \eqn{P} of responding in each category.
 #' @examples
 #' # One-subject case
 #' Pstar <- matrix(c(0.85, 0.50, 0.20,0.70, 0.40, 0.10,0.90, 0.60, 0.30), nrow = 3, byrow = TRUE)
@@ -21,6 +21,7 @@
 #' Pstar <- array(runif(J * (K - 1) * N), dim = c(J, K - 1, N))
 #' Pstar <- aperm(apply(Pstar, c(1, 3), sort, decreasing = TRUE), c(2, 1, 3))
 #' pstar_to_p(Pstar)
+#' @export
 
 pstar_to_p<-function(Pstar){
   stopifnot(all(Pstar >= 0 & Pstar <= 1))
@@ -67,7 +68,7 @@ pstar_to_p<-function(Pstar){
 }
 
 #' Item Response Probability
-
+#'
 #' Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item parameters.
 #' by constructing the appropriate linear predictors and applying the logistic function. Returns item response probabilities for dichotomous data or item category response probabilities for polytomous data.
 #' @references Birnbaum, A. (1968). Some latent trait models and their use in inferring an examinee’s ability. In F. M. Lord & M. R. Novick (Eds.), Statistical Theories of Mental Test Scores (pp. 397–479). \emph{Addison‑Wesley}.
@@ -80,56 +81,63 @@ pstar_to_p<-function(Pstar){
 #' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @param theta A numeric vector or matrix of latent trait values. 
 #' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilitized.
-#' @param model A character string specifying which IRT model to use.
-#'        * 'Rasch' - Allows for item difficulty parameters to vary across items (Rasch, 1960).
-#'        * '1PL' - 1-parameter logistic model. Allows for an item discrimination parameter that is constrained to be equal for all items and item difficulty parameters that vary across items. The Rasch model is a special case of the 1PL model in which all item discrimination values are constrained to 1.
-#'        * '2PL' - 2-parameter logistic model. Allows for both item discrimination and difficulty parameters to vary across items (Birnbaum, 1968).
-#'        * 'MIRT' - Multidimensional extension of the 2PL model, where item slopes can vary across multiple latent dimensions and items, and difficulty parameters which vary only with the item (McKinley & Reckase, 1983; Muraki and Englelhard, 1985).
-#'        * 'GRM' - Graded response model for ordered polytomous items, allowing item discrimination parameters to vary across items and item slopes to vary across items and category thresholds (Samejima, 1969).
-#'        * 'MGRM' - Multidimensional graded response model, extending Samejima’s GRM to multiple latent dimensions. Allows item discrimination parameters to vary across items and latent dimensions and item slopes to vary across items and category thresholds. (Muraki & Carlson, 1995).
+#' @param model A character string specifying which IRT model to use:
+#'   * **"Rasch"** — Allows item difficulty parameters to vary across items (Rasch, 1960).
+#'   * **"1PL"** — 1‑parameter logistic model with a common discrimination parameter and item‑specific difficulties. The Rasch model is the special case where all discriminations equal 1.
+#'   * **"2PL"** — 2‑parameter logistic model allowing both discrimination and difficulty to vary across items (Birnbaum, 1968).
+#'   * **"MIRT"** — Multidimensional extension of the 2PL model with item slope vectors across latent dimensions and item‑specific intercepts (McKinley & Reckase, 1983; Muraki & Engelhard, 1985).
+#'   * **"GRM"** — Graded response model for ordered polytomous items with item‑specific discrimination and ordered category thresholds (Samejima, 1969).
+#'   * **"MGRM"** — Multidimensional graded response model extending Samejima’s GRM to multiple latent dimensions, with slope vectors and ordered category thresholds (Muraki & Carlson, 1995).
 #' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
-#' @return For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities P(X = 1)
-#' @return For models accommodating polytomous data ("GRM", "MGRM"), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)} 
-#'         and {P}: an array of category probabilities \eqn{P(X = k)}
-#' @section IRT Models
+#' @return For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities \eqn{P(X = 1)}.
+#' @return For models accommodating polytomous data ("GRM", "MGRM"), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)}.
+#'         and {P}: an array of category probabilities \eqn{P(X = k)}.
+#' @section IRT Models:
+#'
 #' \strong{Rasch}
+#'
 #' \deqn{
-#' P(X_{ij} = 1 \mid \theta_i) =
-#'  \frac{1}{1 + e^{-(\theta_i - b_j)}}
+#'   P(X_{ij} = 1 \mid \theta_i) =
+#'   \frac{1}{1 + e^{-(\theta_i - b_j)}}
 #' }
-
+#'
 #' \strong{1PL}
+#'
 #' \deqn{
-#' P(X_{ij} = 1 \mid \theta_i) =
-#'  \frac{1}{1 + e^{-Da(\theta_i - b_j)}}
+#'   P(X_{ij} = 1 \mid \theta_i) =
+#'   \frac{1}{1 + e^{-Da(\theta_i - b_j)}}
 #' }
-#' 
+#'
 #' \strong{2PL}
+#'
 #' \deqn{
-#' P(X_{ij} = 1 \mid \theta_i) =
-#'  \frac{1}{1 + e^{-Da_j(\theta_i - b_j)}}
+#'   P(X_{ij} = 1 \mid \theta_i) =
+#'   \frac{1}{1 + e^{-Da_j(\theta_i - b_j)}}
 #' }
-#' 
+#'
 #' \strong{MIRT}
+#'
 #' \deqn{
-#' P(X_{ij} = 1 \mid \boldsymbol{\theta}_i) =
-#'  \frac{1}{1 + e^{-D(\boldsymbol{a}_j\boldsymbol{\theta}_i + d_j)}}
+#'   P(X_{ij} = 1 \mid \boldsymbol{\theta}_i) =
+#'   \frac{1}{1 + e^{-D(\boldsymbol{a}_j\boldsymbol{\theta}_i + d_j)}}
 #' }
-#' 
+#'
 #' \strong{GRM}
+#'
 #' \deqn{
-#' P(X_{ij} = k \mid \theta_i) =
-#'  \frac{1}{1 + e^{-Da_j(\theta_i - b_{jk})}}
-#'  -
-#'  \frac{1}{1 + e^{-Da_j(\theta_i - b_{j(k+1)})}}
+#'   P(X_{ij} = k \mid \theta_i) =
+#'   \frac{1}{1 + e^{-Da_j(\theta_i - b_{jk})}}
+#'   -
+#'   \frac{1}{1 + e^{-Da_j(\theta_i - b_{j(k+1)})}}
 #' }
-#' 
+#'
 #' \strong{MGRM}
+#'
 #' \deqn{
-#' P(X_{ij} = k \mid \boldsymbol{\theta}_i) =
-#'  \frac{1}{1 + e^{-D \sum_{l=1}^L a_{jl}(\boldsymbol{\theta}_{l} - d_{jk})}}
-#'  -
-#'  \frac{1}{1 + e^{-D \sum_{l=1}^L a_{jl}(\boldsymbol{\theta}_{l} - d_{j(k+1)})}}
+#'   P(X_{ij} = k \mid \boldsymbol{\theta}_i) =
+#'   \frac{1}{1 + e^{-D \sum_{l=1}^L a_{jl}(\boldsymbol{\theta}_{l} - d_{jk})}}
+#'   -
+#'   \frac{1}{1 + e^{-D \sum_{l=1}^L a_{jl}(\boldsymbol{\theta}_{l} - d_{j(k+1)})}}
 #' }
 #' 
 #' @examples
@@ -274,7 +282,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' \eqn{y_j} to item \eqn{j}, the residual reflects the difference between the recorded score and the model’s expected value given the person’s estimated ability \eqn{\hat{\theta}}.
 #' The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
 #' Modified standardized residuals (Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
-#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
+#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
 #' See `item.prob` for description of models and structure of `ipars`.
 #' @references Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
 #' @param theta An N × L matrix of latent trait values, where L is the number of dimensions.
@@ -389,9 +397,9 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
 
 #' Bisquare Weighting Function
 #'
-#' Calculate Tukey's bisquare weight (Mosteller & Tukey, 1977) given a residual and bisquare tuning parameter
+#' Calculate Tukey's bisquare weight (Mosteller & Tukey, 1977) given a residual and bisquare tuning parameter.
 #' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.
-#' @param B Bisquare tuning parameter. Larger values lead to less downweighting
+#' @param B Bisquare tuning parameter. Larger values lead to less downweighting.
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 #' @return Bisquare weight value. Note that residuals of value `NA` are assigned values of 0.
 #' @examples 
@@ -418,10 +426,10 @@ bisquare<-function(r, B){
 
 #' Huber Weighting Function
 #'
-#' Calculate the Huber weight (Huber, 1981) given a residual and Huber tuning parameter
+#' Calculate the Huber weight (Huber, 1981) given a residual and Huber tuning parameter.
 #' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.
 #' @param H Huber tuning parameter. Larger values lead to less downweighting.
-#' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+#' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250.
 #' @return Huber weight value. Note that residuals of value `NA` are assigned values of 0.
 #' @examples 
 #'
@@ -444,14 +452,26 @@ huber<-function(r, H){
   return(w)
 }
 
-#' Data generation for dichotomous and Likert outcomes based on response probabilities
-#' 
-#' Generates simulated item responses from model-implied response probabilities. Dichotomous items are sampled using Bernoulli trials, while polytomous (Likert-type) items are sampled using multinomial draws over ordered response categories. 
-#' The function supports three probability formats, each corresponding to a different data-generation scenario. Here, \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories.
-#' 
-#' 1. Dichotomous data (N × J matrix): Each entry \eqn{P[n, j]} is the probability that person \eqn{n} answers item \eqn{j} correctly. Output is an \eqn{N \times J} matrix of 0/1 responses.
-#' 2. Polytomous data for one person (J × K matrix): Each row contains the category probabilities for one item: \eqn{P[j, k]} is the probability of responding in category \eqn{k}. Output is a \eqn{1 \times J} matrix of integer category scores.
-#' 3. Polytomous data for multiple persons (J × K × N array): Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix containing the category response probabilities for person \eqn{n}, where \eqn{J} is the number of items and \eqn{K} is the number of response categories. Output is an \eqn{N \times J} matrix of simulated category scores.
+#' Generates simulated item responses from model-implied response probabilities.
+#'
+#' Dichotomous items are sampled using Bernoulli trials, while polytomous (Likert-type) items are sampled using multinomial draws over ordered response categories. The function accepts three probability formats,
+#' each corresponding to a different data‑generation scenario. Here, \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories.
+#'
+#' * **Dichotomous data** (\eqn{N \times J} matrix):  
+#'   Each entry \eqn{P[n, j]} gives the probability that person \eqn{n}
+#'   answers item \eqn{j} correctly.  
+#'   Output: an \eqn{N \times J} matrix of 0/1 responses.
+#'
+#' * **Polytomous data for one person** (\eqn{J \times K} matrix):  
+#'   Each row contains the category probabilities for one item, where
+#'   \eqn{P[j, k]} is the probability of responding in category \eqn{k}.  
+#'   Output: a \eqn{1 \times J} matrix of integer category scores.
+#'
+#' * **Polytomous data for multiple persons** (\eqn{J \times K \times N} array):  
+#'   Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix of category
+#'   response probabilities for person \eqn{n}.  
+#'   Output: an \eqn{N \times J} matrix of simulated category scores.
+#'
 #' 
 #' @param P A matrix or array of response probabilities. For polytomous data, each probability vector must sum to 1.
 #' @param anchor Integer specifying the lowest category value. Typical values are 0 or 1; default is 0.
@@ -517,8 +537,8 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 
 #' Standard error function for Rasch, 1PL, 2PL, MIRT, GRM, MGRM
 #' 
-#' Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian)
-
+#' Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian).
+#' @export
 standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", tuning.par = NULL, est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41)){
   
   # Function to determine weights:
@@ -809,15 +829,15 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #`               and the Huber weighting function (Huber, 1981)
 #`               \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
 #`               Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
-#' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+#' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250.
 #' @references McKinley, R. L., & Reckase, M. D. (1983, August). \emph{An Extension of the Two-Parameter Logistic Model to the Multidimensional Latent Space} (Research No. ONR83-2). Iowa City, IA: American College Testing Program.
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
-#' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
-#' @return theta A \eqn{N \times L} matrix of ability estimates for \emph{N} subjects and \emph{L} dimensions
+#' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890.
+#' @return theta A \eqn{N \times L} matrix of ability estimates for \emph{N} subjects and \emph{L} dimensions.
 #' @return standard.errors A \eqn{N \times L} matrix of the standard errors of ability estimates for \emph{N} subjects and \emph{L} dimensions, calculated by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
 #' @return convergence \eqn{N \times L} matrix containing indicators of convergence for \emph{N} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
 #' @return theta.progression A \eqn{L \times p \times N} array for \emph{L} dimensions, \emph{p} number of iterations supplied to the input, and \emph{N} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error.
-#' @return residual A \eqn{J \times N} matrix with residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items
+#' @return residual A \eqn{J \times N} matrix with residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items.
 #' @export
 #'
 #' @examples
@@ -984,11 +1004,11 @@ theta.est<-function(dat, a, d, D=1.7, iter=30, cutoff=.01, init.val=rep(0,ncol(a
 
 #' Ability Estimation Function Using Robust Estimation (GRM)
 #'
-#' Calculate robust ability estimates using the GRM item response function with the given weight function, fixed item parameters, and item responses
+#' Calculate robust ability estimates using the GRM item response function with the given weight function, fixed item parameters, and item responses.
 #' @param dat A \eqn{J \times N} matrix of polytomously-scored data (e.g., Likert-type) for \emph{J} items and \emph{N} subjects.
-#' @param a Vector of slope parameters for \emph{J} items
-#' @param b A \eqn{J \times (K-1)} matrix of category threshold parameters for \emph{K} categories
-#' @param iter Max number of iterations. Default is 100
+#' @param a Vector of slope parameters for \emph{J} items.
+#' @param b A \eqn{J \times (K-1)} matrix of category threshold parameters for \emph{K} categories.
+#' @param iter Max number of iterations. Default is 100.
 #' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.
 #' @param init.val Vector of initial latent trait for the maximum likelihood estimation for \emph{N} subjects. If a single value is provided, that initial value will be used for all subjects. Default is 0.
 #' @param weight.category The weighting strategy to use: "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
@@ -1207,15 +1227,15 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
 
 #' Ability Estimation Function Using Robust Estimation (MGRM)
 #'
-#' Calculate robust ability estimates using the MGRM item response function with the given weight function, fixed item parameters, and item responses
+#' Calculate robust ability estimates using the MGRM item response function with the given weight function, fixed item parameters, and item responses.
 #' @param dat A \eqn{N \times J} matrix of polytomously-scored data (e.g., Likert-type) for \emph{N} subjects and \emph{J} items. Indexing begins at 0.
-#' @param a A \eqn{J \times L} matrix of fixed slope parameters for \emph{J} items and \emph{L} dimensions
-#' @param b A \eqn{J \times (K-1)} matrix of category threshold parameters for \emph{J} items and \emph{K} categories
+#' @param a A \eqn{J \times L} matrix of fixed slope parameters for \emph{J} items and \emph{L} dimensions.
+#' @param b A \eqn{J \times (K-1)} matrix of category threshold parameters for \emph{J} items and \emph{K} categories.
 #' @param D Constant to scale the normal ogive model. 
 #' @param weight.category The weighting strategy to use: "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
 #' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting in robust estimation.
 #' @param init.val Initial latent traits for the estimation. Accepts a \eqn{N \times L} matrix for \emph{N} subjects and \emph{L} dimensions, a vector of length \emph{L} to be used for all subjects, or a single value be used for all subjects and dimensions. Default is 0.
-#' @param iter Max number of iterations for the Newton-Rapshon algorithm. Default is 30
+#' @param iter Max number of iterations for the Newton-Rapshon algorithm. Default is 30.
 #' @param cutoff Threshold value to terminate the Newton-Rapshon algorithm when the likelihood change is below this value, to deem the estimation converged. Default is 0.01.
 
 theta.est.mgrm<-function(dat, a, b, D=1.7, weight.type="equal", tuning.par=NULL, init.val=0, iter=30, cutoff=0.01){
@@ -1458,18 +1478,18 @@ std.err.mgrm<- function(theta, d, a, dat, D = 1.7, weight.type="equal", tuning.p
 #' Change-Point Analysis for Back Random Responding
 #'
 #'  Uses the modified standardized residual (MSR) to identify shifts in response behavior from normal responding to random responding. Details: This change-point analysis, as outlined in Yu and Cheng, 2019, is designed to detect respondents who exhibits back-random responding (BRR; Clark et al., 2003), which is defined as switching from a normal response behavior to random responding for the remaining test items. For each possible change point, the MSR, 
-#'  #' \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
-#'   of items beforehe difference in the average absolute weighted residual (ABWR) of items before the change point is taken from that of items after the change point. A subject who exhibits BRR is expected to have large absolute residuals, indicating greater misfit, after the change point, as compared to smaller residuals before the change point. An \eqn{R_j} greater than the user-specified critical value indicates that the subject is likely exhibiting BRR. 
+#'  \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
+#'  of items beforehe difference in the average absolute weighted residual (ABWR) of items before the change point is taken from that of items after the change point. A subject who exhibits BRR is expected to have large absolute residuals, indicating greater misfit, after the change point, as compared to smaller residuals before the change point. An \eqn{R_j} greater than the user-specified critical value indicates that the subject is likely exhibiting BRR. 
 #' given data and parameters that follow the multidimensional graded response model (MGRM; Muraki & Carlson, 1995). Handles unidimensional and dichotomous data as well.
-#' @param dat \eqn{N \times J} matrix of data, beginning indexing at 1 for \eqn{N} respondents and \eqn{J} items
-#' @param a \eqn{J \times L} matrix of discrimination parameters
-#' @param b \eqn{J \times (K-1)} matrix of category threshold parameters, for \eqn{K} Likert-type categories
+#' @param dat \eqn{N \times J} matrix of data, beginning indexing at 1 for \eqn{N} respondents and \eqn{J} items.
+#' @param a \eqn{J \times L} matrix of discrimination parameters.
+#' @param b \eqn{J \times (K-1)} matrix of category threshold parameters, for \eqn{K} Likert-type categories.
 #' @param crit.val Critical value to separate normal responders from those exhibiting BRR; an \eqn{R_j} greater than this value is classified as exhibiting BRR
 #' @references  Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
 #' @references Clark, M. E., Gironda, R. J., & Young, R. W. (2003). Detection of back random responding: Effectiveness of MMPI-2 and Personality Assessment Inventory validity indices. \emph{Psychological Assessment}, 15 (2), 223–234. DOI: 10.1037/1040-3590.15.2.223
 #' @return flagged vector of binary indicators: 1 if classified as aberrant, 0 if not.
 #' @return change.point the item number with the largest \eqn{R_j} for each respondent. For response vectors flagged, BRR begins at the next item.  
-#' @return max.residual the largest \eqn{R_j} for each respondent
+#' @return max.residual the largest \eqn{R_j} for each respondent.
 #' @examples
 #' data(BFI2)
 #' BFI2<-BFI2[,grep("t1_bfi_N", colnames(BFI2))]
@@ -1529,7 +1549,7 @@ cpa.brr<-function(dat, a, b, crit.val=75){
 #'               If no tuning parameter is supplied, just the histogram of residuals is generated.
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
-#' @return Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
+#' @return Histogram plot of residuals beneath a graph of the weight functions vs. the residuals.
 #' @examples
 #' ## Unidimensional IRT Example
 #' n=40
