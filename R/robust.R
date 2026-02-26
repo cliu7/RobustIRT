@@ -80,15 +80,17 @@ pstar_to_p<-function(Pstar){
 #' @references Rasch, G. (1960). Probabilistic models for some intelligence and attainment tests. \emph{Danish Institute for Educational Research}, 184.
 #' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @param theta A numeric vector or matrix of latent trait values. 
-#' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilitized.
+#' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilized.
 #' @param model A character string specifying which IRT model to use:
-#'   * **"Rasch"** — Allows item difficulty parameters to vary across items (Rasch, 1960).
-#'   * **"1PL"** — 1‑parameter logistic model with a common discrimination parameter and item‑specific difficulties. The Rasch model is the special case where all discriminations equal 1.
-#'   * **"2PL"** — 2‑parameter logistic model allowing both discrimination and difficulty to vary across items (Birnbaum, 1968).
-#'   * **"MIRT"** — Multidimensional extension of the 2PL model with item slope vectors across latent dimensions and item‑specific intercepts (McKinley & Reckase, 1983; Muraki & Engelhard, 1985).
-#'   * **"GRM"** — Graded response model for ordered polytomous items with item‑specific discrimination and ordered category thresholds (Samejima, 1969).
-#'   * **"MGRM"** — Multidimensional graded response model extending Samejima’s GRM to multiple latent dimensions, with slope vectors and ordered category thresholds (Muraki & Carlson, 1995).
-#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
+#'   \describe{
+#'   \item{\code{"Rasch}}{Allows item difficulty parameters to vary across items (Rasch, 1960).}
+#'   \item{\code{"1PL"}}{1‑parameter logistic model with a common discrimination parameter and item‑specific difficulties. The Rasch model is the special case where all discriminations equal 1.}
+#'   \item{\code{"2PL"}}{2‑parameter logistic model allowing both discrimination and difficulty to vary across items (Birnbaum, 1968).}
+#'   \item{\code{"MIRT"}}{Multidimensional extension of the 2PL model with item slope vectors across latent dimensions and item‑specific intercepts (McKinley & Reckase, 1983; Muraki & Engelhard, 1985).
+#'   \item{\code{"GRM"}}{Graded response model for ordered polytomous items with item‑specific discrimination and ordered category thresholds (Samejima, 1969).}
+#'   \item{\code{"MGRM"}}{Multidimensional graded response model extending Samejima’s GRM to multiple latent dimensions, with slope vectors and ordered category thresholds (Muraki & Carlson, 1995).}
+#'   }
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.}
 #' @return For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities \eqn{P(X = 1)}.
 #' @return For models accommodating polytomous data ("GRM", "MGRM"), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)}.
 #'         and {P}: an array of category probabilities \eqn{P(X = k)}.
@@ -457,22 +459,23 @@ huber<-function(r, H){
 #' Dichotomous items are sampled using Bernoulli trials, while polytomous (Likert-type) items are sampled using multinomial draws over ordered response categories. The function accepts three probability formats,
 #' each corresponding to a different data‑generation scenario. Here, \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories.
 #'
-#' * **Dichotomous data** (\eqn{N \times J} matrix):  
+#' \describe{
+#'   \item{\code{Dichotomous data} (\eqn{N \times J} matrix):  
 #'   Each entry \eqn{P[n, j]} gives the probability that person \eqn{n}
 #'   answers item \eqn{j} correctly.  
 #'   Output: an \eqn{N \times J} matrix of 0/1 responses.
-#'
-#' * **Polytomous data for one person** (\eqn{J \times K} matrix):  
+#'   }
+#'   \item{\code{Polytomous data for one person} (\eqn{J \times K} matrix):  
 #'   Each row contains the category probabilities for one item, where
 #'   \eqn{P[j, k]} is the probability of responding in category \eqn{k}.  
 #'   Output: a \eqn{1 \times J} matrix of integer category scores.
-#'
-#' * **Polytomous data for multiple persons** (\eqn{J \times K \times N} array):  
+#'   }
+#'   \item{\code{Polytomous data for multiple persons} (\eqn{J \times K \times N} array):  
 #'   Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix of category
 #'   response probabilities for person \eqn{n}.  
 #'   Output: an \eqn{N \times J} matrix of simulated category scores.
-#'
-#' 
+#'   }
+#' }
 #' @param P A matrix or array of response probabilities. For polytomous data, each probability vector must sum to 1.
 #' @param anchor Integer specifying the lowest category value. Typical values are 0 or 1; default is 0.
 #' @param polytomous Is the data Likert-type? Must be specified as `TRUE` when P is a matrix of category response probabilities for polytomous data (e.g., data for one person). 
