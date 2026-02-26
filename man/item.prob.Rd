@@ -9,7 +9,19 @@ item.prob(theta, model, ipars, D = 1.7)
 \arguments{
 \item{theta}{A numeric vector or matrix of latent trait values.}
 
+\item{model}{A character string specifying which IRT model to use:
+\itemize{
+\item{\code{"Rasch}}{Allows item difficulty parameters to vary across items (Rasch, 1960).}
+\item{\code{"1PL"}}{1‑parameter logistic model with a common discrimination parameter and item‑specific difficulties. The Rasch model is the special case where all discriminations equal 1.}
+\item{\code{"2PL"}}{2‑parameter logistic model allowing both discrimination and difficulty to vary across items (Birnbaum, 1968).}
+\item{\code{"MIRT"}}{Multidimensional extension of the 2PL model with item slope vectors across latent dimensions and item‑specific intercepts (McKinley & Reckase, 1983; Muraki & Engelhard, 1985).}
+\item{\code{"GRM"}}{Graded response model for ordered polytomous items with item‑specific discrimination and ordered category thresholds (Samejima, 1969).}
+\item{\code{"MGRM"}}{Multidimensional graded response model extending Samejima’s GRM to multiple latent dimensions, with slope vectors and ordered category thresholds (Muraki & Carlson, 1995).}
+}}
+
 \item{ipars}{A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilized.}
+
+\item{D}{A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.}
 }
 \value{
 For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities \eqn{P(X = 1)}.
