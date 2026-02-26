@@ -23,20 +23,23 @@ Dichotomous items are sampled using Bernoulli trials, while polytomous (Likert-t
 each corresponding to a different data‑generation scenario. Here, \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories.
 }
 \details{
-* **Dichotomous data** (\eqn{N \times J} matrix):  
+\describe{
+  \item{\code{Dichotomous data} (\eqn{N \times J} matrix):  
   Each entry \eqn{P[n, j]} gives the probability that person \eqn{n}
   answers item \eqn{j} correctly.  
   Output: an \eqn{N \times J} matrix of 0/1 responses.
-
-* **Polytomous data for one person** (\eqn{J \times K} matrix):  
+  }
+  \item{\code{Polytomous data for one person} (\eqn{J \times K} matrix):  
   Each row contains the category probabilities for one item, where
   \eqn{P[j, k]} is the probability of responding in category \eqn{k}.  
   Output: a \eqn{1 \times J} matrix of integer category scores.
-
-* **Polytomous data for multiple persons** (\eqn{J \times K \times N} array):  
+  }
+  \item{\code{Polytomous data for multiple persons} (\eqn{J \times K \times N} array):  
   Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix of category
   response probabilities for person \eqn{n}.  
   Output: an \eqn{N \times J} matrix of simulated category scores.
+  }
+}
 }
 \examples{
 
