@@ -542,6 +542,7 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' 
 #' Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian).
 #' @export
+                   
 standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", tuning.par = NULL, est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41)){
   
   # Function to determine weights:
@@ -607,7 +608,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
       out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
     } 
-    
+
+    return(out)
   }
   
   if(model=="1PL"){
@@ -688,6 +690,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       # Weighted Second Derivative
       D2.MAP<-rowSums(w*D2) + 1/prior[2]
       
+      # Posterior standard deviation of MAP theta estimate
       out$post_sd_MAP <- sqrt(1 / D2.MAP)
       out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
     }
@@ -726,7 +729,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     for(i in 1:N){
       Pi<-P[i,]
       xi<-dat[i,]
-
+      
       # Initialize LxL matrices
       A <- V <-B <- matrix(0,L,L)
       
@@ -740,20 +743,20 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
         
         A <- A +wij*Ij # jth item expected info contribution
         V <- V + wij^2*Ij # ASE numerator contribution
-     
+        
       }
       
       if(length(A)==1){
-          Ainv<-1/A
-        } else if(det(A)<1e-12 || any(!is.finite(A))) {
-          out_singular[i,]<-1
-          out_ase[i,] <- NA
-          out_sand[i,]  <- NA
-        }else {
-          Ainv <- solve(A)
-          out_ase[i,] <- sqrt(diag(Ainv %*% V %*% Ainv))
-          out_sand[i,]  <- sqrt(diag(Ainv %*% B %*% Ainv))
-        }
+        Ainv<-1/A
+      } else if(det(A)<1e-12 || any(!is.finite(A))) {
+        out_singular[i,]<-1
+        out_ase[i,] <- NA
+        out_sand[i,]  <- NA
+      }else {
+        Ainv <- solve(A)
+        out_ase[i,] <- sqrt(diag(Ainv %*% V %*% Ainv))
+        out_sand[i,]  <- sqrt(diag(Ainv %*% B %*% Ainv))
+      }
       
     }
     
@@ -781,29 +784,145 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     idx1 <- cbind(rep(1:J, N), as.vector(k_index), rep(1:N, each=J))
     idx2 <- cbind(rep(1:J, N), as.vector(k_index+1), rep(1:N, each=J))
     
+    # Add boundary threshold probabilities
     P1 <- array(Pstar[idx1], dim=c(J,N))
     P2 <- array(Pstar[idx2], dim=c(J,N))
     Pk <- P1 - P2
     
-    g1 <- D*a*(P1*(1-P1) - P2*(1-P2)) / Pk # first derivative
-    Ij <- -D^2 * a^2 * ((P1*(1-P1)*(1-2*P1) - P2*(1-P2)*(1-2*P2))/Pk -
-        (P1*(1-P1) - P2*(1-P2))^2 / Pk^2)
+    # First derivative
+    D1 <- D*a*(P1*(1-P1) - P2*(1-P2)) / Pk
     
-    A <- colSums(t(w) * Ij)
-    V <- colSums(t(w)^2 * Ij)
-    B <- colSums((t(w) * g1)^2)
+    # Second Derivative 
+    D2 <- -D^2 * a^2 * ((P1*(1-P1)*(1-2*P1) - P2*(1-P2)*(1-2*P2))/Pk -
+                          (P1*(1-P1) - P2*(1-P2))^2 / Pk^2)
+    
+    A <- colSums(t(w) * D2) # Expected information
+    V <- colSums(t(w)^2 * D2) # ASE numerator
+    B <- colSums((t(w) * D1)^2) # Sandwich B
     
     A[A <= 0 | !is.finite(A)] <- NA
     
-    out <- list(
-      asymptotic_se = sqrt(V)/A,
-      sandwich_se  = sqrt(B)/A
-    )
+    if("MLE"%in%est.type){
+      out$asymptotic_MLE <- sqrt(V)/A
+      out$sandwich_MLE <- sqrt(B)/A
+    }
     
+    if("MAP"%in%est.type){
+      
+      # Weighted Second Derivative
+      D2.MAP<-A + 1/prior[2]
+      
+      out$post_sd_MAP <- sqrt(1 / D2.MAP)
+      out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+    }
+    
+    if("EAP"%in%est.type){
+      # Prior density according to each density point
+      f_x<-dnorm(eap.quad.pts, prior[1], sqrt(prior[2]))
+      # Item response probabilities at each quadrature point
+      probs.q <- item.prob(eap.quad.pts, "GRM", ipars) 
+      Q<-length(eap.quad.pts)
+      
+      # (Weighted) Likelihood according to person's data and each quad point
+      likelihood<-matrix(NA, N, Q)
+      for(i in 1:N){
+        likelihood[i,]<- apply(probs.q, 1, function(x) prod((x^dat[i,]*(1-x)^(1-dat[i,]))^w[i,]))
+      }
+      
+      # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
+      out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
+      out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+    } 
   }
   
   if(model=="MGRM"){
+    if(!is.matrix(theta)) theta <- matrix(theta, nrow = 1)
+    a<- ipars[, 1:L] # a: J x L matrix (first L columns: discrimination parameters)
+    b<- ipars[, (L+1):ncol(ipars)] # b: J x K matrix (category threshold parameters)
+    K <-ncol(b) # number of thresholds K
+    L <- ncol(theta)
     
+    # Calculate probabilities
+    probs<-item.prob(theta, "MGRM", ipars)
+    
+    out_ase      <- matrix(NA, N, L)
+    out_sand     <- matrix(NA, N, L)
+    out_singular <- matrix(0,  N, L)
+    
+    for(i in 1:N){
+      
+      # Pstar: J x (K+2) boundary probabilities for person i
+      Pstar_i <- matrix(NA, J, K + 2)
+      Pstar_i[, 1] <- 1
+      Pstar_i[, 2:(K+1)] <-probs$pstar[,, i]   # J x K slice
+      Pstar_i[, K+2]<- 0
+      
+      Pcat_i <- probs$P[,,i]   # J x (K+1) category probabilities for person i
+      
+      # Accumulate A, V, B across items (LxL matrices)
+      A_mat <- V_mat <- B_mat <- matrix(0, L, L)
+      
+      for(j in 1:J){
+        aj  <- matrix(a[j, ], nrow = 1)   # 1 x L
+        wij <- w[i, j]
+        
+        # Extract P* values
+        ps0 <- Pstar_i[j, 1:(K+1)] 
+        ps1 <- Pstar_i[j, 2:(K+2)]
+        
+        # category probs of length K+1
+        Pk  <- Pcat_i[j, ]               
+        
+        qs0 <- 1 - ps0
+        qs1 <- 1 - ps1
+        
+        # Numerators reused across derivatives
+        num1 <- ps0 * qs0 - ps1 * qs1     # length K+1
+        
+        # First derivative: scalar (sum over categories), then outer to LxL 
+        # d/dtheta log L_j = D * a_j . sum_k [ num1_k / Pk_k ]
+        score_j <- D * sum(num1 / Pk)     # scalar score contribution
+        
+        g_j <- wij * t(aj) * score_j      # L x 1 gradient
+        B_mat <- B_mat + g_j %*% t(g_j)
+        
+        # Second derivative: Expected Information (Fisher)
+        # Note: the negative sign is absorbed so this is positive information
+        num2 <- ps0*qs0*(qs0 - ps0) - ps1*qs1*(qs1 - ps1)  # = ps0*qs0*(1-2ps0) - ps1*qs1*(1-2ps1)
+        
+        # Expected info scalar (sum over k)
+        Ij_scalar <- D^2 * sum(num2 / Pk - (num1^2) / Pk^2)
+        # Note: this equals negative expected info for Fisher per item; we negate for positive info
+        Ij_scalar <- -Ij_scalar
+        
+        Ij <- Ij_scalar * (t(aj) %*% aj)  # L x L item information
+        
+        A_mat <- A_mat + wij  * Ij
+        V_mat <- V_mat + wij^2 * Ij
+      }
+      
+      # Invert and compute SEs
+      if(any(!is.finite(A_mat)) || any(!is.finite(V_mat))){
+        out_singular[i, ] <- 1
+        next 
+      }
+      
+      det_A <- if(L > 1) det(A_mat) else A_mat[1,1]
+      
+      if(abs(det_A) < 1e-12){
+        out_singular[i, ] <- 1
+      } else {
+        Ainv         <- if(L == 1) 1/A_mat else solve(A_mat)
+        out_ase[i, ] <- sqrt(diag(Ainv %*% V_mat %*% Ainv))
+        out_sand[i,] <- sqrt(diag(Ainv %*% B_mat %*% Ainv))
+      }
+    }
+    
+    out <- list(
+      asymptotic_se   = out_ase,
+      sandwich_se     = out_sand,
+      singular.matrix = out_singular
+    )
   }
   
   return(out)
