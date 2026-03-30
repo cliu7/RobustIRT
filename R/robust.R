@@ -538,10 +538,131 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
   return(out)
 }
 
-#' Standard error function for Rasch, 1PL, 2PL, MIRT, GRM, MGRM
+#' Standard error function for Rasch, 1PL, 2PL, MIRT, GRM, and MGRM models
 #' 
-#' Computes per person: information SE (expected Fisher), asymptotic SE (robust expected, incorporating weights), sandwich SE, Bayesian SE & bayesian sandwich SE (2PL & GRM only for Bayesian).
+#' Computes per-person standard errors for several IRT models using multiple estimation frameworks.
+#' Supported standard error types include:
+#' \itemize{
+#'   \item \code{"Asymptotic SE"} (Information-based standard error incorporating weights. Reduces to the expected Fisher information standard error when item weights are 1 (equal weighting))
+#'   \item \code{"Sandwich SE"} (Standard error that is robust to model misspecification.)
+#'   \item \code{"Bayesian SE and Bayesian Sandwich SE"} (2PL & GRM only for Bayesian)
+#' }
+#' The posterior standard deviation and the sandwich counterpart are reported for Bayesian estimates of the latent trait. Currently, only the 2PL and GRM models are supported. 
+#' The function accommodates robust weighting schemes (equal, Huber, bisquare) 
+#' and supports MLE, MAP, and EAP estimation.
+#' @param theta A numeric vector or matrix of latent trait values. For unidimensional models, a numeric vector of length \eqn{N}. For multidimensional models (MIRT, MGRM), an \eqn{N \times L} matrix.
+#' @param ipars A matrix of item parameters, whose structure depends on the model. 
+#' @param dat A \eqn{N \times J} matrix of polytomously-scored data (e.g., Likert-type) for \emph{N} subjects and \emph{J} items. Indexing begins at 0.
+#' @param model Character string specifying the IRT model. See `item.prob` for supported models.
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
+#' @param weight.type Type of weighting function to be used: "equal", "Huber", or "bisquare".
+#' @param tuning.par Optional tuning parameter for Huber or bisquare weights.
+#' @param est.type Type of estimation to be used: "MLE", "MAP", or "EAP".
+#' @param prior Numeric vector giving the mean and variance of the normal prior for MAP and EAP estimation types.
+#' @param eap.quad.pts A numeric vector of quadrature points \eqn{\theta_q} used when computing EAP standard errors. These are typically q equally spaced values across the latent‑trait range. Only used when "EAP" is included in \code{est.type}.
+#' @details 
+#' The function computes person-level standard errors for several IRT models by combining model-specific score functions with robust weighting and multiple
+#' estimation frameworks (MLE, MAP, EAP). All SEs are derived from first- and second-order derivatives of the log-likelihood (or posterior) evaluated at each person's latent trait estimate.
+#' 
+#' For every person and item, the function first computes standardized residuals
+#' and converts them into weights. These weights can be:
+#' \itemize{
+#'   \item \code{"equal"} — all responses weighted equally,
+#'   \item \code{"Huber"} — down-weights large residuals,
+#'   \item \code{"bisquare"} — strongly down-weights outliers.
+#' }
+#' The weights influence both the information-based SEs and the sandwich SEs.
+#'
+#' \strong{MLE standard errors.}  
+#' For MLE, the function uses each model’s first and second derivatives to form:
+#' \itemize{
+#'   \item an expected information term (how much information the items provide),
+#'   \item an empirical “sandwich” term (how variable the score function is).
+#' }
+#' The asymptotic SE uses only the information term, while the sandwich SE uses
+#' both and is more robust to model–data misfit.
+#'
+#' \strong{MAP standard errors.}  
+#' For MAP, the normal prior adds extra curvature to the information. This makes
+#' the posterior SD smaller when the prior is strong. A Bayesian sandwich SE is
+#' also returned by combining the posterior SD with the empirical variability.
+#'
+#' \strong{EAP standard errors.}  
+#' For EAP, the function evaluates the likelihood at specific quadrature points
+#' and computes the posterior variance directly from the weighted distribution.
+#' A Bayesian sandwich SE is again produced by combining this posterior SD with
+#' the empirical term.
+#'
+#' @references
+#' @return A list whose elements depend on the specified model and `est.type`. Possible components include:
+#' \itemize{
+#'    \item \code{"asymptotic_MLE"} (information‑based SEs)
+#'    \item \code{"sandwich_MLE"} (sandwich SEs)
+#'    \item \code{"post_sd_MAP"} (posterior SD for MAP)
+#'    \item \code{"sandwich_MAP"} (Bayesian sandwich SE for MAP)
+#'    \item \code{"post_sd_EAP"} (posterior SD for EAP)
+#'    \item \code{"sandwich_EAP"} (Bayesian sandwich SE for EAP)
+#'    \item \code{"singular.matrix"} (indicator for singular information matrices in multidimensional data)
+#'}    
 #' @export
+#' @examples 
+#' library(mirt)
+#' library(dplyr)
+#' library(readr)
+#' data(SAT12)
+#' 
+#' # Rasch Model Example
+#' Rasch_fit <- mirt(SAT12, 1, itemtype = "Rasch")
+#' Rasch_theta <- fscores(Rasch_fit)
+#' Rasch_ipars <- coef(Rasch_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b", drop = FALSE]
+#' Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, SAT12, model = "Rasch")
+#' 
+#' # 1PL Model Example
+#' 1PL_fit <- mirt(SAT12, 1, itemtype = "1PL")
+#' 1PL_theta <- fscores(1PL_fit)
+#' 1PL_ipars <- cbind(a = rep(1, nrow(SAT12)), b = coef(1PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
+#' 1PL_SE <- standard.errors(1PL_theta, 1PL_ipars, SAT12, model="1PL")
+#' 
+#' # 2PL Model Example
+#' 2PL_fit <- mirt(SAT12, 1, itemtype = "2PL")
+#' 2PL_theta <- fscores(2PL_fit)
+#' 2PL_ipars <- 2PL_ipars <- coef(2PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
+#' 2PL_SE <- standard.errors(2PL_theta, 2PL_ipars, SAT12, model = "2PL", est.type = c("MLE", "MAP"))
+#' 
+#' # MIRT Model Example
+#' MIRT_fit <- mirt(SAT12, 2)
+#' MIRT_theta <- fscores(MIRT_fit)
+#' MIRT_ipars <- coef(MIRT_fit, IRTpars = TRUE, simplify = TRUE)$items
+#' MIRT_SE <- standard.errors(MIRT_theta, MIRT_ipars, SAT12, model = "MIRT")
+#' 
+#' # GRM Model Example for Agreeableness
+#' bfi <- read_csv("p234_bfi_demog_2020-04-24.csv")
+#' A_items <- bfi %>% dplyr::select(starts_with("A"))
+#' GRM_fit <- mirt(A_items, 1, itemtype = "graded")
+#' GRM_theta <- fscores(GRM_fit)
+#' GRM_ipars <- coef(GRM_fit, IRTpars = TRUE, simplify = TRUE)$items
+#' GRM_SE <- standard.errors(theta = GRM_theta, ipars = GRM_ipars, dat = as.matrix(A_items), model = "GRM", est.type = c("MLE", "MAP", "EAP"), weight.type = "Huber", tuning.par = 1)
+#' 
+#' # MGRM Model Example
+#' library(readr)
+#' library(dplyr)
+#' library(mirt)
+#' bfi <- read_csv("p234_bfi_demog_2020-04-24.csv")
+#' MGRM_items <- bfi %>% select(starts_with("t1_bfi"))
+#' names(MGRM_items) <- gsub("t1_bfi_", "", names(MGRM_items))
+#' names(MGRM_items)<- gsub("R", "", names(MGRM_items))
+#'
+#' MGRM_model <- "A = A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12
+#'                C = C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12
+#'                E = E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12
+#'                N = N1, N2, N3, N4, N5, N6, N7, N8, N9, N10, N11, N12
+#'                O = O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12"
+#' MGRM_fit <- mirt(MGRM_items, model = MGRM_model, itemtype = "graded", method = "QMCEM", technical = list(NCYCLES = 500))
+#' MGRM_theta <- fscores(MGRM_fit)
+#' MGRM_ipars <- coef(MGRM_fit, IRTpars = TRUE, simplify = TRUE)$items
+#' MGRM_dat <- as.matrix(MGRM_items)
+#' MGRM_SE <- standard.errors(theta = MGRM_theta, ipars = MGRM_ipars, dat = MGRM_dat, model = "MGRM", est.type = "MLE", weight.type = "Huber", tuning.par  = 1)
+
                    
 standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", tuning.par = NULL, est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41)){
   
@@ -588,7 +709,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       D2.MAP<-rowSums(w*D2) + 1/prior[2]
       
       out$post_sd_MAP <- sqrt(1 / D2.MAP)
-      out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
     }
     
     if("EAP"%in%est.type){
@@ -606,7 +727,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
-      out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
     } 
 
     return(out)
@@ -642,7 +763,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       D2.MAP<-rowSums(w*D2) + 1/prior[2]
       
       out$post_sd_MAP <- sqrt(1 / D2.MAP)
-      out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
     }
     
     if("EAP"%in%est.type){
@@ -660,7 +781,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
-      out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
     } 
     
   }
@@ -692,7 +813,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of MAP theta estimate
       out$post_sd_MAP <- sqrt(1 / D2.MAP)
-      out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
     }
     
     if("EAP"%in%est.type){
@@ -710,7 +831,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
-      out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
     } 
     
   }
@@ -760,8 +881,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
     }
     
-    out<-list(asymptotic_se = out_ase,
-              sandwich_se = out_sand,
+    out<-list(asymptotic_MLE = out_ase,
+              sandwich_MLE = out_sand,
               singular.matrix = out_singular)
     
   }
@@ -813,7 +934,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       D2.MAP<-A + 1/prior[2]
       
       out$post_sd_MAP <- sqrt(1 / D2.MAP)
-      out$bayes_sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
     }
     
     if("EAP"%in%est.type){
@@ -831,7 +952,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
-      out$bayes_sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
     } 
   }
   
@@ -919,8 +1040,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     }
     
     out <- list(
-      asymptotic_se   = out_ase,
-      sandwich_se     = out_sand,
+      asymptotic_MLE   = out_ase,
+      sandwich_MLE     = out_sand,
       singular.matrix = out_singular
     )
   }
