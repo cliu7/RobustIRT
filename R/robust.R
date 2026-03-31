@@ -958,10 +958,10 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
   
   if(model=="MGRM"){
     if(!is.matrix(theta)) theta <- matrix(theta, nrow = 1)
+    L <- ncol(theta)
     a<- ipars[, 1:L] # a: J x L matrix (first L columns: discrimination parameters)
     b<- ipars[, (L+1):ncol(ipars)] # b: J x K matrix (category threshold parameters)
     K <-ncol(b) # number of thresholds K
-    L <- ncol(theta)
     
     # Calculate probabilities
     probs<-item.prob(theta, "MGRM", ipars)
