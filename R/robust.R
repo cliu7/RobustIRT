@@ -611,29 +611,48 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' library(readr)
 #' data(SAT12)
 #' 
+#' itemstats(SAT12, use_ts = FALSE)
+#' # score the data (missing scored as 0)
+#' head(SAT12)
+#' dat <- key2binary(SAT12,
+#'                  key = c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5))
+#' head(dat)
+#' itemstats(dat)
+#'
+#' # score the data, missing (value of 8) treated as NA
+#' SAT12missing <- SAT12
+#' SAT12missing[SAT12missing == 8] <- NA
+#' dat <- key2binary(SAT12missing,
+#'                  key = c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5))
+#' head(dat)
+#'
+#' # potentially better scoring for item 32 (based on nominal model finding)
+#' dat <- key2binary(SAT12,
+#'                  key = c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,3))
+#'
 #' # Rasch Model Example
-#' Rasch_fit <- mirt(SAT12, 1, itemtype = "Rasch")
+#' Rasch_fit <- mirt(dat, 1, itemtype = "Rasch")
 #' Rasch_theta <- fscores(Rasch_fit)
 #' Rasch_ipars <- coef(Rasch_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b", drop = FALSE]
-#' Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, SAT12, model = "Rasch")
+#' Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, dat, model = "Rasch")
 #' 
 #' # 1PL Model Example
-#' 1PL_fit <- mirt(SAT12, 1, itemtype = "1PL")
+#' 1PL_fit <- mirt(dat, 1, itemtype = "1PL")
 #' 1PL_theta <- fscores(1PL_fit)
-#' 1PL_ipars <- cbind(a = rep(1, nrow(SAT12)), b = coef(1PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
-#' 1PL_SE <- standard.errors(1PL_theta, 1PL_ipars, SAT12, model="1PL")
+#' 1PL_ipars <- cbind(a = rep(1, ncol(dat)), b = coef(1PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
+#' 1PL_SE <- standard.errors(1PL_theta, 1PL_ipars, dat, model="1PL")
 #' 
 #' # 2PL Model Example
-#' 2PL_fit <- mirt(SAT12, 1, itemtype = "2PL")
+#' 2PL_fit <- mirt(dat, 1, itemtype = "2PL")
 #' 2PL_theta <- fscores(2PL_fit)
-#' 2PL_ipars <- 2PL_ipars <- coef(2PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
-#' 2PL_SE <- standard.errors(2PL_theta, 2PL_ipars, SAT12, model = "2PL", est.type = c("MLE", "MAP"))
+#' 2PL_ipars <- coef(2PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
+#' 2PL_SE <- standard.errors(2PL_theta, 2PL_ipars, dat, model = "2PL", est.type = c("MLE", "MAP"))
 #' 
 #' # MIRT Model Example
-#' MIRT_fit <- mirt(SAT12, 2)
+#' MIRT_fit <- mirt(dat, 2)
 #' MIRT_theta <- fscores(MIRT_fit)
 #' MIRT_ipars <- coef(MIRT_fit, IRTpars = TRUE, simplify = TRUE)$items
-#' MIRT_SE <- standard.errors(MIRT_theta, MIRT_ipars, SAT12, model = "MIRT")
+#' MIRT_SE <- standard.errors(MIRT_theta, MIRT_ipars, dat, model = "MIRT")
 #' 
 #' # GRM Model Example for Agreeableness
 #' bfi <- read_csv("p234_bfi_demog_2020-04-24.csv")
