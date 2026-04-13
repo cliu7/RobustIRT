@@ -57,3 +57,56 @@
 #' @references Soto, C. J., & John, O. P. (2017). The next Big Five Inventory (BFI-2): Developing and assessing a hierarchical model with 15 facets to enhance bandwidth, fidelity, and predictive power. \emph{Journal of Personality and Social Psychology, 113}, 117–143. \url{http://dx.doi.org/10.1037/pspp0000096}
 #' @source \url{https://osf.io/awvnd}
 "BFI2"
+#' MTurk Comparison Data
+#' 
+#' @Description
+#' A dataset containing 26 survey items collected from Amazon Mechanical Turk (AMT). Additional demographic variables are also included.
+#' Respondents were recruited from MTurk and were paid $0.20 to participate. To qualify, workers were required to have completed at least 100 prior HITs  
+#' with an acceptance rate of 97% or higher.
+#'
+#' @format A data frame with 1402 rows (participants) and 34 columns (survey items and follow-up information). 
+#' \describe{
+#'   \item{country}{The country the user's network connection was based.}
+#'   \item{engnat}{Whether the respondent reported English as their native language (0 = no, 1 = yes).}
+#'   \item{age}{Age in years.}
+#'   \item{gender}{Gender indicator.)}
+#'   \item{Q1}{I am tall.}
+#'   \item{Q2}{I am short.}
+#'   \item{Q3}{I have to stand on a stool to reach tall kitchen shelves.}
+#'   \item{Q4}{I have to stand in the back in group photos to not cover up other people.}
+#'   \item{Q5}{I hit my head on low ceilings.}
+#'   \item{Q6}{I rarely meet people with more height than me.}
+#'   \item{Q7}{I'm kind of a midget.}
+#'   \item{Q8}{Airplane seats never have enough room for my long legs.}
+#'   \item{Q9}{When I hug people, my head is underneath their chin.}
+#'   \item{Q10}{I have gangly limbs.}
+#'   \item{Q11}{I have been sent to the hospital by an electric shock.}
+#'   \item{Q12}{I own a goat.}
+#'   \item{Q13}{I know the 'happy birthday to you..' song.}
+#'   \item{Q14}{I have been asked for money by beggars.}
+#'   \item{Q15}{I prefer to play it safe and avoid danger.}
+#'   \item{Q16}{I prefer variety to routine.}
+#'   \item{Q17}{I rarely clean house.}
+#'   \item{Q18}{I rarely complain.}
+#'   \item{Q19}{I rarely overindulge.}
+#'   \item{Q20}{I accept what others say.}
+#'   \item{Q21}{I enjoy being part of a loud crowd.}
+#'   \item{Q22}{I offend no one.}
+#'   \item{Q23}{I see that nobody gets left out.}
+#'   \item{Q24}{I try not to deceive others.}
+#'   \item{Q25}{I try out new things.}
+#'   \item{Q26}{I will push people around to get what I want.}
+#'   \item{feet}{Height reported in feet (if the respondent used imperial units).}
+#'   \item{inch}{Height reported in inches (if the respondent used imperial units).}
+#'   \item{cm}{Height reported in centimeters (if the respondent used metric units).}
+#'   \item{submittime}{The time (PST) the survey was submitted.}
+#'
+#' @details 
+#' The item data followed a 5-point Likert scale, with the following labels: 1 = Strongly disagree, 2 = Disagree, 3 = Neither agree nor disagree, 4 = Agree, and 5 = Strongly agree. A 0 indicates no response.
+#' Due to factors such as disengagement and low motivation that are common on low stakes assessment, MTurk data may be especially susceptible to aberrant response behavior. 
+#' When fitting an item response theory model, robust estimation may be applied to reduce bias in the latent trait estimate for respondents exhibiting aberrant responses.
+#' However, when a subject's response pattern contains aberrant responses for the majority of or all items (e.g., "bot" responding), robust estimation will not be effective in mitigating the aberrances and unable to reduce the bias in the latent trait.
+#'
+#' @source Open Psychometrics (2019, December 29). A quality comparison of data collected on this website to data collected on Amazon Mechanical Turk. https://openpsychometrics.org/_rawdata/validity/
+#' 
+#' @usage data(MTurk)
