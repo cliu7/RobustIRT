@@ -1,4 +1,4 @@
-#' Convert category threshold probabilities (\eqn{P^*}) to the probabilities of responding in each category
+#' Convert category threshold probabilities to the probabilities of responding in each category
 #'
 #' Calculate \eqn{P}, the probabilities of responding in each category, from the \eqn{P^*} threshold values using the graded response model (GRM; Samejima, 1969).
 #' The probability that a subject responds in or above a category \eqn{k} for item \eqn{j} is \eqn{P^*_{jk}(\theta) = \frac{1}{1+ e^{-a_j (\theta-b_{jk})}}},
@@ -404,10 +404,10 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
 #' Bisquare Weighting Function
 #'
 #' Calculate Tukey's bisquare weight (Mosteller & Tukey, 1977) given a residual and bisquare tuning parameter.
-#' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.
+#' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals of value NA are given a weight of 0.
 #' @param B Bisquare tuning parameter. Larger values lead to less downweighting.
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
-#' @return Bisquare weight value. Note that residuals of value `NA` are assigned values of 0.
+#' @return Bisquare weight value. 
 #' @examples 
 #' 
 #' # 1-person case
@@ -433,10 +433,10 @@ bisquare<-function(r, B){
 #' Huber Weighting Function
 #'
 #' Calculate the Huber weight (Huber, 1981) given a residual and Huber tuning parameter.
-#' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.
+#' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals of value NA are given a weight of 0.
 #' @param H Huber tuning parameter. Larger values lead to less downweighting.
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250.
-#' @return Huber weight value. Note that residuals of value `NA` are assigned values of 0.
+#' @return Huber weight value.
 #' @examples 
 #'
 #' # 1-person case
@@ -461,31 +461,22 @@ huber<-function(r, H){
 #' Generates simulated item responses from model-implied response probabilities.
 #'
 #' Dichotomous items are sampled using Bernoulli trials, while polytomous (Likert-type) items are sampled using multinomial draws over ordered response categories. The function accepts three probability formats,
-#' each corresponding to a different data‑generation scenario. Here, \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories.
+#' each corresponding to a different data‑generation scenario. 
 #'
-#' \describe{
-#'   \item{\code{Dichotomous data} (\eqn{N \times J} matrix):  
-#'   Each entry \eqn{P[n, j]} gives the probability that person \eqn{n}
-#'   answers item \eqn{j} correctly.  
-#'   Output: an \eqn{N \times J} matrix of 0/1 responses.
-#'   }
-#'   \item{\code{Polytomous data for one person} (\eqn{J \times K} matrix):  
-#'   Each row contains the category probabilities for one item, where
-#'   \eqn{P[j, k]} is the probability of responding in category \eqn{k}.  
-#'   Output: a \eqn{1 \times J} matrix of integer category scores.
-#'   }
-#'   \item{\code{Polytomous data for multiple persons} (\eqn{J \times K \times N} array):  
-#'   Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix of category
-#'   response probabilities for person \eqn{n}.  
-#'   Output: an \eqn{N \times J} matrix of simulated category scores.
-#'   }
-#' }
 #' @param P A matrix or array of response probabilities. For polytomous data, each probability vector must sum to 1.
 #' @param anchor Integer specifying the lowest category value. Typical values are 0 or 1; default is 0.
-#' @param polytomous Is the data Likert-type? Must be specified as `TRUE` when P is a matrix of category response probabilities for polytomous data (e.g., data for one person). 
+#' @param polytomous Is the data Likert-type? Must be specified as `TRUE` when P is a matrix of category response probabilities for polytomous data, containing data for one person. 
+#' @details Let \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories. The response probability input should be specified according to the corresponding scenario:
+#' \itemize{
+#'   \item \code{Dichotomous data} (\eqn{N \times J} matrix): Each entry \eqn{P[n, j]} gives the probability that person \eqn{n} answers item \eqn{j} correctly. Output is an \eqn{N \times J} matrix of 0/1 responses.
+#'   \item \code{Polytomous data for one person} (\eqn{J \times K} matrix): Each row contains the category probabilities for one item, where \eqn{P[j, k]} is the probability of responding in category \eqn{k}. Output is a \eqn{1 \times J} matrix of integer category scores.
+#'   \item \code{Polytomous data for multiple persons} (\eqn{J \times K \times N} array): Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix of category response probabilities for person \eqn{n}. Output is an \eqn{N \times J} matrix of simulated category scores.
+#' }
 #' @return A matrix of simulated item responses.
-#'         Dichotomous: \eqn{N \times J} matrix of 0/1 responses.
-#'         Polytomous: \eqn{N \times J} matrix of integer category scores beginning at \code{anchor}.
+#' \itemize{
+#'   \item \code{Dichotomous}: \eqn{N \times J} matrix of 0/1 responses.
+#'   \item \code{Polytomous}: \eqn{N \times J} matrix of integer category scores beginning at \code{anchor}.
+#' }
 #' @examples 
 #' 
 #' # Dichotomous Case with Bernoulli Sampling
