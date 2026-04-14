@@ -81,7 +81,7 @@ pstar_to_p<-function(Pstar){
 #' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @param theta A numeric vector or matrix of latent trait values. 
 #' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilized.
-#' @param model A character string specifying which IRT model to use:
+#' @param model A character string specifying which IRT model to use. See details for formulae.
 #' \itemize{
 #'   \item \code{"Rasch"}: Allows item difficulty parameters to vary across items (Rasch, 1960).
 #'   \item \code{"1PL"}: 1‑parameter logistic model with a common discrimination parameter and item‑specific difficulties. The Rasch model is the special case where all discriminations equal 1.
@@ -91,9 +91,12 @@ pstar_to_p<-function(Pstar){
 #'   \item \code{"MGRM"}: Multidimensional graded response model extending Samejima’s GRM to multiple latent dimensions, with slope vectors and ordered category thresholds (Muraki & Carlson, 1995).
 #' }
 #' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
-#' @return For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities \eqn{P(X = 1)}.
-#' @return For models accommodating polytomous data ("GRM", "MGRM"), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)}.
-#'         and {P}: an array of category probabilities \eqn{P(X = k)}.
+#' @return For model accommodating dichotomous data ("Rasch", "1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities \eqn{P(X = 1)}.
+#' @return For models accommodating polytomous data ("GRM", "MGRM"), returns a list with:
+#' \itemize{
+#'   \item{pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)}.
+#'   \item{P}: an array of category probabilities \eqn{P(X = k)}.
+#' } 
 #' @section IRT Models:
 #'
 #' \strong{Rasch}
@@ -285,19 +288,19 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
 #' Modified standardized residuals (MSRs; Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
 #' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
-#' See `item.prob` for description of models and structure of `ipars`.
+#' See \code{item.prob} for description of models and structure of \code{ipars}.
 #' @references Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
 #' @param theta An \eqn{N \times L} matrix of latent trait values, where \eqn{L} is the number of dimensions.
-#' @param model Character string specifying the IRT model. See `item.prob` for supported models.
-#' @param ipars A matrix or list of item parameters passed to `item.prob()`. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.
+#' @param model Character string specifying the IRT model. See \code{item.prob} for supported models.
+#' @param ipars A matrix or list of item parameters passed to \code{item.prob}. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.
 #' @param dat An \eqn{N \times J} response matrix, with \eqn{N} respondents and \eqn{J} items.
 #' @param residual Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.
-#' @param D Positive scaling constant for the normal-ogive approximation. Defaults to 1.7.
+#' @param D Positive scaling constant for the normal-ogive approximation. Defaults to 1.7, otherwise often set to 1.0.
 
-#' @return A list containing two \eqn{N \times J} matrices 
-#' \describe{
-#'   \item{standardized}{standardized residuals}
-#'   \item{msr}{modified standardized residuals (Yu & Cheng, 2019)}
+#' @return A list containing two \eqn{N \times J} matrices:
+#' \itemize{
+#'   \item \code{standardized} {standardized residuals}
+#'   \item \code{msr} {modified standardized residuals (Yu & Cheng, 2019)}
 #' }
 #' 
 #' @examples
@@ -405,8 +408,10 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
 #'
 #' Calculate Tukey's bisquare weight (Mosteller & Tukey, 1977) given a residual and bisquare tuning parameter.
 #' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals of value NA are given a weight of 0.
-#' @param B Bisquare tuning parameter. Larger values lead to less downweighting.
+#' @param B Bisquare tuning parameter. Larger values lead to less downweighting. For robust estimation, \code{B} is often set to 4.0 (Filonczuk & Cheng, 2025; Schuster & Yuan, 2011).
+#' @references Filonczuk, A., & Cheng, Y. (2025). Robust estimation of the latent trait in graded response models. Behavior Research Methods, 57(1), 55. https://doi.org/10.3758/s13428-024-02574-2
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
+#' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
 #' @return Bisquare weight value. 
 #' @examples 
 #' 
@@ -434,8 +439,10 @@ bisquare<-function(r, B){
 #'
 #' Calculate the Huber weight (Huber, 1981) given a residual and Huber tuning parameter.
 #' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals of value NA are given a weight of 0.
-#' @param H Huber tuning parameter. Larger values lead to less downweighting.
+#' @param H Huber tuning parameter. Larger values lead to less downweighting. For robust estimation, \code{H} is often set to 1.0 (Filonczuk & Cheng, 2025; Schuster & Yuan, 2011).
+#' @references Filonczuk, A., & Cheng, Y. (2025). Robust estimation of the latent trait in graded response models. Behavior Research Methods, 57(1), 55. https://doi.org/10.3758/s13428-024-02574-2
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250.
+#' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
 #' @return Huber weight value.
 #' @examples 
 #'
@@ -468,11 +475,11 @@ huber<-function(r, H){
 #' @param polytomous Is the data Likert-type? Must be specified as `TRUE` when P is a matrix of category response probabilities for polytomous data, containing data for one person. 
 #' @details Let \eqn{N} denotes the number of persons, \eqn{J} the number of items, and \eqn{K} the number of response categories. The response probability input should be specified according to the corresponding scenario:
 #' \itemize{
-#'   \item \code{Dichotomous data} (\eqn{N \times J} matrix): Each entry \eqn{P[n, j]} gives the probability that person \eqn{n} answers item \eqn{j} correctly. Output is an \eqn{N \times J} matrix of 0/1 responses.
-#'   \item \code{Polytomous data for one person} (\eqn{J \times K} matrix): Each row contains the category probabilities for one item, where \eqn{P[j, k]} is the probability of responding in category \eqn{k}. Output is a \eqn{1 \times J} matrix of integer category scores.
-#'   \item \code{Polytomous data for multiple persons} (\eqn{J \times K \times N} array): Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix of category response probabilities for person \eqn{n}. Output is an \eqn{N \times J} matrix of simulated category scores.
+#'   \item Dichotomous data (\eqn{N \times J} matrix): Each entry \eqn{P[n, j]} gives the probability that person \eqn{n} answers item \eqn{j} correctly. Output is an \eqn{N \times J} matrix of 0/1 responses.
+#'   \item Polytomous data for one person (\eqn{J \times K} matrix): Each row contains the category probabilities for one item, where \eqn{P[j, k]} is the probability of responding in category \eqn{k}. Output is a \eqn{1 \times J} matrix of integer category scores.
+#'   \item Polytomous data for multiple persons (\eqn{J \times K \times N} array): Each slice \eqn{P[ , , n]} is a \eqn{J \times K} matrix of category response probabilities for person \eqn{n}. Output is an \eqn{N \times J} matrix of simulated category scores.
 #' }
-#' @return A matrix of simulated item responses.
+#' @return A matrix of simulated item responses, dependent on item response type.
 #' \itemize{
 #'   \item \code{Dichotomous}: \eqn{N \times J} matrix of 0/1 responses.
 #'   \item \code{Polytomous}: \eqn{N \times J} matrix of integer category scores beginning at \code{anchor}.
@@ -601,7 +608,7 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #'    \item \code{"post_sd_EAP"} (posterior SD for EAP)
 #'    \item \code{"sandwich_EAP"} (Bayesian sandwich SE for EAP)
 #'    \item \code{"singular.matrix"} (indicator for singular information matrices in multidimensional data)
-#'}    
+#' }    
 #' @export
 #' @examples 
 #' library(mirt)
@@ -635,16 +642,16 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, dat, model = "Rasch")
 #' 
 #' # 1PL Model Example
-#' 1PL_fit <- mirt(dat, 1, itemtype = "1PL")
-#' 1PL_theta <- fscores(1PL_fit)
-#' 1PL_ipars <- cbind(a = rep(1, ncol(dat)), b = coef(1PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
-#' 1PL_SE <- standard.errors(1PL_theta, 1PL_ipars, dat, model="1PL")
+#' fit_1PL <- mirt(dat, 1, itemtype = "1PL")
+#' theta_1PL <- fscores(fit_1PL)
+#' ipars_1PL <- cbind(a = rep(1, ncol(dat)), b = coef(fit_1PL, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
+#' SE_1PL <- standard.errors(theta_1PL, ipars_1PL, dat, model="1PL")
 #' 
 #' # 2PL Model Example
-#' 2PL_fit <- mirt(dat, 1, itemtype = "2PL")
-#' 2PL_theta <- fscores(2PL_fit)
-#' 2PL_ipars <- coef(2PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
-#' 2PL_SE <- standard.errors(2PL_theta, 2PL_ipars, dat, model = "2PL", est.type = c("MLE", "MAP"))
+#' fit_2PL <- mirt(dat, 1, itemtype = "2PL")
+#' theta_2PL <- fscores(fit_2PL)
+#' ipars_2PL <- coef(fit_2PL, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
+#' SE_2PL <- standard.errors(theta_2PL, ipars_2PL, dat, model = "2PL", est.type = c("MLE", "MAP"))
 #' 
 #' # MIRT Model Example
 #' MIRT_fit <- mirt(dat, 2)
@@ -1097,11 +1104,14 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 #' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
-#' @return theta Ability estimates for \emph{N} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
-#' @return convergence Indicators of convergence for \emph{N} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
-#' @return standard.error Standard errors of the theta estimates for \emph{N} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
-#' @return theta.progression A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
-#' @return residual A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
+#' @return A list containing the following outputs:
+#' \itemize{
+#'   \item \code{theta} Ability estimates for \emph{N} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
+#'   \item \code{convergence} Indicators of convergence for \emph{N} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
+#'   \item \code{standard.error} Standard errors of the theta estimates for \emph{N} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
+#'   \item \code{theta.progression} A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
+#'   \item \code{residual} A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
+#' }
 #' @export
 
 robust.theta<-function(dat, ipars, model="2PL", D=1.7, dimen=NULL, weight.type = "equal", tuning.par = NULL, residual = "standardized", est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41), iter=30, tol=0.01){
@@ -1275,11 +1285,14 @@ robust.theta<-function(dat, ipars, model="2PL", D=1.7, dimen=NULL, weight.type =
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 #' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
-#' @return theta Ability estimates for \emph{N} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
-#' @return convergence Indicators of convergence for \emph{N} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
-#' @return standard.error Standard errors of the theta estimates for \emph{N} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
-#' @return theta.progression A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
-#' @return residual A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
+#' @return A list containing the following outputs:
+#' \itemize{
+#'   \item \code{theta} Ability estimates for \emph{N} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
+#'   \item \code{convergence} Indicators of convergence for \emph{N} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
+#'   \item \code{standard.error} Standard errors of the theta estimates for \emph{N} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
+#'   \item \code{theta.progression} A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
+#'   \item \code{residual} A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
+#' }
 #' @export
 #' @examples
 #' # Test Length
@@ -1307,13 +1320,13 @@ robust.theta<-function(dat, ipars, model="2PL", D=1.7, dimen=NULL, weight.type =
 #' probs<-item.prob(thetas, "GRM", cbind(a, b))
 #' 
 #' # Generate Likert data
-#' dat<-data.gen(probs$P)
+#' dat<-dat.gen(probs$P, anchor=1)
 #' 
 #' # Make the data aberrant by reverse coding 20% items
 #' ab.prop<-0.2
 #' index<-sample(c(1:n), ab.prop*n)
 #' ab.dat<-dat
-#' ab.dat[index, ]<-apply(matrix(dat[index,]), c(1,2), function(x) return(nthresh+2-x))
+#' ab.dat[, index]<-apply(matrix(dat[,index]), c(1,2), function(x) return(nthresh+2-x))
 #'
 #' 
 #' # Calculate MLE (Non-robust)
@@ -1464,6 +1477,12 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
 #' 
 #' @references Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
 #' @export
+#' @examples
+#' # Load package and example data set 
+#' library(mirt) 
+#' data(Science) 
+#' # Robust estimation of item parameters
+#' robust.item(Science)
 robust.item<-function(dat){
   
   # Initial Model Estimation 
