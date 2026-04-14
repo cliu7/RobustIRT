@@ -281,20 +281,24 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' Residual Calculation
 #' 
 #' Computes the standardized and modified standardized residuals for dichotomous and polytomous IRT models. For each observed response 
-#' \eqn{y_j} to item \eqn{j}, the residual reflects the difference between the recorded score and the model’s expected value given the person’s estimated ability \eqn{\hat{\theta}}.
+#' \eqn{y_j} to item \eqn{j}, the residual reflects the difference between the observed score and the model-implied expected value given the person’s estimated ability \eqn{\hat{\theta}}.
 #' The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
-#' Modified standardized residuals (Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
-#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
+#' Modified standardized residuals (MSRs; Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
+#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
 #' See `item.prob` for description of models and structure of `ipars`.
 #' @references Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
-#' @param theta An N × L matrix of latent trait values, where L is the number of dimensions.
+#' @param theta An \eqn{N \times L} matrix of latent trait values, where \eqn{L} is the number of dimensions.
 #' @param model Character string specifying the IRT model. See `item.prob` for supported models.
 #' @param ipars A matrix or list of item parameters passed to `item.prob()`. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.
-#' @param dat An N × J response matrix, with N respondents and J items.
+#' @param dat An \eqn{N \times J} response matrix, with \eqn{N} respondents and \eqn{J} items.
 #' @param residual Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.
 #' @param D Positive scaling constant for the normal-ogive approximation. Defaults to 1.7.
 
-#' @return A list containing two N × J matrices, each with the same dimensions as `dat`. For polytomous models, residuals are computed using expected category scores and category response probabilities.
+#' @return A list containing two \eqn{N \times J} matrices 
+#' \describe{
+#'   \item{standardized}{standardized residuals}
+#'   \item{msr}{modified standardized residuals (Yu & Cheng, 2019)}
+#' }
 #' 
 #' @examples
 #' # 2PL model
@@ -393,7 +397,7 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
     msr<-(dat-expected.val)/P.response
   }
     
-  return(list(standardized = stz, modified.standardized = msr))
+  return(list(standardized = stz, msr = msr))
 }   
 
 
