@@ -1067,15 +1067,6 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
   return(out)
 }
 
-#'
-#' Model: Rasch, 1PL, 2PL, MIRT, GRM, MGRM
-#' Weight: equal, bisquare, Huber
-#' Residual: information, standardized, MSR, dual-residual
-#' Estimation procedure: MLE, MAP, EAP
-#' Standard error: asymptotic, sandwich
-#' dimen: specify number of dimensions for multidimensional data
-#' Ability Estimation Function Using Robust Estimation (GRM)
-#'
 #' Ability Estimation Function Using Robust Estimation
 #' @param theta A numeric vector or matrix of latent trait values. For unidimensional models, a numeric vector of length \eqn{N}. For multidimensional models (MIRT, MGRM), an \eqn{N \times L} matrix.
 #' @param ipars A matrix of item parameters, whose structure depends on the model. 
