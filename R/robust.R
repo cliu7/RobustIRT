@@ -1468,7 +1468,25 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
   # Return a list containing the estimated theta, binary indicator of nonconvergence, standard error, estimated theta over each iteration, and standardized residual
   return(list(theta = theta.est2, convergence = convergence, standard.error = standard.error, theta.progression = theta.progression, residual = residual))
 }
-
+#' Robust Estimation of Item Parameters
+#' 
+#' @param dat A \eqn{N\times J} matrix of dichotomous response data
+#' 
+#' @references Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
+#' @export
+robust.item<-function(dat){
+  
+  # Initial Model Estimation 
+  mod <- mirt(dat, 1, optimizer = 'NR') 
+  # Person fit residual calculation
+  per.fit <- personfit(mod, method = 'ML')$Zh 
+  # Weight  
+  weight <- pnorm(per.fit)*nrow(dat)/ sum(pnorm(per.fit)) 
+  # Robust model estimation 
+  robust.mod <- mirt(dat, 1, survey.weights = weight, optimizer = 'NR')
+  
+  return(robust.mod)
+}
 
 #' Plot histogram of residuals along plot of weight (dependent on TuCo) vs residuals
 #'
