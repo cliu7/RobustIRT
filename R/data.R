@@ -50,7 +50,8 @@
 #' 
 #' Polytomous data from the Big Five Inventory-2
 #' 
-#' @description Data obtained from the Big Five Inventory-2 (BFI-2; Soto & John, 2017), collected from adolescents ages 14 to 17 years old enrolled in a high school AP Statistics course (Ober et al., 2021). 
+#' @description 
+#' Data obtained from the Big Five Inventory-2 (BFI-2; Soto & John, 2017), collected from adolescents ages 14 to 17 years old enrolled in a high school AP Statistics course (Ober et al., 2021). 
 #' The inventory contains 60 items on a 5-point Likert scale, where exactly 12 items load onto each of the five personality factors in the BFI-2 (Extraversion, Agreeableness, Conscientiousness, Negative Emotionality, and Open-Mindedness).  
 #' Data for 838 subjects is contained, after removing four subjects with missing data. No missing data remains. 
 #' Variables are labeled by the first letter of the personality factor (e.g., E = Extraversion, A = Agreeableness, etc.) and item number 1 through 12. 
@@ -148,12 +149,13 @@
 "BFI2"
 #' MTurk Comparison Data
 #' 
-#' @Description
+#' @description
 #' A dataset containing 26 survey items collected from Amazon Mechanical Turk (AMT). Additional demographic variables are also included.
 #' Respondents were recruited from MTurk and were paid $0.20 to participate. To qualify, workers were required to have completed at least 100 prior HITs  
 #' with an acceptance rate of 97% or higher.
 #'
-#' @format A data frame with 1402 rows (participants) and 34 columns (survey items and follow-up information). 
+#' @format 
+#' A data frame with 1402 rows (participants) and 34 columns (survey items and follow-up information). 
 #' \describe{
 #'   \item{country}{The country the user's network connection was based.}
 #'   \item{engnat}{Whether the respondent reported English as their native language (0 = no, 1 = yes).}
