@@ -34,15 +34,14 @@ theta.est.grm(
 \item{weight.category}{The weighting strategy to use: "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.}
 }
 \value{
-theta Ability estimates for \emph{N} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
-
-convergence Indicators of convergence for \emph{N} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
-
-standard.error Standard errors of the theta estimates for \emph{N} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values.
-
-theta.progression A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
-
-residual A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
+A list containing the following outputs:
+\itemize{
+  \item \code{theta} Ability estimates for \emph{N} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
+  \item \code{convergence} Indicators of convergence for \emph{N} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
+  \item \code{standard.error} Standard errors of the theta estimates for \emph{N} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
+  \item \code{theta.progression} A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
+  \item \code{residual} A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
+}
 }
 \description{
 Calculate robust ability estimates using the GRM item response function with the given weight function, fixed item parameters, and item responses.
@@ -91,13 +90,13 @@ b<-t(apply(matrix(runif(n*4, -2.5,2.5), nrow = n, ncol =4), 1, sort))
 probs<-item.prob(thetas, "GRM", cbind(a, b))
 
 # Generate Likert data
-dat<-data.gen(probs$P)
+dat<-dat.gen(probs$P, anchor=1)
 
 # Make the data aberrant by reverse coding 20\% items
 ab.prop<-0.2
 index<-sample(c(1:n), ab.prop*n)
 ab.dat<-dat
-ab.dat[index, ]<-apply(matrix(dat[index,]), c(1,2), function(x) return(nthresh+2-x))
+ab.dat[, index]<-apply(matrix(dat[,index]), c(1,2), function(x) return(nthresh+2-x))
 
 
 # Calculate MLE (Non-robust)

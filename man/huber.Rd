@@ -9,7 +9,7 @@ huber(r, H)
 \arguments{
 \item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals of value NA are given a weight of 0.}
 
-\item{H}{Huber tuning parameter. Larger values lead to less downweighting.}
+\item{H}{Huber tuning parameter. Larger values lead to less downweighting. For robust estimation, \code{H} is often set to 1.0 (Filonczuk & Cheng, 2025; Schuster & Yuan, 2011).}
 }
 \value{
 Huber weight value.
@@ -32,5 +32,9 @@ H <- 1
 huber(r, H)
 }
 \references{
+Filonczuk, A., & Cheng, Y. (2025). Robust estimation of the latent trait in graded response models. Behavior Research Methods, 57(1), 55. https://doi.org/10.3758/s13428-024-02574-2
+
 Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250.
+
+Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
 }

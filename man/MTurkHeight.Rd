@@ -5,7 +5,43 @@
 \alias{MTurkHeight}
 \title{MTurk Height Data}
 \format{
-
+A data frame with 1402 rows (participants) and 34 columns (survey items and follow-up information). 
+\itemize{
+  \item{\code{country}}{The country the user's network connection was based.}
+  \item{\code{engnat}}{Whether the respondent reported English as their native language (0 = no, 1 = yes).}
+  \item{\code{age}}{Age in years.}
+  \item{\code{gender}}{Gender indicator.)}
+  \item{\code{Q1}}{I am tall.}
+  \item{\code{Q2}}{I am short.}
+  \item{\code{Q3}}{I have to stand on a stool to reach tall kitchen shelves.}
+  \item{\code{Q4}}{I have to stand in the back in group photos to not cover up other people.}
+  \item{\code{Q5}}{I hit my head on low ceilings.}
+  \item{\code{Q6}}{I rarely meet people with more height than me.}
+  \item{\code{Q7}}{I'm kind of a midget.}
+  \item{\code{Q8}}{Airplane seats never have enough room for my long legs.}
+  \item{\code{Q9}}{When I hug people, my head is underneath their chin.}
+  \item{\code{Q10}}{I have gangly limbs.}
+  \item{\code{Q11}}{I have been sent to the hospital by an electric shock.}
+  \item{\code{Q12}}{I own a goat.}
+  \item{\code{Q13}}{I know the 'happy birthday to you..' song.}
+  \item{\code{Q14}}{I have been asked for money by beggars.}
+  \item{\code{Q15}}{I prefer to play it safe and avoid danger.}
+  \item{\code{Q16}}{I prefer variety to routine.}
+  \item{\code{Q17}}{I rarely clean house.}
+  \item{\code{Q18}}{I rarely complain.}
+  \item{\code{Q19}}{I rarely overindulge.}
+  \item{\code{Q20}}{I accept what others say.}
+  \item{\code{Q21}}{I enjoy being part of a loud crowd.}
+  \item{\code{Q22}}{I offend no one.}
+  \item{\code{Q23}}{I see that nobody gets left out.}
+  \item{\code{Q24}}{I try not to deceive others.}
+  \item{\code{Q25}}{I try out new things.}
+  \item{\code{Q26}}{I will push people around to get what I want.}
+  \item{\code{feet}}{Height reported in feet (if the respondent used imperial units).}
+  \item{\code{inch}}{Height reported in inches (if the respondent used imperial units).}
+  \item{\code{cm}}{Height reported in centimeters (if the respondent used metric units).}
+  \item{\code{submittime}}{The time (PST) the survey was submitted.}
+}
 }
 \source{
 Open Psychometrics (2019, December 29). A quality comparison of data collected on this website to data collected on Amazon Mechanical Turk. https://openpsychometrics.org/_rawdata/validity/

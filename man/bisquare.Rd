@@ -9,7 +9,7 @@ bisquare(r, B)
 \arguments{
 \item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals of value NA are given a weight of 0.}
 
-\item{B}{Bisquare tuning parameter. Larger values lead to less downweighting.}
+\item{B}{Bisquare tuning parameter. Larger values lead to less downweighting. For robust estimation, \code{B} is often set to 4.0 (Filonczuk & Cheng, 2025; Schuster & Yuan, 2011).}
 }
 \value{
 Bisquare weight value.
@@ -33,5 +33,9 @@ B <- 4
 bisquare(r, B)
 }
 \references{
+Filonczuk, A., & Cheng, Y. (2025). Robust estimation of the latent trait in graded response models. Behavior Research Methods, 57(1), 55. https://doi.org/10.3758/s13428-024-02574-2
+
 Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
+
+Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
 }

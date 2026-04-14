@@ -9,7 +9,7 @@ item.prob(theta, model, ipars, D = 1.7)
 \arguments{
 \item{theta}{A numeric vector or matrix of latent trait values.}
 
-\item{model}{A character string specifying which IRT model to use:
+\item{model}{A character string specifying which IRT model to use. See details for formulae.
 \itemize{
   \item \code{"Rasch"}: Allows item difficulty parameters to vary across items (Rasch, 1960).
   \item \code{"1PL"}: 1‑parameter logistic model with a common discrimination parameter and item‑specific difficulties. The Rasch model is the special case where all discriminations equal 1.
@@ -24,10 +24,13 @@ item.prob(theta, model, ipars, D = 1.7)
 \item{D}{A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.}
 }
 \value{
-For model accommodating dichotomous data ("1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities \eqn{P(X = 1)}.
+For model accommodating dichotomous data ("Rasch", "1PL", "2PL", "MIRT"), returns an \eqn{N \times J} matrix of response probabilities \eqn{P(X = 1)}.
 
-For models accommodating polytomous data ("GRM", "MGRM"), returns a list with: {pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)}.
-        and {P}: an array of category probabilities \eqn{P(X = k)}.
+For models accommodating polytomous data ("GRM", "MGRM"), returns a list with:
+\itemize{
+  \item{pstar}: an array of cumulative probabilities \eqn{P^*(X \geq k)}.
+  \item{P}: an array of category probabilities \eqn{P(X = k)}.
+}
 }
 \description{
 Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item parameters.

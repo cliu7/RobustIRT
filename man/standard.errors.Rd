@@ -127,16 +127,16 @@ Rasch_ipars <- coef(Rasch_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b", dro
 Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, dat, model = "Rasch")
 
 # 1PL Model Example
-1PL_fit <- mirt(dat, 1, itemtype = "1PL")
-1PL_theta <- fscores(1PL_fit)
-1PL_ipars <- cbind(a = rep(1, ncol(dat)), b = coef(1PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
-1PL_SE <- standard.errors(1PL_theta, 1PL_ipars, dat, model="1PL")
+fit_1PL <- mirt(dat, 1, itemtype = "1PL")
+theta_1PL <- fscores(fit_1PL)
+ipars_1PL <- cbind(a = rep(1, ncol(dat)), b = coef(fit_1PL, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
+SE_1PL <- standard.errors(theta_1PL, ipars_1PL, dat, model="1PL")
 
 # 2PL Model Example
-2PL_fit <- mirt(dat, 1, itemtype = "2PL")
-2PL_theta <- fscores(2PL_fit)
-2PL_ipars <- coef(2PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
-2PL_SE <- standard.errors(2PL_theta, 2PL_ipars, dat, model = "2PL", est.type = c("MLE", "MAP"))
+fit_2PL <- mirt(dat, 1, itemtype = "2PL")
+theta_2PL <- fscores(fit_2PL)
+ipars_2PL <- coef(fit_2PL, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
+SE_2PL <- standard.errors(theta_2PL, ipars_2PL, dat, model = "2PL", est.type = c("MLE", "MAP"))
 
 # MIRT Model Example
 MIRT_fit <- mirt(dat, 2)

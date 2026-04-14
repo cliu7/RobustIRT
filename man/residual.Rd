@@ -16,21 +16,21 @@ residual(
 \arguments{
 \item{theta}{An \eqn{N \times L} matrix of latent trait values, where \eqn{L} is the number of dimensions.}
 
-\item{model}{Character string specifying the IRT model. See `item.prob` for supported models.}
+\item{model}{Character string specifying the IRT model. See \code{item.prob} for supported models.}
 
-\item{ipars}{A matrix or list of item parameters passed to `item.prob()`. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.}
+\item{ipars}{A matrix or list of item parameters passed to \code{item.prob}. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.}
 
 \item{dat}{An \eqn{N \times J} response matrix, with \eqn{N} respondents and \eqn{J} items.}
 
 \item{residual}{Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.}
 
-\item{D}{Positive scaling constant for the normal-ogive approximation. Defaults to 1.7.}
+\item{D}{Positive scaling constant for the normal-ogive approximation. Defaults to 1.7, otherwise often set to 1.0.}
 }
 \value{
-A list containing two \eqn{N \times J} matrices 
-\describe{
-  \item{standardized}{standardized residuals}
-  \item{msr}{modified standardized residuals (Yu & Cheng, 2019)}
+A list containing two \eqn{N \times J} matrices:
+\itemize{
+  \item \code{standardized} {standardized residuals}
+  \item \code{msr} {modified standardized residuals (Yu & Cheng, 2019)}
 }
 }
 \description{
@@ -39,7 +39,7 @@ Computes the standardized and modified standardized residuals for dichotomous an
 The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
 Modified standardized residuals (MSRs; Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
 \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
-See `item.prob` for description of models and structure of `ipars`.
+See \code{item.prob} for description of models and structure of \code{ipars}.
 }
 \examples{
 # 2PL model

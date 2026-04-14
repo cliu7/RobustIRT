@@ -12,6 +12,13 @@ robust.item(dat)
 \description{
 Robust Estimation of Item Parameters
 }
+\examples{
+# Load package and example data set 
+library(mirt) 
+data(Science) 
+# Robust estimation of item parameters
+robust.item(Science)
+}
 \references{
 Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
 }
