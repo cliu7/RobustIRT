@@ -593,7 +593,6 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' A Bayesian sandwich SE is again produced by combining this posterior SD with
 #' the empirical term.
 #'
-#' @references
 #' @return A list whose elements depend on the specified model and `est.type`. Possible components include:
 #' \itemize{
 #'    \item \code{"asymptotic_MLE"} (information‑based SEs)
