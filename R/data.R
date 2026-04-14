@@ -146,11 +146,11 @@
 #' 
 #' @usage data(BFI2)
 "BFI2"
-#' MTurk Comparison Data
+#' MTurk Height Data
 #' 
 #' @description
 #' A dataset containing 26 survey items collected from Amazon Mechanical Turk (AMT). Additional demographic variables are also included.
-#' Respondents were recruited from MTurk and were paid $0.20 to participate. To qualify, workers were required to have completed at least 100 prior HITs  
+#' Respondents were recruited from MTurk and were paid $0.20 to participate. To qualify, workers were required to have completed at least 100 prior human intelligence tasks (HITs)  
 #' with an acceptance rate of 97% or higher.
 #'
 #' @format 
@@ -193,11 +193,14 @@
 #'
 #' @details 
 #' The item data followed a 5-point Likert scale, with the following labels: 1 = Strongly disagree, 2 = Disagree, 3 = Neither agree nor disagree, 4 = Agree, and 5 = Strongly agree. A 0 indicates no response.
+#' The first four items include demographic information. Q1 through Q10 measure height, while Q13 through Q26 measure general personality characteristics. 
+#' The last four items ask users to report their hight and contain a record of submission time. 
+#' Q11 and Q12 are bogus items, designed to detect inattentive responders, or those who endorse the item although it is unlikely to be true.
 #' Due to factors such as disengagement and low motivation that are common on low stakes assessment, MTurk data may be especially susceptible to aberrant response behavior. 
 #' When fitting an item response theory model, robust estimation may be applied to reduce bias in the latent trait estimate for respondents exhibiting aberrant responses.
 #' However, when a subject's response pattern contains aberrant responses for the majority of or all items (e.g., "bot" responding), robust estimation will not be effective in mitigating the aberrances and unable to reduce the bias in the latent trait.
 #'
 #' @source Open Psychometrics (2019, December 29). A quality comparison of data collected on this website to data collected on Amazon Mechanical Turk. https://openpsychometrics.org/_rawdata/validity/
 #' 
-#' @usage data(MTurk)
-"MTurk"
+#' @usage data(MTurkHeight)
+"MTurkHeight"
