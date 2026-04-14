@@ -1067,6 +1067,192 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
   return(out)
 }
 
+#'
+#' Model: Rasch, 1PL, 2PL, MIRT, GRM, MGRM
+#' Weight: equal, bisquare, Huber
+#' Residual: information, standardized, MSR, dual-residual
+#' Estimation procedure: MLE, MAP, EAP
+#' Standard error: asymptotic, sandwich
+#' dimen: specify number of dimensions for multidimensional data
+#' Ability Estimation Function Using Robust Estimation (GRM)
+#'
+#' Ability Estimation Function Using Robust Estimation
+#' @param theta A numeric vector or matrix of latent trait values. For unidimensional models, a numeric vector of length \eqn{N}. For multidimensional models (MIRT, MGRM), an \eqn{N \times L} matrix.
+#' @param ipars A matrix of item parameters, whose structure depends on the model. 
+#' @param dat A \eqn{N \times J} matrix of polytomously-scored data (e.g., Likert-type) for \emph{N} subjects and \emph{J} items. Indexing begins at 0.
+#' @param model Character string specifying the IRT model. See `item.prob` for supported models.
+#' @param D A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.
+#' @param weight.type Type of weighting function to be used: "equal", "Huber", or "bisquare".
+#' @param tuning.par Optional tuning parameter for Huber or bisquare weights.
+#' @param est.type Type of estimation to be used: "MLE", "MAP", or "EAP".
+#' @param prior Numeric vector giving the mean and variance of the normal prior for MAP and EAP estimation types.
+#' @param eap.quad.pts A numeric vector of quadrature points \eqn{\theta_q} used when computing EAP standard errors. These are typically q equally spaced values across the latent‑trait range. Only used when "EAP" is included in \code{est.type}.
+#' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta_i}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
+#'               Under a given item response model, let the probability of examinee \eqn{i} endorsing exactly category \eqn{k} on item \eqn{j} be denoted \eqn{P_{ijk}}.
+#'               The contribution of item \emph{j} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_{ij})} as a function of a residual \eqn{r_{ij}} for the item:
+#'               \deqn{\sum^J_{j=1} \omega(r_{ij}) \sum^K_{k=1} u_{ijk}\text{log}P_{ijk} = 0 }
+#'               \eqn{u_{jk}} is an indicator function: \deqn{u_{ijk} = \begin{cases}
+#'                                                            1 & \text{if } X_{ij} = k; \\
+#'                                                            0 & \text{otherwise}.
+#'                                                            \end{cases} }
+#'               The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_{ij} = \frac{1}{\sigma_{X_{ij}}}\left[X_{ij} - E(X_{ij}|\hat{\boldsymbol{\theta}}_i)\right]}.
+#'               The difference in fit is determined between the observed response \eqn{X_{ij}} and expected score \eqn{E(X_{ij}|\hat{\boldsymbol{\theta}}_i) = \sum_{k=1}^KkP_{jk}(\hat{\boldsymbol{\theta}}_i)}, and scaled by the variance \eqn{\sigma_{X_{ij}}^2 = \sum_{k=1}^K (X_{ijk}-E[X_{ij}|\hat{\theta}_i])^2P_{jk}(\hat{\theta}_i).}
+#'               Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
+#'                 \deqn{\omega(r_{ij})=\begin{cases}[1-(r_{ij}/B)^2]^2, & \text{if} |r_{ij}|\leq B.\\0, & \text{if} |r_{ij}|>B.\end{cases}}
+#'               and the Huber weighting function (Huber, 1981)
+#'                 \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
+#'               Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+#' @references Embretson, S. E., & Reise, S. P. (2000). \emph{Item response theory for psychologists.} Mahwah, N.J: L. Erlbaum Associates.
+#' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+#' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
+#' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
+#' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
+#' @return theta Ability estimates for \emph{N} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
+#' @return convergence Indicators of convergence for \emph{N} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
+#' @return standard.error Standard errors of the theta estimates for \emph{N} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
+#' @return theta.progression A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
+#' @return residual A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
+#' @export
+
+robust.theta<-function(dat, ipars, model="2PL", D=1.7, dimen=NULL, weight.type = "equal", tuning.par = NULL, residual = "standardized", est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41), iter=30, tol=0.01){
+  
+  model<-toupper(model)
+  
+  # Set checks to ensure proper inputs
+  if(!(model%in%c("RASCH", "1PL", "2PL", "MIRT", "GRM", "MGRM"))){
+    # accepts only one model
+    stop(paste(model, " is not an accepted model."))
+  }
+  if(!(weight.type%in%c("equal", "Huber", "bisquare"))){
+    # accepts only one weight type
+    stop(paste(weight.type, " is not an accepted weight type."))
+  }
+  if(any(!(est.type%in%c("MLE", "MAP", "EAP")))){
+    # accepts more than one estimation procedure
+    stop(paste(est.type, " is not an accepted estimation procedure."))
+  }
+  if(weight.type != "equal"){
+    if(is.null(tuning.par)){
+      stop(paste("The turning parameter cannot be null when the weight.type is ", weight.type, sep = ""))
+    }
+  }
+  
+  # Function to determine weights:
+  weight.func <- function(r, weight.type2="equal", tuning.par2=NULL){
+    if(weight.type2 == "equal") return(rep(1, length(r)))
+    if(weight.type2 == "Huber") return(huber(r, tuning.par2))
+    if(weight.type2 == "bisquare") return(bisquare(r, tuning.par2))
+    if(length(weight.type2) == length(r)) return(weight.type2)
+    stop("Invalid weight.type")
+  }
+  
+  # Function to get initial theta for subject i 
+  get_init <- function(i, L){
+    if(is.matrix(init.val)){ # if user specifies different initial values for each subject
+      return(as.matrix(init.val[i, ]))      
+    } else if(length(init.val) == L){ #if user specifies L values, the same initial values are used for each subject
+      return(as.matrix(init.val)) 
+    } else { #if user specifies one initial value, it will be used for all dimensions and each subject
+      return(matrix(rep(init.val[1], L), nrow = L))
+    }
+  }
+  
+  # Extract data dimensions
+  N<-nrow(dat) # number of subjects
+  J<-ncol(dat) # number of items
+  
+  # for Bayesian estimates: extract priors
+  if(any(est.type%in%c("MAP", "EAP"))){
+    mu<-prior[1]
+    sigma2<-prior[2]
+  }
+  
+  # Initialize Output 
+  residual.out <- matrix(NA, nrow = N, ncol = J)
+  
+  if(model%in%c("RASCH", "1PL", "2PL")){
+    L<-1
+    # Initialize Output 
+    theta.prog <- array(NA, dim = c(N, iter, L))
+    theta.out <- matrix(NA, nrow = N, ncol = L)
+    se.out <- matrix(NA, nrow = N, ncol = L)
+    convergence.out <- matrix(0, nrow = N, ncol = L)
+    
+    if(model=="RASCH"){
+      ipars<- cbind(rep(1, J), ipars)
+    }
+    
+    if("EAP"%in%est.type){
+      f_x <- dnorm(eap.quad.pts, mu, sqrt(sigma2))
+      probs.q <- item.prob(eap.quad.pts, model, ipars, D)
+      Q <- length(eap.quad.pts)
+      
+      # Loop to estimate theta for each subject
+      for(i in 1:N){
+        P0<-0
+        # Initialize theta value for residual
+        theta<-get_init(i, L=1)
+        
+        for(k in 1:iter){
+          # Residual Calculation
+          resid<-residual(theta, model, ipars, dat[i,],  D=1.7)$standardized
+          # Weight Calculation
+          w.i<-weight.func(r=resid, weight.type2=weight.type, tuning.par2=tuning.par)
+          
+          # (Weighted) Likelihood according to person's data and each quad point
+          likelihood <- apply(probs.q, 1, function(x) prod((x^dat[i, ]*(1 - x)^(1 - dat[i, ]))^w.i))
+          
+          # EAP theta estimate
+          theta<-sum(eap.quad.pts*likelihood*f_x)/sum(likelihood*f_x)
+          
+          # Store final estimated theta
+          theta.new <- theta.prog[i,k,1]<-theta
+          
+          # Compute difference in log-likelihood for convergence criterion
+          probs.i <- item.prob(theta.new, model, ipars, D)
+          probs.resp <- ifelse(dat[i, ]==1, probs.i, 1-probs.i)
+          log_like <- sum(log(probs.resp)) - sum(log(P0))
+          
+          P0 <- probs.resp
+          theta <- theta.new
+          
+          if(k > 1 && abs(log_like) < tol){break}
+        }
+        
+      }
+    }else{
+      
+      
+      # Newton-Raphson loop for MLE and MAP
+      for(i in 1:N){
+        
+        theta <- get_init(i, 1)
+        P0 <- 0
+        
+        for(k in 1:iter){
+          
+          #  Compute item (category) response probabilities 
+          probs.i <- item.prob(theta, model, ipars, D)
+          
+        }
+      }
+    }
+  }
+  
+  if(model%in%c("GRM")){
+    
+  }
+  
+  if(model%in%c("MIRT")){
+    
+  }
+  
+  if(model%in%c("MGRM")){
+    
+  }
+  
+}
+
 #' Ability Estimation Function Using Robust Estimation (GRM)
 #'
 #' Calculate robust ability estimates using the GRM item response function with the given weight function, fixed item parameters, and item responses.
@@ -1155,6 +1341,133 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' h.est$theta
 #' mle$theta
 #' 
+theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal", tuning.par=NULL, D=1.7) {
+  
+  # Check if the turning parameter is given when the weight.type is not "normal"
+  if (weight.type != "equal") {
+    if (is.null(tuning.par)) {
+      stop(paste("The tuning parameter cannot be null when the weight.type is ", weight.type, sep = ""))
+    }
+  }
+  
+  # Get dimensions of the input data
+  l <- nrow(dat)  # number of subjects
+  J <- ncol(dat)  # test length (number of items)
+  nthresh <- ncol(b)  # number of threshold parameters
+  
+  # Initialize arrays for storing results
+  theta.est2 <- standard.error <- matrix(data=NA, nrow=l)
+  convergence <- matrix(0, nrow=l)
+  theta.progression <- matrix(NA, nrow = l, ncol = iter)
+  residual <- matrix(data=NA, nrow = l, ncol = J)
+  
+  # Loop to estimate theta for each subject
+  for(i in 1:l){
+    
+    # Initialize theta value
+    if(length(init.val) > 1){ #if more than one initial value specified
+      theta <- init.val[i]
+    } else {
+      theta <- init.val
+    }
+    
+    P0 <- 0
+    
+    # Iterative loop for maximum likelihood estimation of theta
+    for (k in 1:iter){ #k iterations at maximum
+      
+      # Item response probabilities
+      probs <- item.prob(theta, "GRM", cbind(a, b))
+      
+      # subset probabilities
+      P.i<-probs$P
+      probs.resp<-P.i[cbind(1:J, dat[i,])]
+      
+      expected.value<-P.i%*%matrix(c(1:(nthresh+1))) 
+      # Calculate standardized residual
+      residual[i,]<-(dat[i,]-expected.value)/sqrt(rowSums(apply(matrix(1:(nthresh+1)), 1, function(x) x-expected.value)^2*P.i))  
+      
+      # Compute weighting term based on specified weight function (bisquare, Huber, equal)
+      weighting.term <- NULL
+      if (weight.type == "bisquare") {
+        weighting.term <- bisquare(residual[i,], tuning.par)
+      } else if (weight.type == "Huber") {
+        weighting.term <- huber(residual[i,], tuning.par)
+      } else if (weight.type == "equal"){
+        weighting.term <- 1
+      }
+      
+      # Check if weighting term is determined
+      if (is.null(weighting.term)) {
+        stop("Cannot determine the weighting function.")
+      }
+      
+      # subset probabilities for derivatives
+      pstars<-cbind(rep(1, J), probs$pstar[,,1], rep(0, J))
+      
+      ps0<-pstars[cbind(1:J, dat[i,])]
+      qs0<-1-ps0
+      ps1<-pstars[cbind(1:J, dat[i,]+1)]
+      qs1<-1-ps1
+      
+      # Compute first and second derivatives of the log-likelihood
+      D1 <- sum(D * a * weighting.term * (ps0 * qs0 - ps1 * qs1) / probs.resp)
+      D2 <- sum(D^2 * a^2 * weighting.term * ((ps0 * qs0 * (qs0 - ps0) - ps1 * qs1 * (qs1 - ps1)) / probs.resp - (ps0 * qs0 - ps1 * qs1)^2 / probs.resp^2 ))
+      
+      # Check for NAs in the computation: if so, record nonconvergence
+      if (is.na(theta - D1/D2)) {
+        theta.est2[i] <- theta <- NA
+        convergence[i,1] <- 1
+        break
+      }
+      
+      # Update theta based on Newton-Raphson method, using the first and second derivatives
+      theta <- theta.progression[i,k] <- theta - D1/D2
+      
+      # Compute difference in log-likelihood for convergence criterion
+      log_like <- sum(log(probs.resp)) - sum(log(P0))
+      
+      # Check for convergence: stop Newton-Raphson method if 
+      # log-likelihood difference is less than cutoff
+      if (abs(log_like) < cutoff){
+        break
+      }
+      
+      # Update initial probability (P0) for the next iteration
+      P0 <- probs.resp
+    }
+    
+    # Store final estimated theta
+    theta.est2[i] <- theta
+    
+    #se.int<-standard.errors(theta, cbind(a,b), dat[i,], "GRM",  weight.type = weight.type, tuning.par=tuning.par)
+    #standard.error[i] <- se.int$observed_se
+    #residual[i,]<-se.int$residual
+    
+    # Handle cases where theta did not converge within the desired number of iterations
+    if (k == iter) {
+      theta.est2[i] <-  NA
+      convergence[i,1] <- 1
+    } else if (!is.na(theta) & theta < -3) {
+      # Then check: if theta converged outside [-3, 3], replace it with -3 or 3 respectively
+      theta <- -3
+      
+      #se.int<-standard.errors(a, theta, dat[i,], b=b, residual = "standardized", weight.function = weight.type, tuning.par=tuning.par, model="GRM",  D=D)
+      #standard.error[i] <- se.int$observed_se
+      #residual[i,]<-se.int$residual
+      theta.est2[i] <- theta
+    } else if (!is.na(theta) & theta > 3) {
+      theta <- 3
+      #se.int<-standard.errors(a, theta, dat[i,], b=b, residual = "standardized", weight.function = weight.type, tuning.par=tuning.par, model="GRM",  D=D)
+      #standard.error[i] <- se.int$observed_se
+      #residual[i,]<-se.int$residual
+      theta.est2[i] <- theta
+    }
+  }
+  
+  # Return a list containing the estimated theta, binary indicator of nonconvergence, standard error, estimated theta over each iteration, and standardized residual
+  return(list(theta = theta.est2, convergence = convergence, standard.error = standard.error, theta.progression = theta.progression, residual = residual))
+}
 
 
 #' Plot histogram of residuals along plot of weight (dependent on TuCo) vs residuals
