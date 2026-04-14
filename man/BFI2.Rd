@@ -3,7 +3,7 @@
 \docType{data}
 \name{BFI2}
 \alias{BFI2}
-\title{BFI2}
+\title{BFI2 data}
 \format{
 An object of class \code{data.frame} with 838 rows and 79 columns.
 }
@@ -11,13 +11,16 @@ An object of class \code{data.frame} with 838 rows and 79 columns.
 \url{https://osf.io/awvnd}
 }
 \usage{
-BFI2
+data(BFI2)
 }
 \description{
-Polytomous data from the Big Five Inventory-2
+
 }
 \details{
-Data obtained from the Big Five Inventory-2 (BFI-2; Soto & John, 2017), collected from adolescents ages 14 to 17 years old enrolled in a high school AP Statistics course (Ober et al., 2021). The inventory contains 60 items on a 5-point Likert scale, where exactly 12 items load onto each of the five personality factors in the BFI-2 (Extraversion, Agreeableness, Conscientiousness, Negative Emotionality, and Open-Mindedness).  Data for 838 subjects was collected, after removing four subjects with missing data. No missing data remains. Variables are labeled by the first letter of the personality factor (e.g., E = Extraversion, A = Agreeableness, etc.) and item number 1 through 12. Items marked with a "R" were negatively worded on the assessment and responses have been computationally reverse coded.
+Polytomous data from the Big Five Inventory-2
+
+The BFI2 is a 60‑item personality assessment measuring the Big Five domains: Agreeableness, Conscientiousness, Extraversion, Negative Emotionality, and Open‑Mindedness. 
+Each domain contains 12 items, organized into 15 facets (e.g., Compassion, Organization, Anxiety). Items are scored on a 1–5 Likert scale and include both positively and negatively keyed statements.
 }
 \references{
 Ober, T. M., Cheng, Y., Jacobucci, R., & Whitney, B. M. (2021, January). Examining the factor structure of the Big Five Inventory-2 personality domains with an adolescent sample. \emph{Psychological Assessment, 33}(1), 14–28. \url{doi:10.1037/pas0000962}
