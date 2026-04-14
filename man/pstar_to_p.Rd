@@ -2,7 +2,7 @@
 % Please edit documentation in R/robust.R
 \name{pstar_to_p}
 \alias{pstar_to_p}
-\title{Convert category threshold probabilities (\eqn{P^*}) to the probabilities of responding in each category}
+\title{Convert category threshold probabilities to the probabilities of responding in each category}
 \usage{
 pstar_to_p(Pstar)
 }

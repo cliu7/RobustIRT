@@ -7,12 +7,12 @@
 huber(r, H)
 }
 \arguments{
-\item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.}
+\item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals of value NA are given a weight of 0.}
 
 \item{H}{Huber tuning parameter. Larger values lead to less downweighting.}
 }
 \value{
-Huber weight value. Note that residuals of value `NA` are assigned values of 0.
+Huber weight value.
 }
 \description{
 Calculate the Huber weight (Huber, 1981) given a residual and Huber tuning parameter.
