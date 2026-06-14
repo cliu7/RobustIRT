@@ -346,7 +346,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' @export
 
 
-residual<-function(theta, model, ipars, dat, resid = c("standardized", "msr"), D=1.7){
+residual<-function(theta, model, ipars, dat, resid = c("standardized", "msr", "information"), D=1.7){
     
   model<-toupper(model)
   
