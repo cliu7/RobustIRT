@@ -283,11 +283,13 @@ item.prob<-function(theta, model, ipars, D=1.7){
  
 #' Residual Calculation
 #' 
-#' Computes the standardized and modified standardized residuals for dichotomous and polytomous IRT models. For each observed response 
-#' \eqn{y_j} to item \eqn{j}, the residual reflects the difference between the observed score and the model-implied expected value given the person’s estimated ability \eqn{\hat{\theta}}.
+#' Computes the standardized and modified standardized residuals (MSRs; Yu & Cheng, 2019) for dichotomous and polytomous IRT models. For each observed response 
+#' \eqn{y_j} to item \eqn{j}, the standardized residual and the MSR reflect the difference between the observed score and the model-implied expected value given the person’s estimated ability \eqn{\hat{\theta}}.
 #' The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
-#' Modified standardized residuals (MSRs; Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
-#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
+#' The MSR replaces the variance term with the conditional probability of the observed response category,
+#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
+#' The information residual is available for dichotomous models only, capturing the difference between the person ability parameter and the difficulty parameter of an item, weighted by the item discrimination:
+#' \eqn{a_j(\theta -b_j)} for unidimensional models and \eqn{\boldsymbol{a}_j \boldsymbol{\theta} +d_j)} for the MIRT model.
 #' See \code{item.prob} for description of models and structure of \code{ipars}.
 #' @references Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
 #' @param theta An \eqn{N \times L} matrix of latent trait values, where \eqn{L} is the number of dimensions.
@@ -297,10 +299,11 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' @param residual Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.
 #' @param D Positive scaling constant for the normal-ogive approximation. Defaults to 1.7, otherwise often set to 1.0.
 
-#' @return A list containing two \eqn{N \times J} matrices:
+#' @return A list containing \eqn{N \times J} matrix for each residual specified:
 #' \itemize{
 #'   \item \code{standardized} {standardized residuals}
 #'   \item \code{msr} {modified standardized residuals (Yu & Cheng, 2019)}
+#'   \item \code{information} {information residual}
 #' }
 #' 
 #' @examples
@@ -343,7 +346,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' @export
 
 
-residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr"), D=1.7){
+residual<-function(theta, model, ipars, dat, resid = c("standardized", "msr"), D=1.7){
     
   model<-toupper(model)
   
@@ -362,45 +365,76 @@ residual<-function(theta, model, ipars, dat, residual = c("standardized", "msr")
   # Item (category) response probability
   probs<-item.prob(theta, model, ipars, D)
   
+  out<-list() # initialize vector for storing output
+  
   if(model %in% c("1PL", "2PL", "MIRT", "RASCH")){ # dichotomous data
     
-    # standardized residual
-    stz<-(dat-probs)/sqrt(probs*(1-probs))
+    if("standardized" %in% resid){
+      # standardized residual
+      stz<-(dat-probs)/sqrt(probs*(1-probs))
+      out$standardized<-stz
+    }
     
-    # probability of observed response
-    P.response <- ifelse(dat==1, probs, 1-probs)
+    if("msr" %in% resid){
+      # probability of observed response
+      P.response <- ifelse(dat==1, probs, 1-probs)
+      
+      # modified standardized residual
+      out$msr<-(dat-probs)/P.response
+    }
     
-    # modified standardized residual
-    msr<-(dat-probs)/P.response
+    # information residual
+    if("information" %in% resid){
+      if(model=="MIRT"){
+        a<-ipars[,1:L]
+        d<-ipars[,L+1]
+        info<-apply(a%*%t(theta), 2, function(x) x+d)
+      }else{
+        if(model=="RASCH"){
+          ipars<-cbind(1, ipars)
+        }
+        a<-ipars[,1]
+        b<-ipars[,2]
+        info<-sapply(theta, function(x) a*(x-b))
+      }
+      out$information<-t(info)
+    }
+    
     
   }
   
   if(model %in% c("GRM", "MGRM")){ # polytomous data
-    P<-probs$P
     
-    # expected value of the response
-    expected.val<- apply(P, 1, function(x) t(x) %*% matrix(1:K, K))
-    
-    # expected value of the squared response
-    expected.val2<- apply(P, 1, function(x) t(x) %*% matrix(1:K, K)^2)
-    
-    # variance
-    var.x<-expected.val2-expected.val^2
-    
-    # standardized residual
-    stz<-(dat-expected.val)/sqrt(var.x)
-    
-    # probability of observed response
-    if(N==1){
-      P.response <- P[cbind(1:J, c(dat))]
-    }else{
-      P.response <- t(sapply(seq_len(N), function(x) {P[cbind(seq_len(J), dat[x,], x)]}))
+    if("standardized" %in% resid){
+      P<-probs$P
+      
+      # expected value of the response
+      expected.val<- apply(P, 1, function(x) t(x) %*% matrix(1:K, K))
+      
+      # expected value of the squared response
+      expected.val2<- apply(P, 1, function(x) t(x) %*% matrix(1:K, K)^2)
+      
+      # variance
+      var.x<-expected.val2-expected.val^2
+      
+      # standardized residual
+      stz<-(dat-expected.val)/sqrt(var.x)
+      out$standardized<-stz
     }
-    # modified standardized residual
-    msr<-(dat-expected.val)/P.response
+    
+    if("msr" %in% resid){
+      # probability of observed response
+      if(N==1){
+        P.response <- P[cbind(1:J, c(dat))]
+      }else{
+        P.response <- t(sapply(seq_len(N), function(x) {P[cbind(seq_len(J), dat[x,], x)]}))
+      }
+      # modified standardized residual
+      out$msr<-(dat-expected.val)/P.response
+    }
   }
     
-  return(list(standardized = stz, msr = msr))
+  return(out)
 }   
 
 
@@ -705,7 +739,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
   J<-ncol(dat) # test length
   
   P<-item.prob(theta, model, ipars, D=D)
-  r<-residual(theta, model, ipars, dat, D=D)$standardized
+  r<-residual(theta, model, ipars, dat, resid = resid, D=D)
   w<- weight.func(r, weight.type, tuning.par)
   
   out<-list() # initialize vector for storing output
@@ -1082,6 +1116,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' @param weight.type Type of weighting function to be used: "equal", "Huber", or "bisquare".
 #' @param tuning.par Optional tuning parameter for Huber or bisquare weights.
 #' @param est.type Type of estimation to be used: "MLE", "MAP", or "EAP".
+#' @param init.val Initial value of the ability parameter for the Newton-Raphson method. Default is 0. The MLE is suggested as the initial value for robust estimation.
 #' @param prior Numeric vector giving the mean and variance of the normal prior for MAP and EAP estimation types.
 #' @param eap.quad.pts A numeric vector of quadrature points \eqn{\theta_q} used when computing EAP standard errors. These are typically q equally spaced values across the latent‑trait range. Only used when "EAP" is included in \code{est.type}.
 #' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta_i}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
@@ -1114,7 +1149,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' }
 #' @export
 
-robust.theta<-function(dat, ipars, model="2PL", D=1.7, dimen=NULL, weight.type = "equal", tuning.par = NULL, residual = "standardized", est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41), iter=30, tol=0.01){
+robust.theta<-function(dat, ipars, model="2PL", D=1.7, dimen=NULL, weight.type = "equal", tuning.par = NULL, resid = "standardized", est.type = "MLE", init.val=0, prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41), iter=30, tol=0.01){
   
   model<-toupper(model)
   
@@ -1195,9 +1230,9 @@ robust.theta<-function(dat, ipars, model="2PL", D=1.7, dimen=NULL, weight.type =
         
         for(k in 1:iter){
           # Residual Calculation
-          resid<-residual(theta, model, ipars, dat[i,],  D=1.7)$standardized
+          r<-residual(theta, model, ipars, dat[i,], resid=resid, D=1.7)
           # Weight Calculation
-          w.i<-weight.func(r=resid, weight.type2=weight.type, tuning.par2=tuning.par)
+          w.i<-weight.func(r=r, weight.type2=weight.type, tuning.par2=tuning.par)
           
           # (Weighted) Likelihood according to person's data and each quad point
           likelihood <- apply(probs.q, 1, function(x) prod((x^dat[i, ]*(1 - x)^(1 - dat[i, ]))^w.i))
@@ -1362,7 +1397,7 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
   theta.est2 <- standard.error <- matrix(data=NA, nrow=l)
   convergence <- matrix(0, nrow=l)
   theta.progression <- matrix(NA, nrow = l, ncol = iter)
-  residual <- matrix(data=NA, nrow = l, ncol = J)
+  resid <- matrix(data=NA, nrow = l, ncol = J)
   
   # Loop to estimate theta for each subject
   for(i in 1:l){
@@ -1388,14 +1423,14 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
       
       expected.value<-P.i%*%matrix(c(1:(nthresh+1))) 
       # Calculate standardized residual
-      residual[i,]<-(dat[i,]-expected.value)/sqrt(rowSums(apply(matrix(1:(nthresh+1)), 1, function(x) x-expected.value)^2*P.i))  
+      resid[i,]<-(dat[i,]-expected.value)/sqrt(rowSums(apply(matrix(1:(nthresh+1)), 1, function(x) x-expected.value)^2*P.i))  
       
       # Compute weighting term based on specified weight function (bisquare, Huber, equal)
       weighting.term <- NULL
       if (weight.type == "bisquare") {
-        weighting.term <- bisquare(residual[i,], tuning.par)
+        weighting.term <- bisquare(resid[i,], tuning.par)
       } else if (weight.type == "Huber") {
-        weighting.term <- huber(residual[i,], tuning.par)
+        weighting.term <- huber(resid[i,], tuning.par)
       } else if (weight.type == "equal"){
         weighting.term <- 1
       }
@@ -1445,7 +1480,7 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
     
     #se.int<-standard.errors(theta, cbind(a,b), dat[i,], "GRM",  weight.type = weight.type, tuning.par=tuning.par)
     #standard.error[i] <- se.int$observed_se
-    #residual[i,]<-se.int$residual
+    #resid[i,]<-se.int$residual
     
     # Handle cases where theta did not converge within the desired number of iterations
     if (k == iter) {
@@ -1953,3 +1988,4 @@ theta_plots<-function(dat, a, d=NULL, b=NULL, iter=30, cutoff=0.01, H=NULL, B=NU
     
   }
 }
+
