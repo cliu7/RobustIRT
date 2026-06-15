@@ -404,7 +404,7 @@ residual<-function(theta, model, ipars, dat, resid = c("standardized", "msr", "i
   }
   
   if(model %in% c("GRM", "MGRM")){ # polytomous data
-    
+    K<-ncol(probs$P)
     if("standardized" %in% resid){
       P<-probs$P
       
