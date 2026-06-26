@@ -673,25 +673,20 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' Rasch_fit <- mirt(dat, 1, itemtype = "Rasch")
 #' Rasch_theta <- fscores(Rasch_fit)
 #' Rasch_ipars <- coef(Rasch_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b", drop = FALSE]
-#' Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, dat, model = "Rasch")
-#' 
-#' # 1PL Model Example
-#' fit_1PL <- mirt(dat, 1, itemtype = "1PL")
-#' theta_1PL <- fscores(fit_1PL)
-#' ipars_1PL <- cbind(a = rep(1, ncol(dat)), b = coef(fit_1PL, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
-#' SE_1PL <- standard.errors(theta_1PL, ipars_1PL, dat, model="1PL")
+#' Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, dat, model = "RASCH")
 #' 
 #' # 2PL Model Example
 #' fit_2PL <- mirt(dat, 1, itemtype = "2PL")
 #' theta_2PL <- fscores(fit_2PL)
-#' ipars_2PL <- coef(fit_2PL, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
+#' ipars_2PL <- coef(fit_2PL, IRTpars = TRUE, simplify = TRUE)$items[, c("a", "b")]
 #' SE_2PL <- standard.errors(theta_2PL, ipars_2PL, dat, model = "2PL", est.type = c("MLE", "MAP"))
 #' 
 #' # MIRT Model Example
 #' MIRT_fit <- mirt(dat, 2)
 #' MIRT_theta <- fscores(MIRT_fit)
 #' MIRT_ipars <- coef(MIRT_fit, IRTpars = TRUE, simplify = TRUE)$items
-#' MIRT_SE <- standard.errors(MIRT_theta, MIRT_ipars, dat, model = "MIRT")
+#' MIRT_ipars[32,"d"] <- -MIRT_ipars[32,"b"] 
+#' MIRT_SE <- standard.errors(MIRT_theta, MIRT_ipars[,c("a1","a2","d")], dat, model = "MIRT")
 #' 
 #' # GRM Model Example for Agreeableness
 #' bfi <- read_csv("p234_bfi_demog_2020-04-24.csv")
@@ -721,26 +716,49 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' MGRM_dat <- as.matrix(MGRM_items)
 #' MGRM_SE <- standard.errors(theta = MGRM_theta, ipars = MGRM_ipars, dat = MGRM_dat, model = "MGRM", est.type = "MLE", weight.type = "Huber", tuning.par  = 1)
 
-                   
-standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", tuning.par = NULL, est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41)){
+
+standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", 
+                          tuning.par = NULL, custom.weights = NULL, resid = "standardized", 
+                          est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41)){
   
-  # Function to determine weights:
-  weight.func <- function(r, weight.type2="equal", tuning.par2=NULL){
-    if(weight.type2 == "equal") return(r*0+1)
-    if(weight.type2 == "Huber") return(huber(r, tuning.par2))
-    if(weight.type2 == "bisquare") return(bisquare(r, tuning.par2))
-    if(length(weight.type2) == length(r)) return(weight.type2)
-    stop("Invalid weight.type")
+  # Item-level weight given residual vector
+  compute.weights<- function(r_mat){
+    if(weight.type == "equal") return(matrix(1, nrow(r_mat), ncol(r_mat)))
+    if(weight.type == "Huber") return(huber(r_mat, tuning.par))
+    if(weight.type == "bisquare") return(bisquare(r_mat, tuning.par))
+    if(weight.type == "custom"){
+      if(is.null(custom.weights)) stop("custom.weights must be supplied when weight.type = 'custom'.")
+      return(custom.weights)
+    } 
+  }
+  
+  # Compute residual & weights 
+  person.weights <- function(theta_mat, dat_mat, model_up, ipars_use){
+    
+    if(resid == "dual"){
+      # dual: w(info) + w(msr)
+      r.all <- residual(theta_mat, model_up, ipars_use, dat_mat, resid= c("information", "msr"), D = D)
+      w1<-compute.weights(as.matrix(r.all$information))
+      w2<-compute.weights(as.matrix(r.all$msr))
+      return(w1+w2)
+    }else{
+      r.specific<- residual(theta_mat, model_up, ipars_use, dat_mat, resid= resid, D = D)
+      return(compute.weights(as.matrix(r.specific[[1]])))
+    }
   }
   
   model<-toupper(model)
+  est.type <- toupper(est.type)
+  resid<- tolower(resid)
   
+  dat<-as.matrix(dat)
   N<-nrow(dat) # number of subjects
   J<-ncol(dat) # test length
   
-  P<-item.prob(theta, model, ipars, D=D)
-  r<-residual(theta, model, ipars, dat, resid = resid, D=D)
-  w<- weight.func(r, weight.type, tuning.par)
+  mu<-prior[1]
+  sigma2<-prior[2]
+  P<- item.prob(theta, model, ipars, D=D)
+  w<-person.weights(theta, dat, model, ipars)
   
   out<-list() # initialize vector for storing output
   
@@ -766,15 +784,15 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       # Weighted Second Derivative
       D2.MAP<-rowSums(w*D2) + 1/prior[2]
       
-      out$post_sd_MAP <- sqrt(1 / D2.MAP)
-      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+      out$post_sd_MAP <- sqrt(1/D2.MAP)
+      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B/A)
     }
     
     if("EAP"%in%est.type){
       # Prior density according to each density point
       f_x<-dnorm(eap.quad.pts, prior[1], sqrt(prior[2]))
       # Item response probabilities at each quadrature point
-      probs.q <- item.prob(eap.quad.pts, "Rasch", ipars) 
+      probs.q <- item.prob(eap.quad.pts, "RASCH", ipars) 
       Q<-length(eap.quad.pts)
       
       # (Weighted) Likelihood according to person's data and each quad point
@@ -785,9 +803,9 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
-      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B/A))
     } 
-
+    
     return(out)
   }
   
@@ -820,8 +838,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       # Weighted Second Derivative
       D2.MAP<-rowSums(w*D2) + 1/prior[2]
       
-      out$post_sd_MAP <- sqrt(1 / D2.MAP)
-      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+      out$post_sd_MAP <- sqrt(1/D2.MAP)
+      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B/A)
     }
     
     if("EAP"%in%est.type){
@@ -839,9 +857,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
-      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B/A))
     } 
-    
   }
   
   if(model=="2PL"){
@@ -870,8 +887,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       D2.MAP<-rowSums(w*D2) + 1/prior[2]
       
       # Posterior standard deviation of MAP theta estimate
-      out$post_sd_MAP <- sqrt(1 / D2.MAP)
-      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+      out$post_sd_MAP <- sqrt(1/D2.MAP)
+      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B/A)
     }
     
     if("EAP"%in%est.type){
@@ -889,9 +906,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
-      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B/A))
     } 
-    
   }
   
   if(model=="MIRT"){
@@ -969,15 +985,15 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     Pk <- P1 - P2
     
     # First derivative
-    D1 <- D*a*(P1*(1-P1) - P2*(1-P2)) / Pk
+    D1 <- D*a*(P1*(1-P1) - P2*(1-P2))/Pk
     
     # Second Derivative 
-    D2 <- -D^2 * a^2 * ((P1*(1-P1)*(1-2*P1) - P2*(1-P2)*(1-2*P2))/Pk -
-                          (P1*(1-P1) - P2*(1-P2))^2 / Pk^2)
+    D2 <- -D^2*a^2*((P1*(1-P1)*(1-2*P1) - P2*(1-P2)*(1-2*P2))/Pk -
+                          (P1*(1-P1) - P2*(1-P2))^2/Pk^2)
     
-    A <- colSums(t(w) * D2) # Expected information
-    V <- colSums(t(w)^2 * D2) # ASE numerator
-    B <- colSums((t(w) * D1)^2) # Sandwich B
+    A <- colSums(t(w)*D2) # Expected information
+    V <- colSums(t(w)^2*D2) # ASE numerator
+    B <- colSums((t(w)*D1)^2) # Sandwich B
     
     A[A <= 0 | !is.finite(A)] <- NA
     
@@ -991,8 +1007,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       # Weighted Second Derivative
       D2.MAP<-A + 1/prior[2]
       
-      out$post_sd_MAP <- sqrt(1 / D2.MAP)
-      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B / A)
+      out$post_sd_MAP <- sqrt(1/D2.MAP)
+      out$sandwich_MAP <-out$post_sd_MAP*sqrt(B/A)
     }
     
     if("EAP"%in%est.type){
@@ -1010,12 +1026,14 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
       out$post_sd_EAP <-sapply(1:N, function(x) sqrt(sum((eap.quad.pts - theta[x])^2*likelihood[x,]*f_x)/ sum(likelihood[x,]*f_x)))
-      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B / A))
+      out$sandwich_EAP <-out$post_sd_EAP*sqrt((B/A))
     } 
   }
   
   if(model=="MGRM"){
-    if(!is.matrix(theta)) theta <- matrix(theta, nrow = 1)
+    if(!is.matrix(theta)){
+      theta <- matrix(theta, nrow = 1)
+    }
     L <- ncol(theta)
     a<- ipars[, 1:L] # a: J x L matrix (first L columns: discrimination parameters)
     b<- ipars[, (L+1):ncol(ipars)] # b: J x K matrix (category threshold parameters)
@@ -1024,8 +1042,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     # Calculate probabilities
     probs<-item.prob(theta, "MGRM", ipars)
     
-    out_ase      <- matrix(NA, N, L)
-    out_sand     <- matrix(NA, N, L)
+    out_ase <- matrix(NA, N, L)
+    out_sand <- matrix(NA, N, L)
     out_singular <- matrix(0,  N, L)
     
     for(i in 1:N){
@@ -1033,51 +1051,38 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       # Pstar: J x (K+2) boundary probabilities for person i
       Pstar_i <- matrix(NA, J, K + 2)
       Pstar_i[, 1] <- 1
-      Pstar_i[, 2:(K+1)] <-probs$pstar[,, i]   # J x K slice
+      Pstar_i[, 2:(K+1)] <-probs$pstar[,, i]
       Pstar_i[, K+2]<- 0
       
-      Pcat_i <- probs$P[,,i]   # J x (K+1) category probabilities for person i
+      # Extract boundary probabilities
+      ps0<- Pstar_i[cbind(1:J, dat[i, ])]
+      ps1<- Pstar_i[cbind(1:J, dat[i, ] + 1)]
+      qs0 <-1-ps0
+      qs1 <-1-ps1
+      Pk <- pmax(ps0-ps1, 1e-12)
       
-      # Accumulate A, V, B across items (LxL matrices)
+      # Add A, V, B across items
       A_mat <- V_mat <- B_mat <- matrix(0, L, L)
-      
       for(j in 1:J){
-        aj  <- matrix(a[j, ], nrow = 1)   # 1 x L
+        aj <- matrix(a[j, ], nrow = 1) 
         wij <- w[i, j]
         
-        # Extract P* values
-        ps0 <- Pstar_i[j, 1:(K+1)] 
-        ps1 <- Pstar_i[j, 2:(K+2)]
+        # Numerator & 2nd derivative (Expected Information (Fisher))
+        num1<- ps0[j]*qs0[j] - ps1[j]*qs1[j]
+        num2<- ps0[j]*qs0[j]*(qs0[j] - ps0[j]) - ps1[j]*qs1[j]*(qs1[j] - ps1[j])
         
-        # category probs of length K+1
-        Pk  <- Pcat_i[j, ]               
+        # First derivative contribution for this item
+        score_j <- D*num1/Pk # scalar score contribution
+        g_j <- wij*t(aj)*score_j      # L x 1 gradient
+        B_mat <- B_mat + g_j%*%t(g_j)
         
-        qs0 <- 1 - ps0
-        qs1 <- 1 - ps1
+        # Item information 
+        info_sc <- -(D^2*(num2/Pk[j] - (num1/Pk[j])^2))
+        Ij<- info_sc*(aj %*% t(aj)) 
         
-        # Numerators reused across derivatives
-        num1 <- ps0 * qs0 - ps1 * qs1     # length K+1
-        
-        # First derivative: scalar (sum over categories), then outer to LxL 
-        # d/dtheta log L_j = D * a_j . sum_k [ num1_k / Pk_k ]
-        score_j <- D * sum(num1 / Pk)     # scalar score contribution
-        
-        g_j <- wij * t(aj) * score_j      # L x 1 gradient
-        B_mat <- B_mat + g_j %*% t(g_j)
-        
-        # Second derivative: Expected Information (Fisher)
-        # Note: the negative sign is absorbed so this is positive information
-        num2 <- ps0*qs0*(qs0 - ps0) - ps1*qs1*(qs1 - ps1)  # = ps0*qs0*(1-2ps0) - ps1*qs1*(1-2ps1)
-        
-        # Expected info scalar (sum over k)
-        Ij_scalar <- D^2 * sum(num2 / Pk - (num1^2) / Pk^2)
-        # Note: this equals negative expected info for Fisher per item; we negate for positive info
-        Ij_scalar <- -Ij_scalar
-        
-        Ij <- Ij_scalar * (t(aj) %*% aj)  # L x L item information
-        
-        A_mat <- A_mat + wij  * Ij
-        V_mat <- V_mat + wij^2 * Ij
+        A_mat<- A_mat+wij*Ij
+        V_mat<- V_mat+wij^2*Ij
+        B_mat<- B_mat+g_j %*% t(g_j)
       }
       
       # Invert and compute SEs
