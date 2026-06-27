@@ -690,7 +690,9 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' 
 #' # GRM Model Example for Agreeableness
 #' bfi <- read_csv("p234_bfi_demog_2020-04-24.csv")
-#' A_items <- bfi %>% dplyr::select(starts_with("A"))
+#' all_items <- bfi %>% dplyr::select(starts_with("t1_bfi_"))
+#' colnames(all_items) <- sub("^t1_bfi_", "", colnames(all_items))
+#' A_items <- all_items %>% dplyr::select(starts_with("A"))
 #' GRM_fit <- mirt(A_items, 1, itemtype = "graded")
 #' GRM_theta <- fscores(GRM_fit)
 #' GRM_ipars <- coef(GRM_fit, IRTpars = TRUE, simplify = TRUE)$items
@@ -714,12 +716,16 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' MGRM_theta <- fscores(MGRM_fit)
 #' MGRM_ipars <- coef(MGRM_fit, IRTpars = TRUE, simplify = TRUE)$items
 #' MGRM_dat <- as.matrix(MGRM_items)
-#' MGRM_SE <- standard.errors(theta = MGRM_theta, ipars = MGRM_ipars, dat = MGRM_dat, model = "MGRM", est.type = "MLE", weight.type = "Huber", tuning.par  = 1)
+#' MGRM_SE <- standard.errors(theta = MGRM_theta, ipars = MGRM_ipars, dat = MGRM_dat, model = "MGRM", est.type = "MLE", weight.type = "Huber", tuning.par = 1)
 
 
 standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", 
                           tuning.par = NULL, custom.weights = NULL, resid = "standardized", 
                           est.type = "MLE", prior=c(0,1), eap.quad.pts =seq(-4, 4, length.out = 41)){
+  
+  model<-toupper(model)
+  est.type <- toupper(est.type)
+  resid<- tolower(resid)
   
   # Item-level weight given residual vector
   compute.weights<- function(r_mat){
@@ -746,10 +752,6 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       return(compute.weights(as.matrix(r.specific[[1]])))
     }
   }
-  
-  model<-toupper(model)
-  est.type <- toupper(est.type)
-  resid<- tolower(resid)
   
   dat<-as.matrix(dat)
   N<-nrow(dat) # number of subjects
@@ -792,7 +794,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       # Prior density according to each density point
       f_x<-dnorm(eap.quad.pts, prior[1], sqrt(prior[2]))
       # Item response probabilities at each quadrature point
-      probs.q <- item.prob(eap.quad.pts, "RASCH", ipars) 
+      probs.q <- item.prob(eap.quad.pts, "RASCH", ipars, D) 
       Q<-length(eap.quad.pts)
       
       # (Weighted) Likelihood according to person's data and each quad point
@@ -846,7 +848,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       # Prior density according to each density point
       f_x<-dnorm(eap.quad.pts, prior[1], sqrt(prior[2]))
       # Item response probabilities at each quadrature point
-      probs.q <- item.prob(eap.quad.pts, "1PL", ipars) 
+      probs.q <- item.prob(eap.quad.pts, "1PL", ipars, D) 
       Q<-length(eap.quad.pts)
       
       # (Weighted) Likelihood according to person's data and each quad point
@@ -967,9 +969,12 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     K<-ncol(b) # number of thresholds
     
     Pcat  <- P$P             
-    Pstar <- array(NA, dim=c(J, K+2, N))
+    pstar_arr <- P$pstar
+    if(length(dim(pstar_arr)) == 2) pstar_arr <- array(pstar_arr, dim = c(dim(pstar_arr), 1))
+    
+    Pstar <- array(NA, dim = c(J, K+2, N))
     Pstar[,1,] <- 1
-    Pstar[,2:(K+1),] <- P$pstar
+    Pstar[,2:(K+1),] <- pstar_arr
     Pstar[,K+2,] <- 0
     
     scores <- 1:K
@@ -988,11 +993,11 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
     D1 <- D*a*(P1*(1-P1) - P2*(1-P2))/Pk
     
     # Second Derivative 
-    D2 <- -D^2*a^2*((P1*(1-P1)*(1-2*P1) - P2*(1-P2)*(1-2*P2))/Pk -
+    D2 <- D^2*a^2*((P1*(1-P1)*(1-2*P1) - P2*(1-P2)*(1-2*P2))/Pk -
                           (P1*(1-P1) - P2*(1-P2))^2/Pk^2)
     
-    A <- colSums(t(w)*D2) # Expected information
-    V <- colSums(t(w)^2*D2) # ASE numerator
+    A <- colSums(t(w)*(-D2)) # Expected information
+    V <- colSums(t(w)^2*(-D2)) # ASE numerator
     B <- colSums((t(w)*D1)^2) # Sandwich B
     
     A[A <= 0 | !is.finite(A)] <- NA
@@ -1016,12 +1021,24 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       f_x<-dnorm(eap.quad.pts, prior[1], sqrt(prior[2]))
       # Item response probabilities at each quadrature point
       probs.q <- item.prob(eap.quad.pts, "GRM", ipars) 
+      Pcat.q <- probs.q$P
       Q<-length(eap.quad.pts)
       
       # (Weighted) Likelihood according to person's data and each quad point
       likelihood<-matrix(NA, N, Q)
       for(i in 1:N){
-        likelihood[i,]<- apply(probs.q, 1, function(x) prod((x^dat[i,]*(1-x)^(1-dat[i,]))^w[i,]))
+        for(q in 1:Q){
+          # JxK matrix of category probs for each quad point
+          if(length(dim(Pcat.q))==3){
+            Pq<- Pcat.q[,, q]   # J x K matrix for quad point q
+          }else{
+            Pq<- Pcat.q
+          }
+          # Probability of each person's observed response at quad point q
+          P.obs <- Pq[cbind(1:J, dat[i,])]
+          # Weighted likelihood contribution
+          likelihood[i, q] <- prod(P.obs^w[i,])
+        }
       }
       
       # Posterior standard deviation of EAP theta estimate according to Bock & Mislevy, 1989; Thissen et al., 1995
@@ -1035,9 +1052,9 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       theta <- matrix(theta, nrow = 1)
     }
     L <- ncol(theta)
-    a<- ipars[, 1:L] # a: J x L matrix (first L columns: discrimination parameters)
-    b<- ipars[, (L+1):ncol(ipars)] # b: J x K matrix (category threshold parameters)
-    K <-ncol(b) # number of thresholds K
+    a<- ipars[, 1:L] # JxL matrix of discrimination parameters
+    b<- ipars[, (L+1):ncol(ipars)] # JxK matrix of category thresholds
+    K <-ncol(b) # number of thresholds
     
     # Calculate probabilities
     probs<-item.prob(theta, "MGRM", ipars)
@@ -1050,9 +1067,9 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       
       # Pstar: J x (K+2) boundary probabilities for person i
       Pstar_i <- matrix(NA, J, K + 2)
-      Pstar_i[, 1] <- 1
-      Pstar_i[, 2:(K+1)] <-probs$pstar[,, i]
-      Pstar_i[, K+2]<- 0
+      Pstar_i[,1] <- 1
+      Pstar_i[,2:(K+1)] <-probs$pstar[,, i]
+      Pstar_i[,K+2]<- 0
       
       # Extract boundary probabilities
       ps0<- Pstar_i[cbind(1:J, dat[i, ])]
@@ -1064,25 +1081,24 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       # Add A, V, B across items
       A_mat <- V_mat <- B_mat <- matrix(0, L, L)
       for(j in 1:J){
-        aj <- matrix(a[j, ], nrow = 1) 
+        aj <- matrix(a[j, ], ncol = 1) 
         wij <- w[i, j]
         
-        # Numerator & 2nd derivative (Expected Information (Fisher))
+        # Numerators
         num1<- ps0[j]*qs0[j] - ps1[j]*qs1[j]
-        num2<- ps0[j]*qs0[j]*(qs0[j] - ps0[j]) - ps1[j]*qs1[j]*(qs1[j] - ps1[j])
+        num2<- ps0[j]*qs0[j]*(qs0[j]-ps0[j]) - ps1[j]*qs1[j]*(qs1[j]-ps1[j])
         
         # First derivative contribution for this item
-        score_j <- D*num1/Pk # scalar score contribution
-        g_j <- wij*t(aj)*score_j      # L x 1 gradient
-        B_mat <- B_mat + g_j%*%t(g_j)
+        score_j <- D*num1/Pk[j] # scalar score contribution
+        g_j <- wij*aj*score_j # L x 1 gradient
         
         # Item information 
-        info_sc <- -(D^2*(num2/Pk[j] - (num1/Pk[j])^2))
-        Ij<- info_sc*(aj %*% t(aj)) 
+        info_sc <- -(D^2*(num2/Pk[j]-(num1/Pk[j])^2))
+        Ij<- info_sc*(aj %*%t(aj)) 
         
         A_mat<- A_mat+wij*Ij
         V_mat<- V_mat+wij^2*Ij
-        B_mat<- B_mat+g_j %*% t(g_j)
+        B_mat<- B_mat+g_j%*%t(g_j)
       }
       
       # Invert and compute SEs
@@ -1096,15 +1112,15 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
       if(abs(det_A) < 1e-12){
         out_singular[i, ] <- 1
       } else {
-        Ainv         <- if(L == 1) 1/A_mat else solve(A_mat)
+        Ainv <- if(L == 1) 1/A_mat else solve(A_mat)
         out_ase[i, ] <- sqrt(diag(Ainv %*% V_mat %*% Ainv))
         out_sand[i,] <- sqrt(diag(Ainv %*% B_mat %*% Ainv))
       }
     }
     
     out <- list(
-      asymptotic_MLE   = out_ase,
-      sandwich_MLE     = out_sand,
+      asymptotic_MLE = out_ase,
+      sandwich_MLE = out_sand,
       singular.matrix = out_singular
     )
   }
