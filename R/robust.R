@@ -1127,8 +1127,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
   
   return(out)
 }
-
-#' @references Embretson, S. E., & Reise, S. P. (2000). \emph{Item response theory for psychologists.} Mahwah, N.J: L. Erlbaum Associates.
+                               
 #' Robust Latent Trait Estimation
 #'
 #' Estimates latent trait(s) under robust weighting for the Rasch, 1PL, 2PL, MIRT,
@@ -1240,6 +1239,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'
 #' @references Chen, J., Cheng, Y., & Li, Z. (2025). Dual-weight robust estimation of
 #'   latent ability. \emph{Journal of Educational and Behavioral Statistics}.
+#' @references Embretson, S. E., & Reise, S. P. (2000). \emph{Item response theory for psychologists.} Mahwah, N.J: L. Erlbaum Associates.
 #' @references Filonczuk, A., & Cheng, Y. (2025). Robust estimation of the latent trait
 #'   in graded response models. \emph{Behavior Research Methods, 57}(1), 55.
 #' @references Huber, P. (1981). \emph{Robust Statistics}. John Wiley & Sons, Inc.
