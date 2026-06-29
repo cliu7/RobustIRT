@@ -2,7 +2,7 @@
 % Please edit documentation in R/robust.R
 \name{standard.errors}
 \alias{standard.errors}
-\title{Standard error function}
+\title{Standard error function for Rasch, 1PL, 2PL, MIRT, GRM, and MGRM models}
 \usage{
 standard.errors(
   theta,
@@ -12,8 +12,6 @@ standard.errors(
   D = 1.7,
   weight.type = "equal",
   tuning.par = NULL,
-  custom.weights = NULL,
-  resid = "standardized",
   est.type = "MLE",
   prior = c(0, 1),
   eap.quad.pts = seq(-4, 4, length.out = 41)
@@ -28,17 +26,17 @@ standard.errors(
 
 \item{model}{Character string specifying the IRT model. See `item.prob` for supported models.}
 
-\item{D}{A scaling constant. Defaults to 1.7; alternatively is often set to 1.0.}
+\item{D}{A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.}
 
 \item{weight.type}{Type of weighting function to be used: "equal", "Huber", or "bisquare".}
 
-\item{tuning.par}{Tuning parameter to be used with Huber or bisquare weights.}
+\item{tuning.par}{Optional tuning parameter for Huber or bisquare weights.}
 
 \item{est.type}{Type of estimation to be used: "MLE", "MAP", or "EAP".}
 
 \item{prior}{Numeric vector giving the mean and variance of the normal prior for MAP and EAP estimation types.}
 
-\item{eap.quad.pts}{A numeric vector of quadrature points \eqn{\theta_q} used when computing EAP standard errors. Default is 41 equally spaced values across latent traits ranging from -4.0 to 4.0. Only used when "EAP" is included in \code{est.type}.}
+\item{eap.quad.pts}{A numeric vector of quadrature points \eqn{\theta_q} used when computing EAP standard errors. These are typically q equally spaced values across the latent‑trait range. Only used when "EAP" is included in \code{est.type}.}
 }
 \value{
 A list whose elements depend on the specified model and `est.type`. Possible components include:
@@ -53,14 +51,14 @@ A list whose elements depend on the specified model and `est.type`. Possible com
 }
 }
 \description{
-Computes standard errors accommodating robust procedures in multiple estimation frameworks.
+Computes per-person standard errors for several IRT models using multiple estimation frameworks.
 Supported standard error types include:
 \itemize{
-  \item \code{Asymptotic SE} Information-based standard error incorporating weights from the robust estimation (Magis, 2014). Reduces to the expected Fisher information standard error when item weights are 1 or uniform across items.
-  \item \code{Sandwich SE} The Fisher information-based standard error is weighted by a correction term to accounts for model misspecification (Huber, 1967; White, 1980).
-  \item \code{Bayesian Posterior SD} Posterior standard deviation of the Bayesian estimate. The function currently only supports Bayesian standard deviations for the 2PL and GRM.
-  \item \code{Bayesian Sandwich SD} The posterior standard deviation of the Bayesian estimate is weighted by a correction term to account for model misspecification (Li & Rice, 2023). The function currently only supports Bayesian standard errors for the 2PL and GRM.
+  \item \code{"Asymptotic SE"} (Information-based standard error incorporating weights. Reduces to the expected Fisher information standard error when item weights are 1 (equal weighting))
+  \item \code{"Sandwich SE"} (Standard error that is robust to model misspecification.)
+  \item \code{"Bayesian SE and Bayesian Sandwich SE"} (2PL & GRM only for Bayesian)
 }
+The posterior standard deviation and the sandwich counterpart are reported for Bayesian estimates of the latent trait. Currently, only the 2PL and GRM models are supported. 
 The function accommodates robust weighting schemes (equal, Huber, bisquare) 
 and supports MLE, MAP, and EAP estimation.
 }
@@ -126,26 +124,29 @@ dat <- key2binary(SAT12,
 Rasch_fit <- mirt(dat, 1, itemtype = "Rasch")
 Rasch_theta <- fscores(Rasch_fit)
 Rasch_ipars <- coef(Rasch_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b", drop = FALSE]
-Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, dat, model = "RASCH")
+Rasch_SE <- standard.errors(Rasch_theta, Rasch_ipars, dat, model = "Rasch")
+
+# 1PL Model Example
+1PL_fit <- mirt(dat, 1, itemtype = "1PL")
+1PL_theta <- fscores(1PL_fit)
+1PL_ipars <- cbind(a = rep(1, ncol(dat)), b = coef(1PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, "b"])
+1PL_SE <- standard.errors(1PL_theta, 1PL_ipars, dat, model="1PL")
 
 # 2PL Model Example
-fit_2PL <- mirt(dat, 1, itemtype = "2PL")
-theta_2PL <- fscores(fit_2PL)
-ipars_2PL <- coef(fit_2PL, IRTpars = TRUE, simplify = TRUE)$items[, c("a", "b")]
-SE_2PL <- standard.errors(theta_2PL, ipars_2PL, dat, model = "2PL", est.type = c("MLE", "MAP"))
+2PL_fit <- mirt(dat, 1, itemtype = "2PL")
+2PL_theta <- fscores(2PL_fit)
+2PL_ipars <- coef(2PL_fit, IRTpars = TRUE, simplify = TRUE)$items[, c("a1", "b")]
+2PL_SE <- standard.errors(2PL_theta, 2PL_ipars, dat, model = "2PL", est.type = c("MLE", "MAP"))
 
 # MIRT Model Example
 MIRT_fit <- mirt(dat, 2)
 MIRT_theta <- fscores(MIRT_fit)
 MIRT_ipars <- coef(MIRT_fit, IRTpars = TRUE, simplify = TRUE)$items
-MIRT_ipars[32,"d"] <- -MIRT_ipars[32,"b"] 
-MIRT_SE <- standard.errors(MIRT_theta, MIRT_ipars[,c("a1","a2","d")], dat, model = "MIRT")
+MIRT_SE <- standard.errors(MIRT_theta, MIRT_ipars, dat, model = "MIRT")
 
 # GRM Model Example for Agreeableness
 bfi <- read_csv("p234_bfi_demog_2020-04-24.csv")
-all_items <- bfi \%>\% dplyr::select(starts_with("t1_bfi_"))
-colnames(all_items) <- sub("^t1_bfi_", "", colnames(all_items))
-A_items <- all_items \%>\% dplyr::select(starts_with("A"))
+A_items <- bfi \%>\% dplyr::select(starts_with("A"))
 GRM_fit <- mirt(A_items, 1, itemtype = "graded")
 GRM_theta <- fscores(GRM_fit)
 GRM_ipars <- coef(GRM_fit, IRTpars = TRUE, simplify = TRUE)$items
@@ -169,14 +170,5 @@ MGRM_fit <- mirt(MGRM_items, model = MGRM_model, itemtype = "graded", method = "
 MGRM_theta <- fscores(MGRM_fit)
 MGRM_ipars <- coef(MGRM_fit, IRTpars = TRUE, simplify = TRUE)$items
 MGRM_dat <- as.matrix(MGRM_items)
-MGRM_SE <- standard.errors(theta = MGRM_theta, ipars = MGRM_ipars, dat = MGRM_dat, model = "MGRM", est.type = "MLE", weight.type = "Huber", tuning.par = 1)
-}
-\references{
-Huber, P. J. (1967). The Behavior of Maximum Likelihood Estimates Under Nonstandard Conditions. Proceedings of the Fifth Berkeley Symposium on Mathematical Statistics and Probability, 1, 221–233.
-
-Li, K. Q., & Rice, K. M. (2023). A Bayesian “sandwich” for variance estimation (arXiv:2207.00100). arXiv. https://doi.org/10.48550/arXiv.2207.00100
-
-Magis, D. (2014). On the asymptotic standard error of a class of robust estimators of ability in dichotomous item response models. British Journal of Mathematical and Statistical Psychology, 67(3), 430–450. https://doi.org/10.1111/bmsp.12027
-
-White, H. (1980). A Heteroskedasticity-Consistent Covariance Matrix Estimator and a Direct Test for Heteroskedasticity. Econometrica, 48(4), 817. https://doi.org/10.2307/1912934
+MGRM_SE <- standard.errors(theta = MGRM_theta, ipars = MGRM_ipars, dat = MGRM_dat, model = "MGRM", est.type = "MLE", weight.type = "Huber", tuning.par  = 1)
 }

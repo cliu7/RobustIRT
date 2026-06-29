@@ -2,57 +2,99 @@
 % Please edit documentation in R/robust.R
 \name{robust.theta}
 \alias{robust.theta}
-\title{Ability Estimation Function Using Robust Estimation}
+\title{Robust Latent Trait Estimation}
 \usage{
 robust.theta(
   dat,
   ipars,
   model = "2PL",
   D = 1.7,
-  dimen = NULL,
+  resid = "standardized",
   weight.type = "equal",
   tuning.par = NULL,
-  residual = "standardized",
+  custom.weights = NULL,
   est.type = "MLE",
+  dimen = NULL,
   prior = c(0, 1),
   eap.quad.pts = seq(-4, 4, length.out = 41),
+  init.val = 0,
   iter = 30,
   tol = 0.01
 )
 }
 \arguments{
-\item{dat}{A \eqn{N \times J} matrix of polytomously-scored data (e.g., Likert-type) for \emph{N} subjects and \emph{J} items. Indexing begins at 0.}
+\item{dat}{An \eqn{N \times J} matrix of item responses (\eqn{N} subjects,
+\eqn{J} items). Responses for dichotomous models must be 0/1. Responses for
+polytomous models must be integer-valued starting at 1. Missing data is not supported.}
 
-\item{ipars}{A matrix of item parameters, whose structure depends on the model.}
+\item{ipars}{A matrix of item parameters structured identically to the
+\code{ipars} argument of \code{\link{item.prob}}.}
 
-\item{model}{Character string specifying the IRT model. See `item.prob` for supported models.}
+\item{model}{The IRT model to be used: \code{"Rasch"}, \code{"1PL"}, \code{"2PL"},
+\code{"MIRT"}, \code{"GRM"}, or \code{"MGRM"}. See \code{\link{item.prob}}
+for details on each model.}
 
-\item{D}{A positive scaling constant used for scaling the normal ogive model. Defaults to 1.7; alternatively is often set to 1.0.}
+\item{D}{Scaling constant for the normal ogive model. Default 1.7; often set 
+to 1.0 for the logistic scale.}
 
-\item{weight.type}{Type of weighting function to be used: "equal", "Huber", or "bisquare".}
+\item{weight.type}{Weighting scheme: \code{"equal"} (default), \code{"Huber"},
+\code{"bisquare"}, or \code{"custom"}.}
 
-\item{tuning.par}{Optional tuning parameter for Huber or bisquare weights.}
+\item{tuning.par}{Tuning parameter for Huber or bisquare weights.  Required when
+\code{weight.type} is not \code{"equal"} or \code{"custom"}.}
 
-\item{est.type}{Type of estimation to be used: "MLE", "MAP", or "EAP".}
+\item{custom.weights}{An \eqn{N \times J} numeric matrix of user-specified weights
+in \eqn{[0, 1]}.  Required when \code{weight.type = "custom"}.}
 
-\item{prior}{Numeric vector giving the mean and variance of the normal prior for MAP and EAP estimation types.}
+\item{est.type}{Estimation methods: \code{"MLE"}, \code{"MAP"}, \code{"EAP"}.
+Can specify more than one in a vector (e.g., \code{c("MLE","MAP")}) for supported models.}
 
-\item{eap.quad.pts}{A numeric vector of quadrature points \eqn{\theta_q} used when computing EAP standard errors. These are typically q equally spaced values across the latent‑trait range. Only used when "EAP" is included in \code{est.type}.}
+\item{prior}{Length-2 numeric vector \code{c(mu, sigma2)} for the normal prior
+used in MAP and EAP.  Default is the standard normal \code{c(0, 1)}.}
 
-\item{theta}{A numeric vector or matrix of latent trait values. For unidimensional models, a numeric vector of length \eqn{N}. For multidimensional models (MIRT, MGRM), an \eqn{N \times L} matrix.}
+\item{eap.quad.pts}{Numeric vector of quadrature points for EAP. Default is 41
+equally spaced points in the interval \eqn{[-4, 4]}.}
+
+\item{init.val}{Starting value(s) for the Newton–Raphson algorithm. May be a
+scalar (applied to all subjects and dimensions), a length-\eqn{L} vector for \eqn{L} dimensions
+(applied to all subjects), or an \eqn{N \times L} matrix.  Default is 0.}
+
+\item{iter}{Maximum number of Newton–Raphson iterations.  Default is 30.}
+
+\item{tol}{Convergence tolerance on the absolute change in log-likelihood.
+Default is 0.01.}
+
+\item{residual}{The residual used to compute weights:
+\code{"standardized"} (default), \code{"msr"}, \code{"information"}, or \code{"dual"}.}
 }
 \value{
-A list containing the following outputs:
-\itemize{
-  \item \code{theta} Ability estimates for \emph{N} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
-  \item \code{convergence} Indicators of convergence for \emph{N} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
-  \item \code{standard.error} Standard errors of the theta estimates for \emph{N} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
-  \item \code{theta.progression} A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
-  \item \code{residual} A \eqn{J \times N \times p} array containing residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items at each iteration until convergence within maximum \emph{p} iterations, nonconvergence, or singular matrix is reached.
+A named list. Elements present depend on \code{est.type}:
+\describe{
+  \item{\code{theta_MLE}}{(\eqn{N \times L}) Robust MLE estimates.}
+  \item{\code{ase_MLE}}{(\eqn{N \times L}) Asymptotic standard error or Fisher-information based 
+    standard error depending on if the conditions presented in Magis (2014) are met
+    (see Details).}
+  \item{\code{sandwich_MLE}}{(\eqn{N \times L}) Huber-White sandwich standard error.}
+  \item{\code{convergence_MLE}}{(\eqn{N \times L}) 0 = converged, 1 = failed.}
+  \item{\code{theta_MAP}}{(\eqn{N \times 1}) Robust MAP estimates.
+    Rasch/1PL/2PL/GRM only.}
+  \item{\code{post_sd_MAP}}{(\eqn{N \times 1}) Posterior standard deviation of the MAP.}
+  \item{\code{sandwich_MAP}}{(\eqn{N \times 1}) Sandwich equivalent of the posterior standard deviation.}
+  \item{\code{convergence_MAP}}{(\eqn{N \times 1}) Nonconvergence indicators: 0 = converged, 1 = failed..}
+  \item{\code{theta_EAP}}{(\eqn{N \times 1}) Robust EAP estimates.
+    Rasch/1PL/2PL only.}
+  \item{\code{post_sd_EAP}}{(\eqn{N \times 1}) Posterior standard deviation of the EAP.}
+  \item{\code{sandwich_EAP}}{(\eqn{N \times 1}) Sandwich equivalent of the posterior standard deviation.}
+  \item{\code{weights}}{(\eqn{N \times J}) Item weights at the iteration of convergence.}
+  \item{\code{residuals}}{(\eqn{N \times J}) Residuals used for weighting 
+    at the iteration of convergence.}
 }
 }
 \description{
-Ability Estimation Function Using Robust Estimation
+Estimates latent trait(s) under robust weighting for the Rasch, 1PL, 2PL, MIRT,
+GRM, and MGRM item response models. The function supports MLE and MAP estimation
+(for only unidimensional models) and returns standard
+errors alongside the ability estimates.
 }
 \details{
 The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta_i}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
@@ -70,15 +112,166 @@ The goal of robust estimation is to downweigh potentially aberrant responses to 
               and the Huber weighting function (Huber, 1981)
                 \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
               Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+Need to add more about literature of robust estimation in IRT
+}
+\section{Estimation types}{
+
+\itemize{
+  \item \code{"MLE"} — Maximum likelihood estimation with the Newton–Raphson algorithm.
+  \item \code{"MAP"} — Maximum a posteriori (Bayesian mode) with the Newton–Raphson algorithm
+        under a normal prior.  Available for Rasch, 1PL, 2PL, and GRM only.
+  \item \code{"EAP"} — Expected a posteriori under a normal prior using Gauss–Hermite-style quadrature.
+        Available for Rasch, 1PL, and 2PL only.
+}
+}
+
+\section{Residuals}{
+
+\itemize{
+  \item \code{"information"} — Information residual \eqn{r_{ij} = a_j(\theta_i - b_j)}
+        or \eqn{r_{ij} = \boldsymbol{a}_j\boldsymbol{\theta}_i + d_j} in the 
+        multidimensional case. Available only for the Rasch, 1PL, 2PL, and 
+        MIRT models. The information residual detects anomalies in the predictor 
+        space (i.e., \eqn{\boldsymbol{\theta}}) to produce Mallows-class weights) 
+        and supports the asymptotic standard error (Magis, 2014).
+  \item \code{"standardized"} — Pearson residual
+        \eqn{z_j = (x_{ij} - E[X_{ij}|\theta_i]) / \sqrt{Var[X_{ij}|\theta_i]}}.
+        Available for all models. The standardized residual detects anomalies 
+        in the observed response space. 
+  \item \code{"msr"} — Modified standardized residual
+        \eqn{M_{ij} = (x_{ij} - E[X_{ij}|\theta_i]) / P(x_{ij}|\theta_i)}.
+        Available for all models. The modified standardized residual detects 
+        anomalies in the observed response space. 
+  \item \code{"dual"} — Dual-weight estimator (Chen et al., 2025). Computes
+        \eqn{w(r_{1ij}) + w(r_{2ij})} where \eqn{r_{1ij}} is the information residual
+        and \eqn{r_{2ij}} is the MSR. Available for the Rasch,
+        1PL, and 2PL models only.
+}
+}
+
+\section{Weight functions}{
+
+\itemize{
+  \item \code{"equal"} — All weights are 1 (e.g., non-robust MLE/MAP/EAP).
+  \item \code{"Huber"} — Huber (1981) weight. Requires \code{tuning.par}, recommended at 1.
+  \item \code{"bisquare"} — Tukey bisquare weight (Mosteller & Tukey, 1977). 
+        Requires \code{tuning.par}, recommended at 4.
+  \item \code{"custom"} — User-supplied \eqn{N \times J} matrix of weights 
+        specified in \code{custom.weights}.
+}
+}
+
+\section{Standard errors}{
+
+Every returned estimation type includes a sandwich standard error or deviation
+of the ability estimate, along with the traditionally reported value:
+\describe{
+  \item{\code{ase}}{Asymptotic standard error that accounts for robust weights (Magis, 2014). For Rasch/
+        1PL/2PL with \code{residual = "information"} this is the exact asymptotic standard error;
+        otherwise it is the general weighted-information standard error
+        \eqn{\sqrt{\sum w^2 I_j} / \sum w I_j}.}
+  \item{\code{post_sd}}{Posterior SD for Bayesian estimators, MAP and EAP.}
+  \item{\code{sandwich}}{Huber-White sandwich standard error (White, 1980). The asymptotic 
+        standard error is weighted by a factor to account for model misspecification. For 
+       Bayesian estimators MAP and EAP, the sandwich version of the posterior 
+       standard deviation is provided (Li & Rice, 2023).}
+}
+}
+
+\examples{
+## 2PL MLE + MAP with Huber weights (information residual)
+set.seed(25)
+N <- 50 
+J <- 20
+ipars <- cbind(a = runif(J, 0.8, 2), b = rnorm(J))
+theta_true <- rnorm(N)
+P <- item.prob(theta_true, "2PL", ipars)
+dat <- dat.gen(P)
+out <- robust.theta(dat, ipars, model = "2PL", resid = "information", weight.type = "Huber", 
+                    tuning.par = 1, est.type = c("MLE", "MAP"))
+head(out$theta_MLE)
+head(out$ase_MLE)
+head(out$post_sd_MAP)
+
+## GRM MLE with standardized residual + bisquare weights 
+set.seed(24)
+J <- 15
+K <- 5 
+N <- 100
+a <- runif(J, 0.8, 2)
+b <- t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
+ip <- cbind(a, b)
+th <- rnorm(N)
+P <- item.prob(th, "GRM", ip)
+dat <- dat.gen(P$P, anchor = 1)
+out_grm <- robust.theta(dat, ip, model = "GRM", resid = "standardized", weight.type = "bisquare", tuning.par = 4, est.type = "MLE")
+head(out_grm$theta_MLE)
+
+## MIRT MLE with information residual 
+set.seed(26)
+L <- 2
+J <- 50
+N <- 80
+a <- matrix(runif(J*L, 0.5, 1.5), J, L)
+d <- rnorm(J)
+ip <- cbind(a, d)
+th <- matrix(rnorm(N*L), N, L)
+P <- item.prob(th, "MIRT", ip)
+dat <- dat.gen(P)
+out_mirt <- robust.theta(dat, ip, model = "MIRT", resid = "information", 
+                          weight.type = "Huber", tuning.par = 1, est.type = "MLE")
+head(out_mirt$theta_MLE)
+
+## MGRM MLE with standardized residual 
+set.seed(27)
+L <- 2
+K <- 5
+J <- 50
+N <- 20
+a <- matrix(runif(J*L, 0.5, 1.5), J, L)
+d <- t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
+ip <- cbind(a, d)
+th <- matrix(rnorm(N*L), N, L)
+P <- item.prob(th, "MGRM", ip)$P
+dat <- dat.gen(P, anchor=1)
+out_mgrm <- robust.theta(dat, ip, model = "MGRM", resid = "standardized", dimen=2,
+                          weight.type = "Huber", tuning.par = 1, est.type = "MLE")
+head(out_mgrm$theta_MLE)
 }
 \references{
+Chen, J., Cheng, Y., & Li, Z. (2025). Dual-weight robust estimation of
+  latent ability. \emph{Journal of Educational and Behavioral Statistics}.
+
 Embretson, S. E., & Reise, S. P. (2000). \emph{Item response theory for psychologists.} Mahwah, N.J: L. Erlbaum Associates.
 
-Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+Filonczuk, A., & Cheng, Y. (2025). Robust estimation of the latent trait
+  in graded response models. \emph{Behavior Research Methods, 57}(1), 55.
 
-Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
+Huber, P. (1981). \emph{Robust Statistics}. John Wiley & Sons, Inc.
 
-Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
+Li, K. Q., & Rice, K. M. (2023). A Bayesian “sandwich” for variance estimation. arXiv.
 
-Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
+Magis, D. (2014). On the asymptotic standard error of a class of robust
+  estimators of ability in dichotomous item response models.
+  \emph{British Journal of Mathematical and Statistical Psychology, 67}(3), 430–450.
+
+Maeda, H., & Zhang, B. (2020). Bayesian Extension of Biweight and 
+  Huber Weight for Robust Ability Estimation. \emph{Journal of Educational Measurement}, 57(1), 51–70.
+
+Mislevy, R. J., & Bock, R. D. (1982). Biweight estimates of latent
+  ability. \emph{Educational and Psychological Measurement, 42}(3), 725–737.
+
+Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}.
+  Addison-Wesley Publishing Company.
+
+Schuster, C., & Yuan, K.-H. (2011). Robust estimation of latent ability in
+  item response models. \emph{Journal of Educational and Behavioral Statistics,
+  36}(6), 720–735.
+
+White, H. (1980). A Heteroskedasticity-Consistent Covariance Matrix 
+  Estimator and a Direct Test for Heteroskedasticity. \emph{Econometrica, 48}(4), 817–838.
+
+Yu, X., & Cheng, Y. (2019). A change-point analysis procedure based on
+  weighted residuals to detect back random responding.
+  \emph{Psychological Methods, 24}(5), 658–674.
 }

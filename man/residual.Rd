@@ -9,7 +9,7 @@ residual(
   model,
   ipars,
   dat,
-  residual = c("standardized", "msr"),
+  resid = c("standardized", "msr", "information"),
   D = 1.7
 )
 }
@@ -22,23 +22,26 @@ residual(
 
 \item{dat}{An \eqn{N \times J} response matrix, with \eqn{N} respondents and \eqn{J} items.}
 
-\item{residual}{Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.}
-
 \item{D}{Positive scaling constant for the normal-ogive approximation. Defaults to 1.7, otherwise often set to 1.0.}
+
+\item{residual}{Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.}
 }
 \value{
-A list containing two \eqn{N \times J} matrices:
+A list containing \eqn{N \times J} matrix for each residual specified:
 \itemize{
   \item \code{standardized} {standardized residuals}
   \item \code{msr} {modified standardized residuals (Yu & Cheng, 2019)}
+  \item \code{information} {information residual}
 }
 }
 \description{
-Computes the standardized and modified standardized residuals for dichotomous and polytomous IRT models. For each observed response 
-\eqn{y_j} to item \eqn{j}, the residual reflects the difference between the observed score and the model-implied expected value given the person’s estimated ability \eqn{\hat{\theta}}.
+Computes the standardized and modified standardized residuals (MSRs; Yu & Cheng, 2019) for dichotomous and polytomous IRT models. For each observed response 
+\eqn{y_j} to item \eqn{j}, the standardized residual and the MSR reflect the difference between the observed score and the model-implied expected value given the person’s estimated ability \eqn{\hat{\theta}}.
 The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
-Modified standardized residuals (MSRs; Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
-\eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
+The MSR replaces the variance term with the conditional probability of the observed response category,
+\eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
+The information residual is available for dichotomous models only, capturing the difference between the person ability parameter and the difficulty parameter of an item, weighted by the item discrimination:
+\eqn{a_j(\theta -b_j)} for unidimensional models and \eqn{\boldsymbol{a}_j \boldsymbol{\theta} +d_j)} for the MIRT model.
 See \code{item.prob} for description of models and structure of \code{ipars}.
 }
 \examples{
