@@ -289,7 +289,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' The MSR replaces the variance term with the conditional probability of the observed response category,
 #' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
 #' The information residual is available for dichotomous models only, capturing the difference between the person ability parameter and the difficulty parameter of an item, weighted by the item discrimination:
-#' \eqn{a_j(\theta -b_j)} for unidimensional models and \eqn{\boldsymbol{a}_j \boldsymbol{\theta} +d_j)} for the MIRT model.
+#' \eqn{a_j(\theta -b_j)} for unidimensional models and \eqn{\boldsymbol{a}_j' \boldsymbol{\theta} +d_j)} for the MIRT model.
 #' See \code{item.prob} for description of models and structure of \code{ipars}.
 #' @references Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
 #' @param theta An \eqn{N \times L} matrix of latent trait values, where \eqn{L} is the number of dimensions.
@@ -1155,6 +1155,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'   in \eqn{[0, 1]}.  Required when \code{weight.type = "custom"}.
 #' @param est.type Estimation methods: \code{"MLE"}, \code{"MAP"}, \code{"EAP"}.  
 #'   Can specify more than one in a vector (e.g., \code{c("MLE","MAP")}) for supported models.
+#' @param dimen Numeric integer specifying the number of dimensions for the IRT model.
+#'   Required when using the MGRM.
 #' @param prior Length-2 numeric vector \code{c(mu, sigma2)} for the normal prior
 #'   used in MAP and EAP.  Default is the standard normal \code{c(0, 1)}.
 #' @param eap.quad.pts Numeric vector of quadrature points for EAP. Default is 41
@@ -1197,7 +1199,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' @section Residuals:
 #' \itemize{
 #'   \item \code{"information"} — Information residual \eqn{r_{ij} = a_j(\theta_i - b_j)}
-#'         or \eqn{r_{ij} = \boldsymbol{a}_j\boldsymbol{\theta}_i + d_j} in the 
+#'         or \eqn{r_{ij} = \boldsymbol{a}_j'\boldsymbol{\theta}_i + d_j} in the 
 #'         multidimensional case. Available only for the Rasch, 1PL, 2PL, and 
 #'         MIRT models. The information residual detects anomalies in the predictor 
 #'         space (i.e., \eqn{\boldsymbol{\theta}}) to produce Mallows-class weights) 
@@ -2061,7 +2063,7 @@ robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardize
 #' @section Residuals:
 #' \itemize{
 #'   \item \code{"information"} — Information residual \eqn{r_{ij} = a_j(\theta_i - b_j)}
-#'         or \eqn{r_{ij} = \boldsymbol{a}_j\boldsymbol{\theta}_i + d_j} in the 
+#'         or \eqn{r_{ij} = \boldsymbol{a}_j'\boldsymbol{\theta}_i + d_j} in the 
 #'         multidimensional case. Available only for the Rasch, 1PL, 2PL, and 
 #'         MIRT models. The information residual detects anomalies in the predictor 
 #'         space (i.e., \eqn{\boldsymbol{\theta}}) to produce Mallows-class weights) 
