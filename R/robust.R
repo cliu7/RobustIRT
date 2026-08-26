@@ -69,7 +69,7 @@ pstar_to_p<-function(Pstar){
 
 #' Item Response Probability
 #'
-#' Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and meters.
+#' Computes item response probabilities for select IRT models (1PL, Rasch, 2PL, MIRT, GRM, and MGRM), given ability and item parameters.
 #' by constructing the appropriate linear predictors and applying the logistic function. Returns item response probabilities for dichotomous data or item category response probabilities for polytomous data.
 #' @references Birnbaum, A. (1968). Some latent trait models and their use in inferring an examinee’s ability. In F. M. Lord & M. R. Novick (Eds.), Statistical Theories of Mental Test Scores (pp. 397–479). \emph{Addison‑Wesley}.
 #' @references Lord, F. M., & Novick, M. R. (1968). Statistical theories of mental test scores. \emph{Addison-Wesley}.
@@ -80,7 +80,7 @@ pstar_to_p<-function(Pstar){
 #' @references Rasch, G. (1960). Probabilistic models for some intelligence and attainment tests. \emph{Danish Institute for Educational Research}, 184.
 #' @references Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. \emph{Psychometrika Monograph Supplement, 34} (4, Pt. 2), 100–100.
 #' @param theta A numeric vector or matrix of latent trait values. 
-#' @param ipars A matrix of meters. See examples for how to structure the columns of the matrix based on the model utilized.
+#' @param ipars A matrix of item parameters. See examples for how to structure the columns of the matrix based on the model utilized.
 #' @param model A character string specifying which IRT model to use. See details for formulae.
 #' \itemize{
 #'   \item \code{"Rasch"}: Allows item difficulty parameters to vary across items (Rasch, 1960).
@@ -294,7 +294,7 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' @references Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
 #' @param theta An \eqn{N \times L} matrix of latent trait values, where \eqn{L} is the number of dimensions.
 #' @param model Character string specifying the IRT model. See \code{item.prob} for supported models.
-#' @param ipars A matrix or list of meters passed to \code{item.prob}. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.
+#' @param ipars A matrix or list of item parameters passed to \code{item.prob}. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.
 #' @param dat An \eqn{N \times J} response matrix, with \eqn{N} respondents and \eqn{J} items.
 #' @param residual Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.
 #' @param D Positive scaling constant for the normal-ogive approximation. Defaults to 1.7, otherwise often set to 1.0.
@@ -587,7 +587,7 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' The function accommodates robust weighting schemes (equal, Huber, bisquare) 
 #' and supports MLE, MAP, and EAP estimation.
 #' @param theta A numeric vector or matrix of latent trait values. For unidimensional models, a numeric vector of length \eqn{N}. For multidimensional models (MIRT, MGRM), an \eqn{N \times L} matrix.
-#' @param ipars A matrix of meters, whose structure depends on the model. 
+#' @param ipars A matrix of item parameters, whose structure depends on the model. 
 #' @param dat A \eqn{N \times J} matrix of polytomously-scored data (e.g., Likert-type) for \emph{N} subjects and \emph{J} items. Indexing begins at 0.
 #' @param model Character string specifying the IRT model. See `item.prob` for supported models.
 #' @param D A scaling constant. Defaults to 1.7; alternatively is often set to 1.0.
@@ -1138,7 +1138,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' @param dat An \eqn{N \times J} matrix of item responses (\eqn{N} subjects,
 #'   \eqn{J} items). Responses for dichotomous models must be 0/1. Responses for
 #'   polytomous models must be integer-valued starting at 1. Missing data is not supported.
-#' @param ipars A matrix of meters structured identically to the
+#' @param ipars A matrix of item parameters structured identically to the
 #'   \code{ipars} argument of \code{\link{item.prob}}.
 #' @param model The IRT model to be used: \code{"Rasch"}, \code{"1PL"}, \code{"2PL"},
 #'   \code{"MIRT"}, \code{"GRM"}, or \code{"MGRM"}. See \code{\link{item.prob}}
@@ -2004,7 +2004,7 @@ robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardize
 #' @param dat An \eqn{N \times J} matrix of item responses (\eqn{N} subjects,
 #'   \eqn{J} items). Responses for dichotomous models must be 0/1. Responses for
 #'   polytomous models must be integer-valued starting at 1. Missing data is not supported.
-#' @param ipars A matrix of meters structured identically to the
+#' @param ipars A matrix of item parameters structured identically to the
 #'   \code{ipars} argument of \code{\link{item.prob}}.
 #' @param model The IRT model to be used: \code{"Rasch"}, \code{"1PL"}, \code{"2PL"},
 #'   \code{"MIRT"}, \code{"GRM"}, or \code{"MGRM"}. See \code{\link{item.prob}}
