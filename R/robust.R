@@ -3102,6 +3102,10 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
 #' data(Science) 
 #' # Robust estimation of item parameters
 #' robust.item(Science)
+#' 
+#' Multidimensional GRM example: 5 Factors
+#' data(BFI2)
+#' robust.item(BFI2[,20:79], model=5, TOL=0.001, method="QMCEM")
 robust.item<-function(dat, survey.weights=NULL, ...){
   
   if(is.null(survey.weights)){
