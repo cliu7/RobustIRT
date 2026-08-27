@@ -3091,6 +3091,7 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
 #' where \eqn{\Phi(\cdot)} is the CDF of the standard normal distribution. Note that the user may define different weights with the argument \code{survey.weights}.
 #' 
 #' @param dat A \eqn{N\times J} matrix of response data
+#' @param survey.weights Optional argument to assign user-specified weights. Default weights are calculated based on \eqn{l^{`*`}_{zi}.}
 #' @param ... Additional arguments to be passed to \code{mirt()}
 #' 
 #' @references Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
