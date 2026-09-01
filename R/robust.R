@@ -1153,7 +1153,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'   \code{weight.type} is not \code{"equal"} or \code{"custom"}.
 #' @param custom.weights An \eqn{N \times J} numeric matrix of user-specified weights
 #'   in \eqn{[0, 1]}.  Required when \code{weight.type = "custom"}.
-#' @param est.type Estimation methods: \code{"MLE"}, \code{"MAP"}, \code{"EAP"}.  
+#' @param est.type Estimation methods: \code{"MLE"}, \code{"MAP"}, \code{"EAP"}, \code{"WLE"}.  
 #'   Can specify more than one in a vector (e.g., \code{c("MLE","MAP")}) for supported models.
 #' @param dimen Numeric integer specifying the number of dimensions for the IRT model.
 #'   Required when using the MGRM.
@@ -1171,6 +1171,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' @param iter Maximum number of Newton–Raphson iterations.  Default is 30.
 #' @param tol Convergence tolerance on the absolute change in log-likelihood.
 #'   Default is 0.01.
+#' @param score.tol Convergence tolerance on the absolute change in the score function.
+#'   Default is \code{tol}.
 #' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta_i}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
 #'               Under a given item response model, let the probability of examinee \eqn{i} endorsing exactly category \eqn{k} on item \eqn{j} be denoted \eqn{P_{ijk}}.
 #'               The contribution of item \emph{j} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_{ij})} as a function of a residual \eqn{r_{ij}} for the item:
@@ -1186,14 +1188,16 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'               and the Huber weighting function (Huber, 1981)
 #'                 \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
 #'               Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
-#' Need to add more about literature of robust estimation in IRT
+#' 
 #' @section Estimation types:
 #' \itemize{
 #'   \item \code{"MLE"} — Maximum likelihood estimation with the Newton–Raphson algorithm.
 #'   \item \code{"MAP"} — Maximum a posteriori (Bayesian mode) with the Newton–Raphson algorithm
-#'         under a normal prior.  Available for Rasch, 1PL, 2PL, and GRM only.
+#'         under a normal prior. Available for Rasch, 1PL, 2PL, and GRM only.
 #'   \item \code{"EAP"} — Expected a posteriori under a normal prior using Gauss–Hermite-style quadrature.
 #'         Available for Rasch, 1PL, and 2PL only.
+#'   \item \code{"WLE"} - Weighted likelihood estimation (Warm, 1989) with the Newton-Raphson algorithm,
+#'         equivalent to the MAP estimate under Jeffreys' prior. Available for Rasch, 1PL, and 2PL only.
 #' }
 #'
 #' @section Residuals:
@@ -1267,6 +1271,8 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' @references Yu, X., & Cheng, Y. (2019). A change-point analysis procedure based on
 #'   weighted residuals to detect back random responding.
 #'   \emph{Psychological Methods, 24}(5), 658–674.
+#' @references Warm, T.A. Weighted likelihood estimation of ability in item 
+#'   response theory. Psychometrika 54, 427–450 (1989).
 #'
 #'
 #' @return A named list. Elements present depend on \code{est.type}:
@@ -1291,15 +1297,15 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'     at the iteration of convergence.}
 #' }
 #' @examples
-#' ## 2PL MLE + MAP with Huber weights (information residual)
+#' ## 2PL MLE + MAP with Huber weights (information residual) (OK)
 #' set.seed(25)
-#' N <- 50 
-#' J <- 20
-#' ipars <- cbind(a = runif(J, 0.8, 2), b = rnorm(J))
-#' theta_true <- rnorm(N)
-#' P <- item.prob(theta_true, "2PL", ipars)
-#' dat <- dat.gen(P)
-#' out <- robust.theta(dat, ipars, model = "2PL", resid = "information", weight.type = "Huber", 
+#' N<-50 
+#' J<-20
+#' ipars<-cbind(a = runif(J, 0.8, 2), b = rnorm(J))
+#' theta_true<-rnorm(N)
+#' P<-item.prob(theta_true, "2PL", ipars)
+#' dat<-dat.gen(P)
+#' out<-robust.theta(dat, ipars, model = "2PL", resid = "information", weight.type = "Huber", 
 #'                     tuning.par = 1, est.type = c("MLE", "MAP"))
 #' head(out$theta_MLE)
 #' head(out$ase_MLE)
@@ -1307,62 +1313,73 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'
 #' ## GRM MLE with standardized residual + bisquare weights 
 #' set.seed(24)
-#' J <- 15
-#' K <- 5 
-#' N <- 100
-#' a <- runif(J, 0.8, 2)
-#' b <- t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
-#' ip <- cbind(a, b)
-#' th <- rnorm(N)
-#' P <- item.prob(th, "GRM", ip)
-#' dat <- dat.gen(P$P, anchor = 1)
-#' out_grm <- robust.theta(dat, ip, model = "GRM", resid = "standardized", weight.type = "bisquare", tuning.par = 4, est.type = "MLE")
+#' J<-15
+#' K<-5 
+#' N<-100
+#' a<-runif(J, 0.8, 2)
+#' b<-t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
+#' ip<-cbind(a, b)
+#' th<-rnorm(N)
+#' P<-item.prob(th, "GRM", ip)
+#' dat<-dat.gen(P$P, anchor = 1)
+#' out_grm<-robust.theta(dat, ip, model = "GRM", resid = "standardized", weight.type = "bisquare", tuning.par = 4, est.type = "MLE")
 #' head(out_grm$theta_MLE)
 #'
-#' ## MIRT MLE with information residual 
+#' ## MIRT MLE with information residual Error 
 #' set.seed(26)
-#' L <- 2
-#' J <- 50
-#' N <- 80
-#' a <- matrix(runif(J*L, 0.5, 1.5), J, L)
-#' d <- rnorm(J)
-#' ip <- cbind(a, d)
-#' th <- matrix(rnorm(N*L), N, L)
-#' P <- item.prob(th, "MIRT", ip)
-#' dat <- dat.gen(P)
-#' out_mirt <- robust.theta(dat, ip, model = "MIRT", resid = "information", 
-#'                           weight.type = "Huber", tuning.par = 1, est.type = "MLE")
+#' L<-2
+#' J<-50
+#' N<-80
+#' a<-matrix(runif(J*L, 0.5, 1.5), J, L)
+#' d<-rnorm(J)
+#' ip<-cbind(a, d)
+#' th<-matrix(rnorm(N*L), N, L)
+#' P<-item.prob(th, "MIRT", ip)
+#' dat<-dat.gen(P)
+#' out_mirt<-robust.theta(dat, ip, model = "MIRT", resid = "information", 
+#'                           weight.type = "Huber", tuning.par = 1, est.type = "MLE", score.tol = 0.1)
 #' head(out_mirt$theta_MLE)
 #' 
 #' ## MGRM MLE with standardized residual 
 #' set.seed(27)
-#' L <- 2
-#' K <- 5
-#' J <- 50
-#' N <- 20
-#' a <- matrix(runif(J*L, 0.5, 1.5), J, L)
-#' d <- t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
-#' ip <- cbind(a, d)
-#' th <- matrix(rnorm(N*L), N, L)
-#' P <- item.prob(th, "MGRM", ip)$P
-#' dat <- dat.gen(P, anchor=1)
-#' out_mgrm <- robust.theta(dat, ip, model = "MGRM", resid = "standardized", dimen=2,
+#' L<-2
+#' K<-5
+#' J<-50
+#' N<-20
+#' a<-matrix(runif(J*L, 0.5, 1.5), J, L)
+#' d<-t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
+#' ip<-cbind(a, d)
+#' th<-matrix(rnorm(N*L), N, L)
+#' P<-item.prob(th, "MGRM", ip)$P
+#' dat<-dat.gen(P, anchor=1)
+#' out_mgrm<-robust.theta(dat, ip, model = "MGRM", resid = "standardized", dimen=2,
 #'                           weight.type = "Huber", tuning.par = 1, est.type = "MLE")
 #' head(out_mgrm$theta_MLE)
+#' 
+#' ## WLE Example: 2PL 
+#' set.seed(20)
+#' thetas<-c(-4, -3, -2, -1, 0, 1, 2, 3, 4)
+#' a<-runif(15, 0.8, 2)
+#' b<-rnorm(15)
+#' P<-item.prob(thetas, "2PL", cbind(a, b))
+#' dat<-dat.gen(P, anchor = 0)
+#' out_wle<-robust.theta(dat, cbind(a, b), model = "2PL", resid = "information", 
+#'                           weight.type = "Huber", tuning.par = 1, est.type = "WLE")
+#' head(out_wle$theta_WLE)
 #' @export
 
-robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized", 
+robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized", 
                          weight.type = "equal", tuning.par = NULL, custom.weights = NULL,
                          est.type = "MLE", dimen = NULL, prior = c(0, 1), eap.quad.pts = seq(-4, 4, length.out = 41),
-                         init.val = 0, up.bound = 3, low.bound = -3, iter = 30, tol = 0.01){
+                         init.val = 0, up.bound = 3, low.bound = -3, iter = 30, tol = 0.01, score.tol = tol){
   
   ##### Ensure proper input #####
   
-  model <- toupper(model)
-  est.type <- toupper(est.type)
-  resid <- tolower(resid)
+  model<-toupper(model)
+  est.type<-toupper(est.type)
+  resid<-tolower(resid)
   
-  dich.mods <- c("RASCH", "1PL", "2PL")
+  dich.mods<-c("RASCH", "1PL", "2PL")
   
   # Set checks to ensure proper inputs
   if(!(model %in% c(dich.mods, "MIRT", "GRM", "MGRM")))
@@ -1383,8 +1400,8 @@ robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardize
   if(resid %in% c("information", "dual") && !(model %in% c(dich.mods, "MIRT")))
     stop("The 'information' and 'dual' residuals are only available for Rasch, 1PL, and 2PL models.")
   
-  if(any(!(est.type %in% c("MLE", "MAP", "EAP"))))
-    stop("est.type must be one or more of 'MLE', 'MAP', 'EAP'.")
+  if(any(!(est.type %in% c("MLE", "MAP", "EAP", "WLE"))))
+    stop("est.type must be one or more of 'MLE', 'MAP', 'EAP', 'WLE'.")
   
   if("EAP" %in% est.type && !(model %in% dich.mods))
     stop("EAP estimation is only available for Rasch, 1PL, and 2PL models.")
@@ -1392,21 +1409,24 @@ robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardize
   if("MAP" %in% est.type && !(model %in% dich.mods))
     stop("MAP estimation is only available for Rasch, 1PL, and 2PL models.")
   
+  if("WLE" %in% est.type && !(model %in% dich.mods))
+    stop("WLE estimation is only available for Rasch, 1PL, and 2PL models.")
+  
   # Initialize variables
-  dat <- as.matrix(dat)
-  N <- nrow(dat)
-  J <- ncol(dat)
+  dat<-as.matrix(dat)
+  N<-nrow(dat)
+  J<-ncol(dat)
   
   if(weight.type == "custom" && (dim(custom.weights)!=dim(dat)))
     stop("Custom weights must be a matrix the same dimension as the data")
   
-  mu <- prior[1]
-  sigma2 <- prior[2]
+  mu<-prior[1]
+  sigma2<-prior[2]
   
   ##### Internal functions #####
   
   # Item-level weight given residual vector
-  compute.weights <- function(r_mat){
+  compute.weights<-function(r_mat){
     if(weight.type == "equal") return(matrix(1, nrow(r_mat), ncol(r_mat)))
     if(weight.type == "Huber") return(huber(r_mat, tuning.par))
     if(weight.type == "bisquare") return(bisquare(r_mat, tuning.par))
@@ -1417,11 +1437,11 @@ robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardize
   }
   
   # Compute residual & weights for person i at current theta_i
-  person.weights <- function(theta_i, dat_i, model_up, ipars_use){
+  person.weights<-function(theta_i, dat_i, model_up, ipars_use){
     
     if(resid == "dual"){
       # dual: w(info) + w(msr)
-      r.all <- residual(theta_i, model_up, ipars_use, matrix(dat_i, nrow = 1), resid= c("information", "msr"), D = D)
+      r.all<-residual(theta_i, model_up, ipars_use, matrix(dat_i, nrow = 1), resid= c("information", "msr"), D = D)
       w1<-compute.weights(matrix(r.all$information, nrow=1))
       w2<-compute.weights(matrix(r.all$msr, nrow=1))
       return(w1+w2)
@@ -1432,10 +1452,10 @@ robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardize
   }
  
   # Get initial theta for subject i 
-  get_init <- function(i, L){
+  get_init<-function(i, L){
     if(is.matrix(init.val)){ # if user specifies different initial values for each subject
       return(as.matrix(init.val[i,]))      
-    } else if(length(init.val) == L){ #if user specifies L values, the same initial values are used for each subject
+    }else if(length(init.val) == L){ #if user specifies L values, the same initial values are used for each subject
       return(as.matrix(init.val)) 
     }else{ #if user specifies one initial value, it will be used for all dimensions and each subject
       return(matrix(rep(init.val[1], L), nrow = L))
@@ -1443,1422 +1463,734 @@ robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardize
   }
   
   # Unidimensional NR step for Rasch/1PL/2PL [returns list(D1, D2)]
-  dich_derivs <- function(theta_i, dat_i, ipars_use, w_i, bayes = FALSE){
-    P_i <- as.numeric(item.prob(theta_i, model, ipars_use, D))
-    a_j <- ipars_use[, 1]
-    D1 <- sum(w_i*D*a_j*(dat_i - P_i))
-    D2 <- sum(w_i*D^2*a_j^2*P_i*(1 - P_i))
+  # If bayes=T, DI / and D2 are of the log posterior
+  dich_derivs<-function(theta_i, dat_i, ipars_use, w_i, bayes = FALSE, wle = FALSE){
+    P_i<-as.numeric(item.prob(theta_i, model, ipars_use, D))
+    a_j<-ipars_use[, 1]
+    D1<-sum(w_i*D*a_j*(dat_i - P_i))
+    D2<-sum(w_i*D^2*a_j^2*P_i*(1 - P_i)) # this is the same as information, or I in Warm's WLE
     if(bayes){
-      D1 <- D1 - (theta_i - mu)/sigma2
-      D2 <- D2 + 1/sigma2
+      D1<-D1 - (theta_i - mu)/sigma2
+      D2<-D2 + 1/sigma2
+    }
+    
+    if(wle){
+      Q_i = 1-P_i
+      P.p<-D*a_j*P_i*Q_i # P prime
+      P.pp<-D^2*a_j^2*P_i*Q_i*(1-2*P_i) #P prime prime
+      
+      # Bias correction numerator and its derivative
+      J.i <- sum(w_i*P.p*P.pp / (P_i*Q_i))
+      J.p <- sum(w_i*D^4*a_j^4*P_i*Q_i*(1 - 6*P_i*Q_i))
+      
+      D1 <- D1 + J.i/(2*D2)
+      D2 <- D2-(D2*J.p-J.i^2) / (2*D2^2) # make sure this is consistent with later negation
     }
     list(D1 = D1, D2 = -D2, P_i = P_i, info_j = D^2*a_j^2*P_i*(1 - P_i))
   }
   
   # GRM NR step
-  grm_derivs <- function(theta_i, dat_i, ipars_use, w_i, bayes = FALSE) {
-    a <- ipars_use[, 1]
-    b <- ipars_use[, -1, drop = FALSE]
-    prb <- item.prob(theta_i, "GRM", ipars_use, D)
-    K <- ncol(b)
-    Pcat <- prb$P   
-    pstar_ext <- cbind(1, prb$pstar[,,1], 0)  
-    if(length(dim(pstar_ext)) == 3) pstar_ext <- pstar_ext[,, 1]
+  # If bayes=T, DI / and D2 are of the log posterior
+  grm_derivs<-function(theta_i, dat_i, ipars_use, w_i, bayes = FALSE) {
+    a<-ipars_use[, 1]
+    b<-ipars_use[, -1, drop = FALSE]
+    prb<-item.prob(theta_i, "GRM", ipars_use, D)
+    K<-ncol(b)
+    Pcat<-prb$P   
+    pstar_ext<-cbind(1, prb$pstar[,,1], 0)  
+    if(length(dim(pstar_ext)) == 3) pstar_ext<-pstar_ext[,, 1]
     
-    ps0 <- pstar_ext[cbind(seq_len(J), dat_i)]
-    ps1 <- pstar_ext[cbind(seq_len(J), dat_i + 1)]
-    qs0 <- 1-ps0
-    qs1 <- 1-ps1
-    Pk <- ps0-ps1
+    ps0<-pstar_ext[cbind(seq_len(J), dat_i)]
+    ps1<-pstar_ext[cbind(seq_len(J), dat_i + 1)]
+    qs0<-1-ps0
+    qs1<-1-ps1
+    Pk<-ps0-ps1
     
-    D1 <- sum(w_i * D * a * (ps0 * qs0 - ps1 * qs1) / Pk)
-    D2 <- sum(w_i * D^2 * a^2 * ((ps0*qs0*(qs0-ps0) - ps1*qs1*(qs1-ps1)) / Pk -
+    D1<-sum(w_i * D * a * (ps0 * qs0 - ps1 * qs1) / Pk)
+    D2<-sum(w_i * D^2 * a^2 * ((ps0*qs0*(qs0-ps0) - ps1*qs1*(qs1-ps1)) / Pk -
                                    (ps0*qs0 - ps1*qs1)^2 / Pk^2))
     # For SE: scored expected info per item (positive)
-    info_j <- -D^2 * a^2 * ((ps0*qs0*(qs0-ps0) - ps1*qs1*(qs1-ps1)) / Pk -
+    info_j<--D^2 * a^2 * ((ps0*qs0*(qs0-ps0) - ps1*qs1*(qs1-ps1)) / Pk -
                               (ps0*qs0 - ps1*qs1)^2 / Pk^2)
     
     if (bayes) {
-      D1 <- D1-(theta_i-mu)/sigma2
-      D2 <- D2 + 1/sigma2
+      D1<-D1-(theta_i-mu)/sigma2
+      D2<-D2 + 1/sigma2
     }
     list(D1 = D1, D2 = D2, Pk = Pk, ps0 = ps0, ps1 = ps1, info_j = info_j)
   }
   
   ##### More preparation #####
   
-  ipars_use <- ipars
+  ipars_use<-ipars
   if(model == "RASCH"){
     if(is.vector(ipars_use) || ncol(ipars_use) == 1)
-      ipars_use <- cbind(rep(1, J), as.numeric(ipars_use))
+      ipars_use<-cbind(rep(1, J), as.numeric(ipars_use))
   }
  
   # Extract dimension
   if(model == "MIRT"){
-    L <- ncol(ipars_use) - 1   # last column is d
-  } else if(model == "MGRM"){
-    L <- dimen
+    L<-ncol(ipars_use) - 1   # last column is d
+  }else if(model == "MGRM"){
+    L<-dimen
   }else{
-    L <- 1
+    L<-1
   }
   
   # For storing output
-  out <- list()
+  out<-list()
   
-  ##### MLE ####
-  
+  ##### MLE (Rasch, 1PL, 2PL, GRM, MIRT, MGRM) ####
   if("MLE" %in% est.type){
     
     # Unidimensional dichotomous models
     if(model %in% dich.mods){
       
       # Initialize output for storing
-      theta_mle <- rep(NA, N)
-      conv_mle <- rep(0, N)
-      w_final <- matrix(NA, N, J)
-      r_final <- matrix(NA, N, J)
+      theta_mle<-rep(NA, N)
+      conv_mle<-rep(0, N)
+      w_final<-matrix(NA, N, J)
+      r_final<-matrix(NA, N, J)
       
       for(i in 1:N){
-        th_i <- get_init(i, 1)
-        P0 <- 0
+        th_i<-get_init(i, 1)
+        P0<-0
         
         for(k in 1:iter){
-          w_i <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-          dv <- dich_derivs(th_i, dat[i,], ipars_use, w_i)
+          w_i<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
+          dv<-dich_derivs(th_i, dat[i,], ipars_use, w_i)
           
           if(!is.finite(dv$D1) || !is.finite(dv$D2) || abs(dv$D2) < 1e-14){
-            conv_mle[i] <- 1
+            conv_mle[i]<-1
             break
           }
           
-          th_new <- th_i-dv$D1/dv$D2
+          th_new<-th_i-dv$D1/dv$D2
+          
           if(!is.finite(th_new)){ 
-            conv_mle[i] <- 1
+            conv_mle[i]<-1
             break 
           }
           
-          log_like <- sum(log(pmax(ifelse(dat[i,] == 1, dv$P_i, 1 - dv$P_i), 1e-12))) - sum(log(pmax(P0, 1e-12)))
+          # Change in log likelihood for convergence criteria 1
+          log_like<-sum(log(pmax(ifelse(dat[i,] == 1, dv$P_i, 1 - dv$P_i), 1e-12))) - sum(log(pmax(P0, 1e-12)))
           P0<- ifelse(dat[i,] == 1, dv$P_i, 1 - dv$P_i)
-          th_i <- th_new
+          th_i<-th_new
           
-          if(k > 1 && abs(log_like) < tol){break}
-          if(k == iter) conv_mle[i] <- 1
+          # End NR algorithm if all 3 convergence criteria are met
+          if(k > 1 && abs(log_like) < tol && abs(dv$D1) < score.tol){break}
+          
+          # Check for reaching max # of iterations
+          if(k == iter){
+            conv_mle[i]<-1
+            th_i<-NA
+          }
+            
+        }
+        #Check for convergence outside bounds (convergence code = 2)
+        if(!is.na(th_i) & th_i<low.bound){
+          th_i<-low.bound
+          conv_mle[i]<-2
+        }else if(!is.na(th_i) & th_i > up.bound){
+          th_i<-up.bound
+          conv_mle[i]<-2
         }
         
         # Final weights / residuals at converged theta
-        theta_mle[i] <- ifelse(conv_mle[i] == 1, NA, pmax(low.bound, pmin(up.bound, th_i)))
-        w_final[i,] <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-        r_final[i,] <- residual(th_i, model, ipars_use, matrix(dat[i,], 1), resid=resid, D=D)[[1]]
+        theta_mle[i]<-th_i
+        w_final[i,]<-ifelse(is.na(th_i), rep(NA, J), as.numeric(person.weights(th_i, dat[i,], model, ipars_use)))
+        r_final[i,]<-ifelse(is.na(th_i), rep(NA, J), residual(th_i, model, ipars_use, matrix(dat[i,], 1), resid=resid, D=D)[[1]])
       } # end person loop
       
       out$theta_MLE<- matrix(theta_mle, ncol = 1)
       
       # Compute SEs for converged subjects
-      conv_idx <- which(conv_mle==0 & !is.na(theta_mle))
+      conv_idx<-which(conv_mle!=1 & !is.na(theta_mle))
       
-      ase_MLE <- rep(NA, N)
-      sand_MLE <- rep(NA, N)
+      ase_MLE<-rep(NA, N)
+      sand_MLE<-rep(NA, N)
       
       if(length(conv_idx) > 0){
-        se.all <- standard.errors(theta_mle[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
+        se.all<-standard.errors(theta_mle[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
                                   weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
-        ase_MLE[conv_idx] <- se.all$asymptotic_MLE
-        sand_MLE[conv_idx] <- se.all$sandwich_MLE
+        ase_MLE[conv_idx]<-se.all$asymptotic_MLE
+        sand_MLE[conv_idx]<-se.all$sandwich_MLE
       }
       
       out$ase_MLE<-matrix(ase_MLE, ncol=1)
       out$sandwich_MLE<-matrix(sand_MLE, ncol=1)
-      out$convergence_MLE <- matrix(conv_mle, ncol = 1)
-      out$weights_MLE <- w_final
-      out$residuals_MLE <- r_final
+      out$convergence_MLE<-matrix(conv_mle, ncol = 1)
+      out$weights_MLE<-w_final
+      out$residuals_MLE<-r_final
     }
     
     ### GRM (unidimensional)
     if(model == "GRM"){
-      a_grm <- ipars_use[, 1]
-      b_grm <- ipars_use[, -1, drop = FALSE]
+      a_grm<-ipars_use[, 1]
+      b_grm<-ipars_use[, -1, drop = FALSE]
       
       theta_mle <-rep(NA, N)
       conv_mle <-rep(0, N)
-      w_final <- matrix(NA, N, J)
-      r_final <- matrix(NA, N, J)
+      w_final<-matrix(NA, N, J)
+      r_final<-matrix(NA, N, J)
       
       for(i in 1:N){
-        th_i <- get_init(i, 1)
-        P0 <- 0
+        th_i<-get_init(i, 1)
+        P0<-0
         
         for(k in 1:iter){
-          w_i <- as.numeric(person.weights(th_i, dat[i,], "GRM", ipars_use))
-          gd <- grm_derivs(th_i, dat[i,], ipars_use, w_i)
+          w_i<-as.numeric(person.weights(th_i, dat[i,], "GRM", ipars_use))
+          gd<-grm_derivs(th_i, dat[i,], ipars_use, w_i)
           
           if(!is.finite(gd$D1) || !is.finite(gd$D2) || abs(gd$D2) < 1e-14){
-            conv_mle[i] <- 1
+            conv_mle[i]<-1
             break
           }
           
-          th_new <- th_i- gd$D1/gd$D2
+          th_new<-th_i- gd$D1/gd$D2
           if(!is.finite(th_new)){ 
-            conv_mle[i] <- 1
+            conv_mle[i]<-1
             break 
           }
           
-          Pk_log <- log(pmax(gd$Pk, 1e-12))
-          log_like <- sum(Pk_log) - sum(log(pmax(P0, 1e-12)))
-          P0 <- gd$Pk
-          th_i <- th_new
+          Pk_log<-log(pmax(gd$Pk, 1e-12))
+          log_like<-sum(Pk_log) - sum(log(pmax(P0, 1e-12)))
+          P0<-gd$Pk
+          th_i<-th_new
           
-          if(k > 1 && abs(log_like) < tol){break}
-          if(k == iter){conv_mle[i] <- 1}
+          # End NR algorithm if all 3 convergence criteria are met
+          if(k > 1 && abs(log_like) < tol && abs(gd$D1) < score.tol){break}
+          
+          # Check for reaching max # of iterations 
+          if(k == iter){
+            conv_mle[i]<-1
+            th_i<-NA
+          }
         }
         
-        theta_mle[i] <- ifelse(conv_mle[i] == 1, NA, pmax(low.bound, pmin(up.bound, th_i)))
-        w_final[i,] <- as.numeric(person.weights(th_i, dat[i,], "GRM", ipars_use))
-        r_final[i,] <- as.numeric(residual(th_i, "GRM", ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]])
+        #Check for convergence outside bounds (convergence code = 2)
+        if(!is.na(th_i) & th_i<low.bound){
+          th_i<-low.bound
+          conv_mle[i]<-2
+        }else if(!is.na(th_i) &  th_i > up.bound){
+          th_i<-up.bound
+          conv_mle[i]<-2
+        }
+        
+        theta_mle[i]<-th_i
+        # Final weights / residuals at converged theta
+        w_final[i,]<-ifelse(is.na(th_i), rep(NA, J), as.numeric(person.weights(th_i, dat[i,], "GRM", ipars_use)))
+        r_final[i,]<-ifelse(is.na(th_i), rep(NA, J), as.numeric(residual(th_i, "GRM", ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]]))
       }
       
-      out$theta_MLE <- matrix(theta_mle, ncol = 1)
+      out$theta_MLE<-matrix(theta_mle, ncol = 1)
       
       # Compute SEs for converged subjects
-      conv_idx <- which(conv_mle==0 & !is.na(theta_mle))
+      conv_idx<-which(conv_mle!=1& !is.na(theta_mle))
       
-      ase_MLE <- rep(NA, N)
-      sand_MLE <- rep(NA, N)
+      ase_MLE<-rep(NA, N)
+      sand_MLE<-rep(NA, N)
       
       if(length(conv_idx) > 0){
-        se.all <- standard.errors(theta_mle[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
+        se.all<-standard.errors(theta_mle[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
                                   weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
-        ase_MLE[conv_idx] <- se.all$asymptotic_MLE
-        sand_MLE[conv_idx] <- se.all$sandwich_MLE
+        ase_MLE[conv_idx]<-se.all$asymptotic_MLE
+        sand_MLE[conv_idx]<-se.all$sandwich_MLE
       }
       
       out$ase_MLE = matrix(ase_MLE, ncol = 1)
       out$sandwich_MLE = matrix(sand_MLE, ncol = 1)
-      out$convergence_MLE <- matrix(conv_mle, ncol = 1)
-      out$weights_MLE <- w_final
-      out$residuals_MLE <- r_final
+      out$convergence_MLE<-matrix(conv_mle, ncol = 1)
+      out$weights_MLE<-w_final
+      out$residuals_MLE<-r_final
     }
     
     ### MIRT
     if(model == "MIRT"){
-      a_m <- ipars_use[,1:L, drop = FALSE]
-      d_m <- ipars_use[,L+1]
+      a_m<-ipars_use[,1:L, drop = FALSE]
+      d_m<-ipars_use[,L+1]
       
-      theta_mle <- matrix(NA, N, L)
-      conv_mle <- matrix(0, N, L)
-      sing_flag <- matrix(0, N, L)
-      w_final <- matrix(NA, N, J)
-      r_final <- matrix(NA, N, J)
+      theta_mle<-matrix(NA, N, L)
+      conv_mle<-matrix(0, N, L)
+      sing_flag<-matrix(0, N, L)
+      w_final<-matrix(NA, N, J)
+      r_final<-matrix(NA, N, J)
       
       for(i in 1:N){
-        th_i <- get_init(i, L)
-        P0 <- 0
+        th_i<-get_init(i, L)
+        P0<-0
         
         for(k in 1:iter){
           P_i<- as.numeric(item.prob(matrix(th_i, 1), "MIRT", ipars_use, D))
           w_i<- as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MIRT", ipars_use))
           
           # Gradient (L x 1) and Hessian (L x L)
-          grad <- matrix(0, L, 1)
-          Hess <- matrix(0, L, L)
+          grad<-matrix(0, L, 1)
+          Hess<-matrix(0, L, L)
           for(j in 1:J){
-            aj <- matrix(a_m[j,], L, 1)
-            pj <- P_i[j]
-            wij <- w_i[j]
-            grad <- grad + wij*D*aj*(dat[i, j] - pj)
-            Hess <- Hess + wij*D^2*(aj %*% t(aj))*pj*(1 - pj)
+            aj<-matrix(a_m[j,], L, 1)
+            pj<-P_i[j]
+            wij<-w_i[j]
+            grad<-grad + wij*D*aj*(dat[i, j] - pj)
+            Hess<-Hess + wij*D^2*(aj %*% t(aj))*pj*(1 - pj)
           }
           
           if(any(!is.finite(grad)) || any(!is.finite(Hess))){
-            conv_mle[i,] <- 1
+            conv_mle[i,]<-1
             break
           }
           
-          det_H <- ifelse(L == 1, Hess[1,1], det(Hess))
+          det_H<-ifelse(L == 1, Hess[1,1], det(Hess))
           
           if(abs(det_H) < 1e-12){ 
-            conv_mle[i,] <- 1
+            conv_mle[i,]<-1
             break 
           }
           
           if(L==1){
-            H_inv <- matrix(1 / Hess[1,1])
-          } else{
-            H_inv <- solve(Hess)
+            H_inv<-matrix(1 / Hess[1,1])
+          }else{
+            H_inv<-solve(Hess)
           }
           
-          th_new <- th_i + as.numeric(H_inv %*% grad)  # grad is +, Hessian is neg expected info
+          th_new<-th_i + as.numeric(H_inv %*% grad)  # grad is +, Hessian is neg expected info
           
           if(any(!is.finite(th_new))){ 
-            conv_mle[i,] <- 1
+            conv_mle[i,]<-1
             break 
           }
           
-          log_like <- sum(log(pmax(ifelse(dat[i,] == 1, P_i, 1 - P_i), 1e-12))) -sum(log(pmax(P0, 1e-12)))
-          P0 <- ifelse(dat[i,] == 1, P_i, 1 - P_i)
-          th_i <- th_new
+          log_like<-sum(log(pmax(ifelse(dat[i,] == 1, P_i, 1 - P_i), 1e-12))) -sum(log(pmax(P0, 1e-12)))
+          P0<-ifelse(dat[i,] == 1, P_i, 1 - P_i)
+          th_i<-th_new
           
-          if(k > 1 && abs(log_like) < tol) break
-          if(k == iter) conv_mle[i,] <- 1
+          #  End NR algorithm if all 3 convergence criteria are met
+          # L-infinity norm employed for multidimensional theta vector
+          if(k > 1 && abs(log_like) < tol && max(abs(grad))<score.tol){break}
+          
+          # Check if convergence within # of iterations
+          if(k == iter){conv_mle[i,]<-1}
         }
         
         if(any(conv_mle[i,] == 1)){
-            theta_mle[i,] <- rep(NA, L)
+            theta_mle[i,]<-rep(NA, L)
+          }else if(any(th_i>up.bound) || any(th_i<low.bound)){
+            # Replace any converged estimates outside the bounds
+            theta_mle[i,]<-pmax(low.bound, pmin(up.bound, th_i))
+            conv_mle[i,]<-2
           }else{
-            theta_mle[i,] <- pmax(low.bound, pmin(up.bound, th_i))
+            theta_mle[i,]<-th_i
           }
-          
-        w_final[i,]  <- as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MIRT", ipars_use))
-        r_final[i,] <- as.numeric(residual(matrix(th_i, 1), "MIRT", ipars_use,
-                                              matrix(dat[i,], 1), "standardized", D=D)[[1]])
+        
+        # Compute item-level weights and residuals  
+        w_final[i,] <-ifelse(any(is.na(th_i)), rep(NA, J), as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MIRT", ipars_use)))
+        r_final[i,]<-ifelse(any(is.na(th_i)), rep(NA, J), as.numeric(residual(matrix(th_i, 1), "MIRT", ipars_use,
+                                              matrix(dat[i,], 1), resid, D=D)[[1]]))
       }
       
-      out$theta_MLE <- theta_mle
+      out$theta_MLE<-theta_mle
       
       # Compute SEs for converged subjects
-      conv_idx <- which(apply(conv_mle, 1, function(x) all(x == 0)) & 
+      conv_idx<-which(apply(conv_mle, 1, function(x) all(x != 1)) & 
                           apply(theta_mle, 1, function(x) all(!is.na(x))))
       
-      ase_MLE <- matrix(NA, N, L)
-      sand_MLE <- matrix(NA, N, L)
+      ase_MLE<-matrix(NA, N, L)
+      sand_MLE<-matrix(NA, N, L)
       
       if(length(conv_idx) > 0){
-        se.all <- standard.errors(theta_mle[conv_idx,], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
+        se.all<-standard.errors(theta_mle[conv_idx,], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
                                   weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
-        ase_MLE[conv_idx,] <- se.all$asymptotic_MLE
-        sand_MLE[conv_idx,] <- se.all$sandwich_MLE
+        ase_MLE[conv_idx,]<-se.all$asymptotic_MLE
+        sand_MLE[conv_idx,]<-se.all$sandwich_MLE
       }
       out$ase_MLE = ase_MLE
       out$sandwich_MLE = sand_MLE
       out$singular_flag = sing_flag
-      out$convergence_MLE <- conv_mle
-      out$weights_MLE <- w_final
-      out$residuals_MLE <- r_final
+      out$convergence_MLE<-conv_mle
+      out$weights_MLE<-w_final
+      out$residuals_MLE<-r_final
     }
     
     ### MGRM
     if(model == "MGRM"){
       
-      a_mg <- ipars_use[, 1:L, drop = FALSE]
-      b_mg <- ipars_use[, (L+1):ncol(ipars_use), drop = FALSE]
-      K_mg <- ncol(b_mg)
+      a_mg<-ipars_use[, 1:L, drop = FALSE]
+      b_mg<-ipars_use[, (L+1):ncol(ipars_use), drop = FALSE]
+      K_mg<-ncol(b_mg)
       
-      theta_mle <- matrix(NA, N, L)
-      conv_mle <- matrix(0, N, L)
-      sing_flag <- matrix(0, N, L)
-      w_final <- matrix(NA, N, J)
-      r_final <- matrix(NA, N, J)
+      theta_mle<-matrix(NA, N, L)
+      conv_mle<-matrix(0, N, L)
+      sing_flag<-matrix(0, N, L)
+      w_final<-matrix(NA, N, J)
+      r_final<-matrix(NA, N, J)
       
       for(i in 1:N){
         th_i<- get_init(i, L)
         P0<- 0
         
         for(k in 1:iter){
-          prb <- item.prob(matrix(th_i, 1), "MGRM", ipars_use, D)
+          prb<-item.prob(matrix(th_i, 1), "MGRM", ipars_use, D)
           
           # Pstar extended J x (K_mg+2)
           Pstar_i<- matrix(NA, J, K_mg + 2)
-          Pstar_i[,1] <- 1
+          Pstar_i[,1]<-1
           Pstar_i[,2:(K_mg+1)] <-prb$pstar[,, 1]
-          Pstar_i[,K_mg+2] <- 0
+          Pstar_i[,K_mg+2]<-0
           
-          Pcat_i <- prb$P   # J x (K_mg+1)
+          Pcat_i<-prb$P   # J x (K_mg+1)
           
-          ps0 <- Pstar_i[cbind(1:J, dat[i,])]
-          ps1 <- Pstar_i[cbind(1:J, dat[i,] + 1)]
-          qs0 <- 1 - ps0
-          qs1 <- 1 - ps1
-          Pk <- pmax(ps0 - ps1, 1e-12)
+          ps0<-Pstar_i[cbind(1:J, dat[i,])]
+          ps1<-Pstar_i[cbind(1:J, dat[i,] + 1)]
+          qs0<-1 - ps0
+          qs1<-1 - ps1
+          Pk<-pmax(ps0 - ps1, 1e-12)
           
-          w_i <- as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MGRM", ipars_use))
+          w_i<-as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MGRM", ipars_use))
           
           # Gradient and Hessian
-          grad <- matrix(0, L, 1)
-          Hess <- matrix(0, L, L)
+          grad<-matrix(0, L, 1)
+          Hess<-matrix(0, L, L)
           for(j in 1:J){
-            aj <- matrix(a_mg[j,], L, 1)
-            wij <- w_i[j]
-            num1 <- ps0[j]*qs0[j] - ps1[j]*qs1[j]
-            num2 <- ps0[j]*qs0[j]*(qs0[j]-ps0[j]) - ps1[j]*qs1[j]*(qs1[j]-ps1[j])
-            score_j <- D*num1 / Pk[j]
-            grad <- grad + wij*aj*score_j
-            info_sc <- D^2*(num2 / Pk[j] - (num1 / Pk[j])^2)
-            Ij_mat <- (-info_sc)*(aj %*% t(aj))
-            Hess <- Hess + wij*Ij_mat
+            aj<-matrix(a_mg[j,], L, 1)
+            wij<-w_i[j]
+            num1<-ps0[j]*qs0[j] - ps1[j]*qs1[j]
+            num2<-ps0[j]*qs0[j]*(qs0[j]-ps0[j]) - ps1[j]*qs1[j]*(qs1[j]-ps1[j])
+            score_j<-D*num1 / Pk[j]
+            grad<-grad + wij*aj*score_j
+            info_sc<-D^2*(num2 / Pk[j] - (num1 / Pk[j])^2)
+            Ij_mat<-(-info_sc)*(aj %*% t(aj))
+            Hess<-Hess + wij*Ij_mat
           }
           
           if(any(!is.finite(grad)) || any(!is.finite(Hess))){ 
-            conv_mle[i,] <- 1
+            conv_mle[i,]<-1
             break 
           }
-          det_H <- ifelse(L == 1, Hess[1,1], det(Hess))
+          det_H<-ifelse(L == 1, Hess[1,1], det(Hess))
           if(abs(det_H) < 1e-12){ 
-            conv_mle[i,] <- 1
+            conv_mle[i,]<-1
             break 
           }
           
           if(L == 1){
-            H_inv <- matrix(1 / Hess[1,1])
+            H_inv<-matrix(1 / Hess[1,1])
           }else{
-              H_inv <- solve(Hess)
+              H_inv<-solve(Hess)
           }
-          th_new <- th_i + as.numeric(H_inv %*% grad)
+          th_new<-th_i + as.numeric(H_inv %*% grad)
           if(any(!is.finite(th_new))){ 
-            conv_mle[i,] <- 1
+            conv_mle[i,]<-1
             break 
           }
           
-          log_like <- sum(log(Pk)) - sum(log(pmax(P0, 1e-12)))
-          P0 <- Pk
+          log_like<-sum(log(Pk)) - sum(log(pmax(P0, 1e-12)))
+          P0<-Pk
           th_i<-th_new
           
-          if(k > 1 && abs(log_like) < tol){break}
-          if(k == iter){conv_mle[i,] <- 1}
+          #  End NR algorithm if all 3 convergence criteria are met
+          # L-infinity norm employed for multidimensional theta vector
+          if(k > 1 && abs(log_like) < tol && max(abs(grad))<score.tol){break}
+          
+          # Check if convergence within # of iterations
+          if(k == iter){conv_mle[i,]<-1}
         }
         
-        theta_mle[i,] <- ifelse(any(conv_mle[i,] == 1), rep(NA, L),  pmax(low.bound, pmin(up.bound, th_i)))
-        w_final[i,] <- as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MGRM", ipars_use))
-        r_final[i,] <- as.numeric(residual(matrix(th_i, 1), "MGRM", ipars_use, matrix(dat[i,], 1), "standardized", D=D)[[1]])
+        if(any(conv_mle[i,] == 1)){
+          theta_mle[i,]<-rep(NA, L)
+        }else if(any(th_i>up.bound) || any(th_i<low.bound)){
+          # Replace any converged estimates outside the bounds
+          theta_mle[i,]<-pmax(low.bound, pmin(up.bound, th_i))
+          conv_mle[i,]<-2
+        }else{
+          theta_mle[i,]<-th_i
+        }
+        
+        # Calculate item-level weights and residuals
+        w_final[i,]<-ifelse(any(is.na(th_i)), rep(NA, N), as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MGRM", ipars_use)))
+        r_final[i,]<-ifelse(any(is.na(th_i)), rep(NA, N), as.numeric(residual(matrix(th_i, 1), "MGRM", ipars_use, matrix(dat[i,], 1), "standardized", D=D)[[1]]))
       }
       
-      out$theta_MLE <- theta_mle
-      
+      out$theta_MLE<-theta_mle
       
       # Compute SEs for converged subjects
-      conv_idx <- which(apply(conv_mle, 1, function(x) all(x == 0)) & 
+      conv_idx<-which(apply(conv_mle, 1, function(x) all(x !=1)) & 
                           apply(theta_mle, 1, function(x) all(!is.na(x))))
       
-      ase_MLE <- matrix(NA, N, L)
-      sand_MLE <- matrix(NA, N, L)
+      ase_MLE<-matrix(NA, N, L)
+      sand_MLE<-matrix(NA, N, L)
       
       if(length(conv_idx) > 0){
-        se.all <- standard.errors(theta_mle[conv_idx,], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
+        se.all<-standard.errors(theta_mle[conv_idx,], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
                                   weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
-        ase_MLE[conv_idx,] <- se.all$asymptotic_MLE
-        sand_MLE[conv_idx,] <- se.all$sandwich_MLE
+        ase_MLE[conv_idx,]<-se.all$asymptotic_MLE
+        sand_MLE[conv_idx,]<-se.all$sandwich_MLE
       }
       out$ase_MLE = ase_MLE
       out$sandwich_MLE = sand_MLE
       out$singular_flag = sing_flag
-      out$convergence_MLE <- conv_mle
-      out$weights_MLE <- w_final
-      out$residuals_MLE <- r_final
+      out$convergence_MLE<-conv_mle
+      out$weights_MLE<-w_final
+      out$residuals_MLE<-r_final
     }
     
   } # end MLE block
   
-  #  MAP
-  # Supported: Rasch, 1PL, 2PL, GRM
+  ##### MAP (Rasch, 1PL, 2PL, GRM) #####
   if("MAP" %in% est.type){
     
-    deriv_fn <- if(model=="GRM") grm_derivs else dich_derivs
+    deriv_fn<-if(model=="GRM"){grm_derivs}else{dich_derivs}
     
-    theta_map <- rep(NA, N)
-    conv_map <- rep(0, N)
+    theta_map<-rep(NA, N)
+    conv_map<-rep(0, N)
     w_final<-matrix(NA, N, J)
     r_final<-matrix(NA, N, J)
     
     for(i in 1:N){
-      th_i <- get_init(i, 1)
-      P0 <- 0
+      th_i<-get_init(i, 1)
+      P0<-0
       
       for(k in 1:iter){
-        w_i <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-        dv <- deriv_fn(th_i, dat[i,], ipars_use, w_i, bayes = TRUE)
+        w_i<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
+        dv<-deriv_fn(th_i, dat[i,], ipars_use, w_i, bayes = TRUE)
         
         if(!is.finite(dv$D1) || !is.finite(dv$D2) || abs(dv$D2) < 1e-14){
-          conv_map[i] <- 1
+          conv_map[i]<-1
           break
         }
         
-        th_new <- th_i-dv$D1 / dv$D2
+        th_new<-th_i-dv$D1 / dv$D2
         if(!is.finite(th_new)){ 
-          conv_map[i] <- 1
+          conv_map[i]<-1
           break 
         }
         
         # Convergence check with change in log-posterior
-        P_cur <- if(model == "GRM"){
+        P_cur<-if(model == "GRM"){
           pmax(dv$Pk, 1e-12)
         }else{
           pmax(ifelse(dat[i,] == 1, dv$P_i, 1 - dv$P_i), 1e-12)
         }
-        log_like <- sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
-        P0 <- P_cur
-        th_i <- th_new
+        log_like<-sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
+        P0<-P_cur
+        th_i<-th_new
         
-        if(k > 1 && abs(log_like) < tol) break
-        if(k == iter) conv_map[i] <- 1
+        # End NR algorithm if all 3 convergence criteria are met
+        if(k > 1 && abs(log_like) < tol && abs(dv$D1)<score.tol){break}
+        
+        # Check for reaching max # of iterations
+        if(k == iter){
+           conv_map[i]<-1
+           th_i<-NA
+        }
       }
-      
-      w_final[i,] <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-      r_final[i,] <- as.numeric(residual(matrix(th_i, 1), model, ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]])
-      theta_map[i] <- ifelse(conv_map[i] == 1, NA, pmax(low.bound, pmin(up.bound, th_i)))
+    #Check for convergence outside bounds (convergence code = 2)
+    if(!is.na(th_i) & th_i<low.bound){
+      th_i<-low.bound
+      conv_mle[i]<-2
+    }else if(!is.na(th_i) & th_i > up.bound){
+      th_i<-up.bound
+      conv_mle[i]<-2
+    }
+      # Calculate final item-level weights and residuals
+      w_final[i,]<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
+      r_final[i,]<-as.numeric(residual(matrix(th_i, 1), model, ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]])
+      theta_map[i]<-th_i
     }
     
-    out$theta_MAP <- matrix(theta_map, ncol = 1)
-    
+    out$theta_MAP<-matrix(theta_map, ncol = 1)
     
     # Compute SEs for converged subjects
-    conv_idx <- which(conv_map==0 & !is.na(theta_map))
-    ase_MAP <- rep(NA, N)
-    sand_MAP <- rep(NA, N)
+    conv_idx<-which(conv_map!=1 & !is.na(theta_map))
+    post_sd_MAP<-rep(NA, N)
+    sand_MAP<-rep(NA, N)
     
     if(length(conv_idx) > 0){
-      se.all <- standard.errors(theta_map[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
+      se.all<-standard.errors(theta_map[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
                                 weight.type, tuning.par, custom.weights, resid, "MAP", prior, eap.quad.pts)
-      ase_MAP[conv_idx] <- se.all$asymptotic_MAP
-      sand_MAP[conv_idx] <- se.all$sandwich_MAP
+      post_sd_MAP[conv_idx]<-se.all$post_sd_MAP
+      sand_MAP[conv_idx]<-se.all$sandwich_MAP
     }
-    out$post_sd_MAP <- matrix(ase_MAP, ncol = 1)
-    out$sandwich_MAP  <- matrix(sand_MAP, ncol = 1)
+    out$post_sd_MAP<-matrix(post_sd_MAP, ncol = 1)
+    out$sandwich_MAP <-matrix(sand_MAP, ncol = 1)
     
-    out$convergence_MAP <- matrix(conv_map, ncol = 1)
-    out$weights_MAP <- w_final
-    out$residuals_MAP <- r_final
+    out$convergence_MAP<-matrix(conv_map, ncol = 1)
+    out$weights_MAP<-w_final
+    out$residuals_MAP<-r_final
   } # end MAP block
   
-  ##### EAP (Rasch, 1PL, 2PL only) #####
+  ##### EAP (Rasch, 1PL, 2PL) #####
   if("EAP" %in% est.type){
     
-    f_x <- dnorm(eap.quad.pts, mu, sqrt(sigma2))
-    probs_q <- item.prob(eap.quad.pts, model, ipars_use, D) 
-    Q <- length(eap.quad.pts)
+    f_x<-dnorm(eap.quad.pts, mu, sqrt(sigma2))
+    probs_q<-item.prob(eap.quad.pts, model, ipars_use, D) 
+    Q<-length(eap.quad.pts)
     
-    theta_eap <- rep(NA, N)
-    w_final <- matrix(NA, N, J)
-    r_final <- matrix(NA, N, J)
+    theta_eap<-rep(NA, N)
+    w_final<-matrix(NA, N, J)
+    r_final<-matrix(NA, N, J)
     
     for(i in 1:N){
-      th_i <- get_init(i, 1)[1]
-      P0 <- 0
+      th_i<-get_init(i, 1)[1]
+      P0<-0
       
       for(k in 1:iter){
-        w_i <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
+        w_i<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
         
         # Weighted likelihood at each quadrature point
-        lik_q <- apply(probs_q, 1, function(pj)
+        lik_q<-apply(probs_q, 1, function(pj)
           prod((pj^dat[i,]*(1 - pj)^(1 - dat[i,]))^w_i))
         
-        denom <- sum(lik_q*f_x)
+        denom<-sum(lik_q*f_x)
         if(!is.finite(denom) || denom == 0) break
         
-        th_new <- sum(eap.quad.pts*lik_q*f_x) / denom
+        th_new<-sum(eap.quad.pts*lik_q*f_x) / denom
         
-        P_cur <- pmax(ifelse(dat[i,] == 1,
+        P_cur<-pmax(ifelse(dat[i,] == 1,
                                 item.prob(th_i, model, ipars_use, D),
                                 1 - item.prob(th_i, model, ipars_use, D)), 1e-12)
-        log_like <- sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
-        P0 <- P_cur
-        th_i <- th_new
+        log_like<-sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
+        P0<-P_cur
+        th_i<-th_new
         
         if(k > 1 && abs(log_like) < tol) break
       }
       
-      w_final[i,]<-w_i_f <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-      r_final[i,] <- as.numeric(residual(matrix(th_i, 1), model, ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]])
-      lik_f <- apply(probs_q, 1, function(pj) prod((pj^dat[i,]*(1 - pj)^(1 - dat[i,]))^w_i_f))
-      denom_f <- sum(lik_f*f_x)
+      w_final[i,]<-w_i_f<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
+      r_final[i,]<-as.numeric(residual(matrix(th_i, 1), model, ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]])
+      lik_f<-apply(probs_q, 1, function(pj) prod((pj^dat[i,]*(1 - pj)^(1 - dat[i,]))^w_i_f))
+      denom_f<-sum(lik_f*f_x)
       
       if(is.finite(denom_f) && denom_f > 0){
-        th_eap_i <- sum(eap.quad.pts*lik_f*f_x) / denom_f
+        th_eap_i<-sum(eap.quad.pts*lik_f*f_x) / denom_f
         
-        theta_eap[i] <- pmax(low.bound, pmin(up.bound, th_i))
+        theta_eap[i]<-pmax(low.bound, pmin(up.bound, th_i))
       }
     }
     
-    out$theta_EAP <- matrix(theta_eap, ncol = 1)
+    out$theta_EAP<-matrix(theta_eap, ncol = 1)
     
     # Compute SEs for converged subjects
-    conv_idx <- which(conv_map==0 & !is.na(theta_eap))
-    ase_EAP <- rep(NA, N)
-    sand_EAP <- rep(NA, N)
+    conv_idx<-which(conv_map==0 & !is.na(theta_eap))
+    ase_EAP<-rep(NA, N)
+    sand_EAP<-rep(NA, N)
     
     if(length(conv_idx) > 0){
-      se.all <- standard.errors(theta_eap[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
+      se.all<-standard.errors(theta_eap[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
                                 weight.type, tuning.par, custom.weights, resid, "EAP", prior, eap.quad.pts)
-      ase_EAP[conv_idx] <- se.all$asymptotic_EAP
-      sand_EAP[conv_idx] <- se.all$sandwich_EAP
+      ase_EAP[conv_idx]<-se.all$asymptotic_EAP
+      sand_EAP[conv_idx]<-se.all$sandwich_EAP
     }
-    out$post_sd_EAP <- matrix(ase_EAP, ncol = 1)
-    out$sandwich_EAP  <- matrix(sand_EAP, ncol = 1)
+    out$post_sd_EAP<-matrix(ase_EAP, ncol = 1)
+    out$sandwich_EAP <-matrix(sand_EAP, ncol = 1)
     
-    out$weights_EAP <- w_final
-    out$residuals_EAP <- r_final
+    out$weights_EAP<-w_final
+    out$residuals_EAP<-r_final
   } # end EAP block
   
-  # Attach final weights and residuals 
-  if(exists("w_final", inherits = FALSE)){
-    out$weights <- w_final
-    out$residuals <- r_final
-  }
-  
-  return(out)
-}
-#' Robust Latent Trait Estimation
-#'
-#' Estimates latent trait(s) under robust weighting for the Rasch, 1PL, 2PL, MIRT,
-#' GRM, and MGRM item response models. The function supports MLE and MAP estimation
-#' (for only unidimensional models) and returns standard
-#' errors alongside the ability estimates.
-#' 
-#' @param dat An \eqn{N \times J} matrix of item responses (\eqn{N} subjects,
-#'   \eqn{J} items). Responses for dichotomous models must be 0/1. Responses for
-#'   polytomous models must be integer-valued starting at 1. Missing data is not supported.
-#' @param ipars A matrix of item parameters structured identically to the
-#'   \code{ipars} argument of \code{\link{item.prob}}.
-#' @param model The IRT model to be used: \code{"Rasch"}, \code{"1PL"}, \code{"2PL"},
-#'   \code{"MIRT"}, \code{"GRM"}, or \code{"MGRM"}. See \code{\link{item.prob}}
-#'   for details on each model.
-#' @param D Scaling constant for the normal ogive model. Default 1.7; often set 
-#'   to 1.0 for the logistic scale.
-#' @param residual The residual used to compute weights:
-#'   \code{"standardized"} (default), \code{"msr"}, \code{"information"}, or \code{"dual"}.
-#' @param weight.type Weighting scheme: \code{"equal"} (default), \code{"Huber"},
-#'   \code{"bisquare"}, or \code{"custom"}.
-#' @param tuning.par Tuning parameter for Huber or bisquare weights.  Required when
-#'   \code{weight.type} is not \code{"equal"} or \code{"custom"}.
-#' @param custom.weights An \eqn{N \times J} numeric matrix of user-specified weights
-#'   in \eqn{[0, 1]}.  Required when \code{weight.type = "custom"}.
-#' @param est.type Estimation methods: \code{"MLE"}, \code{"MAP"}, \code{"EAP"}.  
-#'   Can specify more than one in a vector (e.g., \code{c("MLE","MAP")}) for supported models.
-#' @param prior Length-2 numeric vector \code{c(mu, sigma2)} for the normal prior
-#'   used in MAP and EAP.  Default is the standard normal \code{c(0, 1)}.
-#' @param eap.quad.pts Numeric vector of quadrature points for EAP. Default is 41
-#'   equally spaced points in the interval \eqn{[-4, 4]}.
-#' @param up.bound Upper bound for truncating \eqn{\hat{\theta}}. Any converged 
-#'   estimate greater than \code{up.bound} is replaced by the specified value. Default is 3.0.
-#' @param low.bound Lower bound for truncating \eqn{\hat{\theta}}. Any converged 
-#'   estimate less than \code{low.bound} is replaced by the specified value. Default is -3.0.
-#' @param init.val Starting value(s) for the Newton–Raphson algorithm. May be a
-#'   scalar (applied to all subjects and dimensions), a length-\eqn{L} vector for \eqn{L} dimensions
-#'   (applied to all subjects), or an \eqn{N \times L} matrix.  Default is 0.
-#' @param iter Maximum number of Newton–Raphson iterations.  Default is 30.
-#' @param tol Convergence tolerance on the absolute change in log-likelihood.
-#'   Default is 0.01.
-#' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta_i}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
-#'               Under a given item response model, let the probability of examinee \eqn{i} endorsing exactly category \eqn{k} on item \eqn{j} be denoted \eqn{P_{ijk}}.
-#'               The contribution of item \emph{j} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_{ij})} as a function of a residual \eqn{r_{ij}} for the item:
-#'               \deqn{\sum^J_{j=1} \omega(r_{ij}) \sum^K_{k=1} u_{ijk}\text{log}P_{ijk} = 0 }
-#'               \eqn{u_{jk}} is an indicator function: \deqn{u_{ijk} = \begin{cases}
-#'                                                            1 & \text{if } X_{ij} = k; \\
-#'                                                            0 & \text{otherwise}.
-#'                                                            \end{cases} }
-#'               The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_{ij} = \frac{1}{\sigma_{X_{ij}}}\left[X_{ij} - E(X_{ij}|\hat{\boldsymbol{\theta}}_i)\right]}.
-#'               The difference in fit is determined between the observed response \eqn{X_{ij}} and expected score \eqn{E(X_{ij}|\hat{\boldsymbol{\theta}}_i) = \sum_{k=1}^KkP_{jk}(\hat{\boldsymbol{\theta}}_i)}, and scaled by the variance \eqn{\sigma_{X_{ij}}^2 = \sum_{k=1}^K (X_{ijk}-E[X_{ij}|\hat{\theta}_i])^2P_{jk}(\hat{\theta}_i).}
-#'               Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
-#'                 \deqn{\omega(r_{ij})=\begin{cases}[1-(r_{ij}/B)^2]^2, & \text{if} |r_{ij}|\leq B.\\0, & \text{if} |r_{ij}|>B.\end{cases}}
-#'               and the Huber weighting function (Huber, 1981)
-#'                 \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
-#'               Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
-#' Need to add more about literature of robust estimation in IRT
-#' @section Estimation types:
-#' \itemize{
-#'   \item \code{"MLE"} — Maximum likelihood estimation with the Newton–Raphson algorithm.
-#'   \item \code{"MAP"} — Maximum a posteriori (Bayesian mode) with the Newton–Raphson algorithm
-#'         under a normal prior.  Available for Rasch, 1PL, 2PL, and GRM only.
-#'   \item \code{"EAP"} — Expected a posteriori under a normal prior using Gauss–Hermite-style quadrature.
-#'         Available for Rasch, 1PL, and 2PL only.
-#' }
-#'
-#' @section Residuals:
-#' \itemize{
-#'   \item \code{"information"} — Information residual \eqn{r_{ij} = a_j(\theta_i - b_j)}
-#'         or \eqn{r_{ij} = \boldsymbol{a}_j'\boldsymbol{\theta}_i + d_j} in the 
-#'         multidimensional case. Available only for the Rasch, 1PL, 2PL, and 
-#'         MIRT models. The information residual detects anomalies in the predictor 
-#'         space (i.e., \eqn{\boldsymbol{\theta}}) to produce Mallows-class weights) 
-#'         and supports the asymptotic standard error (Magis, 2014).
-#'   \item \code{"standardized"} — Pearson residual
-#'         \eqn{z_j = (x_{ij} - E[X_{ij}|\theta_i]) / \sqrt{Var[X_{ij}|\theta_i]}}.
-#'         Available for all models. The standardized residual detects anomalies 
-#'         in the observed response space. 
-#'   \item \code{"msr"} — Modified standardized residual
-#'         \eqn{M_{ij} = (x_{ij} - E[X_{ij}|\theta_i]) / P(x_{ij}|\theta_i)}.
-#'         Available for all models. The modified standardized residual detects 
-#'         anomalies in the observed response space. 
-#'   \item \code{"dual"} — Dual-weight estimator (Chen et al., 2025). Computes
-#'         \eqn{w(r_{1ij}) + w(r_{2ij})} where \eqn{r_{1ij}} is the information residual
-#'         and \eqn{r_{2ij}} is the MSR. Available for the Rasch,
-#'         1PL, and 2PL models only.
-#' }
-#'
-#' @section Weight functions:
-#' \itemize{
-#'   \item \code{"equal"} — All weights are 1 (e.g., non-robust MLE/MAP/EAP).
-#'   \item \code{"Huber"} — Huber (1981) weight. Requires \code{tuning.par}, recommended at 1.
-#'   \item \code{"bisquare"} — Tukey bisquare weight (Mosteller & Tukey, 1977). 
-#'         Requires \code{tuning.par}, recommended at 4.
-#'   \item \code{"custom"} — User-supplied \eqn{N \times J} matrix of weights 
-#'         specified in \code{custom.weights}.
-#' }
-#'
-#' @section Standard errors:
-#' Every returned estimation type includes a sandwich standard error or deviation
-#' of the ability estimate, along with the traditionally reported value:
-#' \describe{
-#'   \item{\code{ase}}{Asymptotic standard error that accounts for robust weights (Magis, 2014). For Rasch/
-#'         1PL/2PL with \code{residual = "information"} this is the exact asymptotic standard error;
-#'         otherwise it is the general weighted-information standard error
-#'         \eqn{\sqrt{\sum w^2 I_j} / \sum w I_j}.}
-#'   \item{\code{post_sd}}{Posterior SD for Bayesian estimators, MAP and EAP.}
-#'   \item{\code{sandwich}}{Huber-White sandwich standard error (White, 1980). The asymptotic 
-#'         standard error is weighted by a factor to account for model misspecification. For 
-#'        Bayesian estimators MAP and EAP, the sandwich version of the posterior 
-#'        standard deviation is provided (Li & Rice, 2023).}
-#' }
-#'
-#' @references Chen, J., Cheng, Y., & Li, Z. (2025). Dual-weight robust estimation of
-#'   latent ability. \emph{Journal of Educational and Behavioral Statistics}.
-#' @references Embretson, S. E., & Reise, S. P. (2000). \emph{Item response theory for psychologists.} Mahwah, N.J: L. Erlbaum Associates.
-#' @references Filonczuk, A., & Cheng, Y. (2025). Robust estimation of the latent trait
-#'   in graded response models. \emph{Behavior Research Methods, 57}(1), 55.
-#' @references Huber, P. (1981). \emph{Robust Statistics}. John Wiley & Sons, Inc.
-#' @references Li, K. Q., & Rice, K. M. (2023). A Bayesian “sandwich” for variance estimation. arXiv. 
-#' @references Magis, D. (2014). On the asymptotic standard error of a class of robust
-#'   estimators of ability in dichotomous item response models.
-#'   \emph{British Journal of Mathematical and Statistical Psychology, 67}(3), 430–450.
-#' @references Maeda, H., & Zhang, B. (2020). Bayesian Extension of Biweight and 
-#'   Huber Weight for Robust Ability Estimation. \emph{Journal of Educational Measurement}, 57(1), 51–70. 
-#' @references Mislevy, R. J., & Bock, R. D. (1982). Biweight estimates of latent
-#'   ability. \emph{Educational and Psychological Measurement, 42}(3), 725–737.
-#' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}.
-#'   Addison-Wesley Publishing Company.
-#' @references Schuster, C., & Yuan, K.-H. (2011). Robust estimation of latent ability in
-#'   item response models. \emph{Journal of Educational and Behavioral Statistics,
-#'   36}(6), 720–735.
-#' @references White, H. (1980). A Heteroskedasticity-Consistent Covariance Matrix 
-#'   Estimator and a Direct Test for Heteroskedasticity. \emph{Econometrica, 48}(4), 817–838.
-#' @references Yu, X., & Cheng, Y. (2019). A change-point analysis procedure based on
-#'   weighted residuals to detect back random responding.
-#'   \emph{Psychological Methods, 24}(5), 658–674.
-#'
-#'
-#' @return A named list. Elements present depend on \code{est.type}:
-#' \describe{
-#'   \item{\code{theta_MLE}}{(\eqn{N \times L}) Robust MLE estimates.}
-#'   \item{\code{ase_MLE}}{(\eqn{N \times L}) Asymptotic standard error or Fisher-information based 
-#'     standard error depending on if the conditions presented in Magis (2014) are met
-#'     (see Details).}
-#'   \item{\code{sandwich_MLE}}{(\eqn{N \times L}) Huber-White sandwich standard error.}
-#'   \item{\code{convergence_MLE}}{(\eqn{N \times L}) 0 = converged, 1 = failed.}
-#'   \item{\code{theta_MAP}}{(\eqn{N \times 1}) Robust MAP estimates.
-#'     Rasch/1PL/2PL/GRM only.}
-#'   \item{\code{post_sd_MAP}}{(\eqn{N \times 1}) Posterior standard deviation of the MAP.}
-#'   \item{\code{sandwich_MAP}}{(\eqn{N \times 1}) Sandwich equivalent of the posterior standard deviation.}
-#'   \item{\code{convergence_MAP}}{(\eqn{N \times 1}) Nonconvergence indicators: 0 = converged, 1 = failed..}
-#'   \item{\code{theta_EAP}}{(\eqn{N \times 1}) Robust EAP estimates.
-#'     Rasch/1PL/2PL only.}
-#'   \item{\code{post_sd_EAP}}{(\eqn{N \times 1}) Posterior standard deviation of the EAP.}
-#'   \item{\code{sandwich_EAP}}{(\eqn{N \times 1}) Sandwich equivalent of the posterior standard deviation.}
-#'   \item{\code{weights}}{(\eqn{N \times J}) Item weights at the iteration of convergence.}
-#'   \item{\code{residuals}}{(\eqn{N \times J}) Residuals used for weighting 
-#'     at the iteration of convergence.}
-#' }
-#' @examples
-#' ## 2PL MLE + MAP with Huber weights (information residual)
-#' set.seed(25)
-#' N <- 50 
-#' J <- 20
-#' ipars <- cbind(a = runif(J, 0.8, 2), b = rnorm(J))
-#' theta_true <- rnorm(N)
-#' P <- item.prob(theta_true, "2PL", ipars)
-#' dat <- dat.gen(P)
-#' out <- robust.theta(dat, ipars, model = "2PL", resid = "information", weight.type = "Huber", 
-#'                     tuning.par = 1, est.type = c("MLE", "MAP"))
-#' head(out$theta_MLE)
-#' head(out$ase_MLE)
-#' head(out$post_sd_MAP)
-#'
-#' ## GRM MLE with standardized residual + bisquare weights 
-#' set.seed(24)
-#' J <- 15
-#' K <- 5 
-#' N <- 100
-#' a <- runif(J, 0.8, 2)
-#' b <- t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
-#' ip <- cbind(a, b)
-#' th <- rnorm(N)
-#' P <- item.prob(th, "GRM", ip)
-#' dat <- dat.gen(P$P, anchor = 1)
-#' out_grm <- robust.theta(dat, ip, model = "GRM", resid = "standardized", weight.type = "bisquare", tuning.par = 4, est.type = "MLE")
-#' head(out_grm$theta_MLE)
-#'
-#' ## MIRT MLE with information residual 
-#' set.seed(26)
-#' L <- 2
-#' J <- 50
-#' N <- 80
-#' a <- matrix(runif(J*L, 0.5, 1.5), J, L)
-#' d <- rnorm(J)
-#' ip <- cbind(a, d)
-#' th <- matrix(rnorm(N*L), N, L)
-#' P <- item.prob(th, "MIRT", ip)
-#' dat <- dat.gen(P)
-#' out_mirt <- robust.theta(dat, ip, model = "MIRT", resid = "information", 
-#'                           weight.type = "Huber", tuning.par = 1, est.type = "MLE")
-#' head(out_mirt$theta_MLE)
-#' 
-#' ## MGRM MLE with standardized residual 
-#' set.seed(27)
-#' L <- 2
-#' K <- 5
-#' J <- 50
-#' N <- 20
-#' a <- matrix(runif(J*L, 0.5, 1.5), J, L)
-#' d <- t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
-#' ip <- cbind(a, d)
-#' th <- matrix(rnorm(N*L), N, L)
-#' P <- item.prob(th, "MGRM", ip)$P
-#' dat <- dat.gen(P, anchor=1)
-#' out_mgrm <- robust.theta(dat, ip, model = "MGRM", resid = "standardized", dimen=2,
-#'                           weight.type = "Huber", tuning.par = 1, est.type = "MLE")
-#' head(out_mgrm$theta_MLE)
-#' @export
-
-robust.theta <- function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized", 
-                         weight.type = "equal", tuning.par = NULL, custom.weights = NULL,
-                         est.type = "MLE", dimen = NULL, prior = c(0, 1), eap.quad.pts = seq(-4, 4, length.out = 41),
-                         init.val = 0, up.bound = 3, low.bound = -3, iter = 30, tol = 0.01){
-  
-  ##### Ensure proper input #####
-  
-  model <- toupper(model)
-  est.type <- toupper(est.type)
-  resid <- tolower(resid)
-  
-  dich.mods <- c("RASCH", "1PL", "2PL")
-  
-  # Set checks to ensure proper inputs
-  if(!(model %in% c(dich.mods, "MIRT", "GRM", "MGRM")))
-    stop(paste(model, "is not a supported model." ))
-  
-  if(!(weight.type %in% c("equal", "Huber", "bisquare", "custom")))
-    stop(paste(weight.type, "is not a supported weight.type."))
-  
-  if(weight.type %in% c("Huber", "bisquare") && is.null(tuning.par))
-    stop(paste("tuning.par must be supplied when weight.type = ", weight.type))
-  
-  if(weight.type == "custom" && is.null(custom.weights))
-    stop("custom.weights must be supplied when weight.type = 'custom'.")
-  
-  if(!(resid %in% c("standardized", "msr", "information", "dual")))
-    stop(paste(resid, "is not a supported residual type."))
-  
-  if(resid %in% c("information", "dual") && !(model %in% c(dich.mods, "MIRT")))
-    stop("The 'information' and 'dual' residuals are only available for Rasch, 1PL, and 2PL models.")
-  
-  if(any(!(est.type %in% c("MLE", "MAP", "EAP"))))
-    stop("est.type must be one or more of 'MLE', 'MAP', 'EAP'.")
-  
-  if("EAP" %in% est.type && !(model %in% dich.mods))
-    stop("EAP estimation is only available for Rasch, 1PL, and 2PL models.")
-  
-  if("MAP" %in% est.type && !(model %in% dich.mods))
-    stop("MAP estimation is only available for Rasch, 1PL, and 2PL models.")
-  
-  # Initialize variables
-  dat <- as.matrix(dat)
-  N <- nrow(dat)
-  J <- ncol(dat)
-  
-  if(weight.type == "custom" && (dim(custom.weights)!=dim(dat)))
-    stop("Custom weights must be a matrix the same dimension as the data")
-  
-  mu <- prior[1]
-  sigma2 <- prior[2]
-  
-  ##### Internal functions #####
-  
-  # Item-level weight given residual vector
-  compute.weights <- function(r_mat){
-    if(weight.type == "equal") return(matrix(1, nrow(r_mat), ncol(r_mat)))
-    if(weight.type == "Huber") return(huber(r_mat, tuning.par))
-    if(weight.type == "bisquare") return(bisquare(r_mat, tuning.par))
-    if(weight.type == "custom"){
-      if(is.null(custom.weights)) stop("custom.weights must be supplied when weight.type = 'custom'.")
-      return(custom.weights)
-    } 
-  }
-  
-  # Compute residual & weights for person i at current theta_i
-  person.weights <- function(theta_i, dat_i, model_up, ipars_use){
-    
-    if(resid == "dual"){
-      # dual: w(info) + w(msr)
-      r.all <- residual(theta_i, model_up, ipars_use, matrix(dat_i, nrow = 1), resid= c("information", "msr"), D = D)
-      w1<-compute.weights(matrix(r.all$information, nrow=1))
-      w2<-compute.weights(matrix(r.all$msr, nrow=1))
-      return(w1+w2)
-    }else{
-      r.specific<- residual(theta_i, model_up, ipars_use, matrix(dat_i, nrow = 1), resid= resid, D = D)
-      return(compute.weights(as.matrix(r.specific[[1]], nrow=1)))
-    }
-  }
- 
-  # Get initial theta for subject i 
-  get_init <- function(i, L){
-    if(is.matrix(init.val)){ # if user specifies different initial values for each subject
-      return(as.matrix(init.val[i,]))      
-    } else if(length(init.val) == L){ #if user specifies L values, the same initial values are used for each subject
-      return(as.matrix(init.val)) 
-    }else{ #if user specifies one initial value, it will be used for all dimensions and each subject
-      return(matrix(rep(init.val[1], L), nrow = L))
-    }
-  }
-  
-  # Unidimensional NR step for Rasch/1PL/2PL [returns list(D1, D2)]
-  dich_derivs <- function(theta_i, dat_i, ipars_use, w_i, bayes = FALSE){
-    P_i <- as.numeric(item.prob(theta_i, model, ipars_use, D))
-    a_j <- ipars_use[, 1]
-    D1 <- sum(w_i*D*a_j*(dat_i - P_i))
-    D2 <- sum(w_i*D^2*a_j^2*P_i*(1 - P_i))
-    if(bayes){
-      D1 <- D1 - (theta_i - mu)/sigma2
-      D2 <- D2 + 1/sigma2
-    }
-    list(D1 = D1, D2 = -D2, P_i = P_i, info_j = D^2*a_j^2*P_i*(1 - P_i))
-  }
-  
-  # GRM NR step
-  grm_derivs <- function(theta_i, dat_i, ipars_use, w_i, bayes = FALSE) {
-    a <- ipars_use[, 1]
-    b <- ipars_use[, -1, drop = FALSE]
-    prb <- item.prob(theta_i, "GRM", ipars_use, D)
-    K <- ncol(b)
-    Pcat <- prb$P   
-    pstar_ext <- cbind(1, prb$pstar[,,1], 0)  
-    if(length(dim(pstar_ext)) == 3) pstar_ext <- pstar_ext[,, 1]
-    
-    ps0 <- pstar_ext[cbind(seq_len(J), dat_i)]
-    ps1 <- pstar_ext[cbind(seq_len(J), dat_i + 1)]
-    qs0 <- 1-ps0
-    qs1 <- 1-ps1
-    Pk <- ps0-ps1
-    
-    D1 <- sum(w_i * D * a * (ps0 * qs0 - ps1 * qs1) / Pk)
-    D2 <- sum(w_i * D^2 * a^2 * ((ps0*qs0*(qs0-ps0) - ps1*qs1*(qs1-ps1)) / Pk -
-                                   (ps0*qs0 - ps1*qs1)^2 / Pk^2))
-    # For SE: scored expected info per item (positive)
-    info_j <- -D^2 * a^2 * ((ps0*qs0*(qs0-ps0) - ps1*qs1*(qs1-ps1)) / Pk -
-                              (ps0*qs0 - ps1*qs1)^2 / Pk^2)
-    
-    if (bayes) {
-      D1 <- D1-(theta_i-mu)/sigma2
-      D2 <- D2 + 1/sigma2
-    }
-    list(D1 = D1, D2 = D2, Pk = Pk, ps0 = ps0, ps1 = ps1, info_j = info_j)
-  }
-  
-  ##### More preparation #####
-  
-  ipars_use <- ipars
-  if(model == "RASCH"){
-    if(is.vector(ipars_use) || ncol(ipars_use) == 1)
-      ipars_use <- cbind(rep(1, J), as.numeric(ipars_use))
-  }
- 
-  # Extract dimension
-  if(model == "MIRT"){
-    L <- ncol(ipars_use) - 1   # last column is d
-  } else if(model == "MGRM"){
-    L <- dimen
-  }else{
-    L <- 1
-  }
-  
-  # For storing output
-  out <- list()
-  
-  ##### MLE ####
-  
-  if("MLE" %in% est.type){
+  ##### WLE (Rasch, 1PL, 2PL) #####
+  if("WLE" %in% est.type){
     
     # Unidimensional dichotomous models
     if(model %in% dich.mods){
       
       # Initialize output for storing
-      theta_mle <- rep(NA, N)
-      conv_mle <- rep(0, N)
-      w_final <- matrix(NA, N, J)
-      r_final <- matrix(NA, N, J)
+      theta_wle<-rep(NA, N)
+      conv_wle<-rep(0, N)
+      w_final<-matrix(NA, N, J)
+      r_final<-matrix(NA, N, J)
       
       for(i in 1:N){
-        th_i <- get_init(i, 1)
-        P0 <- 0
+        th_i<-get_init(i, 1)
+        P0<- item.prob(th_i, model, ipars_use, D)
         
         for(k in 1:iter){
-          w_i <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-          dv <- dich_derivs(th_i, dat[i,], ipars_use, w_i)
+          w_i<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
+          dv<-dich_derivs(th_i, dat[i,], ipars_use, w_i, wle=TRUE)
           
           if(!is.finite(dv$D1) || !is.finite(dv$D2) || abs(dv$D2) < 1e-14){
-            conv_mle[i] <- 1
+            conv_wle[i]<-1
             break
           }
           
-          th_new <- th_i-dv$D1/dv$D2
+          th_i<-th_i-dv$D1/dv$D2
+          
           if(!is.finite(th_new)){ 
-            conv_mle[i] <- 1
+            conv_wle[i]<-1
             break 
           }
           
-          log_like <- sum(log(pmax(ifelse(dat[i,] == 1, dv$P_i, 1 - dv$P_i), 1e-12))) - sum(log(pmax(P0, 1e-12)))
-          P0<- ifelse(dat[i,] == 1, dv$P_i, 1 - dv$P_i)
-          th_i <- th_new
+          P1<-item.prob(th_i, model, ipars_use, D)
+          # Compute difference in log-likelihood for convergence criterion
+          log_like <- sum(dat[i,]*log(P1)+(1-dat[i,])*log(1-P1)) - sum(dat[i,]*log(P0)+(1-dat[i,])*log(1-P0))
           
-          if(k > 1 && abs(log_like) < tol){break}
-          if(k == iter) conv_mle[i] <- 1
+          # Check for NaNs in log_like: if so, record nonconvergence
+          if (is.nan(log_like)) {
+            th_i<- NA
+            convergence[i,1] <- 1
+            break
+          }
+          
+          # End NR algorithm if all 3 convergence criteria are met
+          if(k > 1 && abs(log_like) < tol && abs(dv$D1) < score.tol){break}
+          
+          # Check for reaching max # of iterations
+          if(k == iter){
+            conv_wle[i]<-1
+            th_i<-NA
+          }
+          
+          # Update initial probability (P0) for the next iteration
+          P0<-P1
+        
+        }
+        #Check for convergence outside bounds (convergence code = 2)
+        if(!is.na(th_i) & th_i<low.bound){
+          th_i<-low.bound
+          conv_wle[i]<-2
+        }else if(!is.na(th_i) & th_i > up.bound){
+          th_i<-up.bound
+          conv_wle[i]<-2
         }
         
         # Final weights / residuals at converged theta
-        theta_mle[i] <- ifelse(conv_mle[i] == 1, NA, pmax(low.bound, pmin(up.bound, th_i)))
-        w_final[i,] <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-        r_final[i,] <- residual(th_i, model, ipars_use, matrix(dat[i,], 1), resid=resid, D=D)[[1]]
+        theta_wle[i]<-th_i
+        w_final[i,]<-ifelse(is.na(th_i), rep(NA, J), as.numeric(person.weights(th_i, dat[i,], model, ipars_use)))
+        r_final[i,]<-ifelse(is.na(th_i), rep(NA, J), residual(th_i, model, ipars_use, matrix(dat[i,], 1), resid=resid, D=D)[[1]])
+        
+        
       } # end person loop
       
-      out$theta_MLE<- matrix(theta_mle, ncol = 1)
+      out$theta_WLE<- matrix(theta_wle, ncol = 1)
       
       # Compute SEs for converged subjects
-      conv_idx <- which(conv_mle==0 & !is.na(theta_mle))
+      conv_idx<-which(conv_wle!=1 & !is.na(theta_wle))
       
-      ase_MLE <- rep(NA, N)
-      sand_MLE <- rep(NA, N)
-      
-      if(length(conv_idx) > 0){
-        se.all <- standard.errors(theta_mle[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
-                                  weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
-        ase_MLE[conv_idx] <- se.all$asymptotic_MLE
-        sand_MLE[conv_idx] <- se.all$sandwich_MLE
-      }
-      
-      out$ase_MLE<-matrix(ase_MLE, ncol=1)
-      out$sandwich_MLE<-matrix(sand_MLE, ncol=1)
-      out$convergence_MLE <- matrix(conv_mle, ncol = 1)
-      out$weights_MLE <- w_final
-      out$residuals_MLE <- r_final
-    }
-    
-    ### GRM (unidimensional)
-    if(model == "GRM"){
-      a_grm <- ipars_use[, 1]
-      b_grm <- ipars_use[, -1, drop = FALSE]
-      
-      theta_mle <-rep(NA, N)
-      conv_mle <-rep(0, N)
-      w_final <- matrix(NA, N, J)
-      r_final <- matrix(NA, N, J)
-      
-      for(i in 1:N){
-        th_i <- get_init(i, 1)
-        P0 <- 0
-        
-        for(k in 1:iter){
-          w_i <- as.numeric(person.weights(th_i, dat[i,], "GRM", ipars_use))
-          gd <- grm_derivs(th_i, dat[i,], ipars_use, w_i)
-          
-          if(!is.finite(gd$D1) || !is.finite(gd$D2) || abs(gd$D2) < 1e-14){
-            conv_mle[i] <- 1
-            break
-          }
-          
-          th_new <- th_i- gd$D1/gd$D2
-          if(!is.finite(th_new)){ 
-            conv_mle[i] <- 1
-            break 
-          }
-          
-          Pk_log <- log(pmax(gd$Pk, 1e-12))
-          log_like <- sum(Pk_log) - sum(log(pmax(P0, 1e-12)))
-          P0 <- gd$Pk
-          th_i <- th_new
-          
-          if(k > 1 && abs(log_like) < tol){break}
-          if(k == iter){conv_mle[i] <- 1}
-        }
-        
-        theta_mle[i] <- ifelse(conv_mle[i] == 1, NA, pmax(low.bound, pmin(up.bound, th_i)))
-        w_final[i,] <- as.numeric(person.weights(th_i, dat[i,], "GRM", ipars_use))
-        r_final[i,] <- as.numeric(residual(th_i, "GRM", ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]])
-      }
-      
-      out$theta_MLE <- matrix(theta_mle, ncol = 1)
-      
-      # Compute SEs for converged subjects
-      conv_idx <- which(conv_mle==0 & !is.na(theta_mle))
-      
-      ase_MLE <- rep(NA, N)
-      sand_MLE <- rep(NA, N)
+      ase_WLE<-rep(NA, N)
+      sand_WLE<-rep(NA, N)
       
       if(length(conv_idx) > 0){
-        se.all <- standard.errors(theta_mle[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
-                                  weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
-        ase_MLE[conv_idx] <- se.all$asymptotic_MLE
-        sand_MLE[conv_idx] <- se.all$sandwich_MLE
+        
+        # need to update standard errors to include WLE sandwich SEs
+        se.all<-standard.errors(theta_wle[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
+                                weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
+        ase_WLE[conv_idx]<-se.all$asymptotic_MLE
+        sand_WLE[conv_idx]<-se.all$sandwich_MLE
       }
       
-      out$ase_MLE = matrix(ase_MLE, ncol = 1)
-      out$sandwich_MLE = matrix(sand_MLE, ncol = 1)
-      out$convergence_MLE <- matrix(conv_mle, ncol = 1)
-      out$weights_MLE <- w_final
-      out$residuals_MLE <- r_final
+      out$ase_WLE<-matrix(ase_WLE, ncol=1)
+      out$sandwich_WLE<-matrix(sand_WLE, ncol=1)
+      out$convergence_WLE<-matrix(conv_wle, ncol = 1)
+      out$weights_WLE<-w_final
+      out$residuals_WLE<-r_final
     }
     
-    ### MIRT
-    if(model == "MIRT"){
-      a_m <- ipars_use[,1:L, drop = FALSE]
-      d_m <- ipars_use[,L+1]
-      
-      theta_mle <- matrix(NA, N, L)
-      conv_mle <- matrix(0, N, L)
-      sing_flag <- matrix(0, N, L)
-      w_final <- matrix(NA, N, J)
-      r_final <- matrix(NA, N, J)
-      
-      for(i in 1:N){
-        th_i <- get_init(i, L)
-        P0 <- 0
-        
-        for(k in 1:iter){
-          P_i<- as.numeric(item.prob(matrix(th_i, 1), "MIRT", ipars_use, D))
-          w_i<- as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MIRT", ipars_use))
-          
-          # Gradient (L x 1) and Hessian (L x L)
-          grad <- matrix(0, L, 1)
-          Hess <- matrix(0, L, L)
-          for(j in 1:J){
-            aj <- matrix(a_m[j,], L, 1)
-            pj <- P_i[j]
-            wij <- w_i[j]
-            grad <- grad + wij*D*aj*(dat[i, j] - pj)
-            Hess <- Hess + wij*D^2*(aj %*% t(aj))*pj*(1 - pj)
-          }
-          
-          if(any(!is.finite(grad)) || any(!is.finite(Hess))){
-            conv_mle[i,] <- 1
-            break
-          }
-          
-          det_H <- ifelse(L == 1, Hess[1,1], det(Hess))
-          
-          if(abs(det_H) < 1e-12){ 
-            conv_mle[i,] <- 1
-            break 
-          }
-          
-          if(L==1){
-            H_inv <- matrix(1 / Hess[1,1])
-          } else{
-            H_inv <- solve(Hess)
-          }
-          
-          th_new <- th_i + as.numeric(H_inv %*% grad)  # grad is +, Hessian is neg expected info
-          
-          if(any(!is.finite(th_new))){ 
-            conv_mle[i,] <- 1
-            break 
-          }
-          
-          log_like <- sum(log(pmax(ifelse(dat[i,] == 1, P_i, 1 - P_i), 1e-12))) -sum(log(pmax(P0, 1e-12)))
-          P0 <- ifelse(dat[i,] == 1, P_i, 1 - P_i)
-          th_i <- th_new
-          
-          if(k > 1 && abs(log_like) < tol) break
-          if(k == iter) conv_mle[i,] <- 1
-        }
-        
-        if(any(conv_mle[i,] == 1)){
-            theta_mle[i,] <- rep(NA, L)
-          }else{
-            theta_mle[i,] <- pmax(low.bound, pmin(up.bound, th_i))
-          }
-          
-        w_final[i,]  <- as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MIRT", ipars_use))
-        r_final[i,] <- as.numeric(residual(matrix(th_i, 1), "MIRT", ipars_use,
-                                              matrix(dat[i,], 1), "standardized", D=D)[[1]])
-      }
-      
-      out$theta_MLE <- theta_mle
-      
-      # Compute SEs for converged subjects
-      conv_idx <- which(apply(conv_mle, 1, function(x) all(x == 0)) & 
-                          apply(theta_mle, 1, function(x) all(!is.na(x))))
-      
-      ase_MLE <- matrix(NA, N, L)
-      sand_MLE <- matrix(NA, N, L)
-      
-      if(length(conv_idx) > 0){
-        se.all <- standard.errors(theta_mle[conv_idx,], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
-                                  weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
-        ase_MLE[conv_idx,] <- se.all$asymptotic_MLE
-        sand_MLE[conv_idx,] <- se.all$sandwich_MLE
-      }
-      out$ase_MLE = ase_MLE
-      out$sandwich_MLE = sand_MLE
-      out$singular_flag = sing_flag
-      out$convergence_MLE <- conv_mle
-      out$weights_MLE <- w_final
-      out$residuals_MLE <- r_final
-    }
-    
-    ### MGRM
-    if(model == "MGRM"){
-      
-      a_mg <- ipars_use[, 1:L, drop = FALSE]
-      b_mg <- ipars_use[, (L+1):ncol(ipars_use), drop = FALSE]
-      K_mg <- ncol(b_mg)
-      
-      theta_mle <- matrix(NA, N, L)
-      conv_mle <- matrix(0, N, L)
-      sing_flag <- matrix(0, N, L)
-      w_final <- matrix(NA, N, J)
-      r_final <- matrix(NA, N, J)
-      
-      for(i in 1:N){
-        th_i<- get_init(i, L)
-        P0<- 0
-        
-        for(k in 1:iter){
-          prb <- item.prob(matrix(th_i, 1), "MGRM", ipars_use, D)
-          
-          # Pstar extended J x (K_mg+2)
-          Pstar_i<- matrix(NA, J, K_mg + 2)
-          Pstar_i[,1] <- 1
-          Pstar_i[,2:(K_mg+1)] <-prb$pstar[,, 1]
-          Pstar_i[,K_mg+2] <- 0
-          
-          Pcat_i <- prb$P   # J x (K_mg+1)
-          
-          ps0 <- Pstar_i[cbind(1:J, dat[i,])]
-          ps1 <- Pstar_i[cbind(1:J, dat[i,] + 1)]
-          qs0 <- 1 - ps0
-          qs1 <- 1 - ps1
-          Pk <- pmax(ps0 - ps1, 1e-12)
-          
-          w_i <- as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MGRM", ipars_use))
-          
-          # Gradient and Hessian
-          grad <- matrix(0, L, 1)
-          Hess <- matrix(0, L, L)
-          for(j in 1:J){
-            aj <- matrix(a_mg[j,], L, 1)
-            wij <- w_i[j]
-            num1 <- ps0[j]*qs0[j] - ps1[j]*qs1[j]
-            num2 <- ps0[j]*qs0[j]*(qs0[j]-ps0[j]) - ps1[j]*qs1[j]*(qs1[j]-ps1[j])
-            score_j <- D*num1 / Pk[j]
-            grad <- grad + wij*aj*score_j
-            info_sc <- D^2*(num2 / Pk[j] - (num1 / Pk[j])^2)
-            Ij_mat <- (-info_sc)*(aj %*% t(aj))
-            Hess <- Hess + wij*Ij_mat
-          }
-          
-          if(any(!is.finite(grad)) || any(!is.finite(Hess))){ 
-            conv_mle[i,] <- 1
-            break 
-          }
-          det_H <- ifelse(L == 1, Hess[1,1], det(Hess))
-          if(abs(det_H) < 1e-12){ 
-            conv_mle[i,] <- 1
-            break 
-          }
-          
-          if(L == 1){
-            H_inv <- matrix(1 / Hess[1,1])
-          }else{
-              H_inv <- solve(Hess)
-          }
-          th_new <- th_i + as.numeric(H_inv %*% grad)
-          if(any(!is.finite(th_new))){ 
-            conv_mle[i,] <- 1
-            break 
-          }
-          
-          log_like <- sum(log(Pk)) - sum(log(pmax(P0, 1e-12)))
-          P0 <- Pk
-          th_i<-th_new
-          
-          if(k > 1 && abs(log_like) < tol){break}
-          if(k == iter){conv_mle[i,] <- 1}
-        }
-        
-        theta_mle[i,] <- ifelse(any(conv_mle[i,] == 1), rep(NA, L),  pmax(low.bound, pmin(up.bound, th_i)))
-        w_final[i,] <- as.numeric(person.weights(matrix(th_i, 1), dat[i,], "MGRM", ipars_use))
-        r_final[i,] <- as.numeric(residual(matrix(th_i, 1), "MGRM", ipars_use, matrix(dat[i,], 1), "standardized", D=D)[[1]])
-      }
-      
-      out$theta_MLE <- theta_mle
-      
-      
-      # Compute SEs for converged subjects
-      conv_idx <- which(apply(conv_mle, 1, function(x) all(x == 0)) & 
-                          apply(theta_mle, 1, function(x) all(!is.na(x))))
-      
-      ase_MLE <- matrix(NA, N, L)
-      sand_MLE <- matrix(NA, N, L)
-      
-      if(length(conv_idx) > 0){
-        se.all <- standard.errors(theta_mle[conv_idx,], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
-                                  weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
-        ase_MLE[conv_idx,] <- se.all$asymptotic_MLE
-        sand_MLE[conv_idx,] <- se.all$sandwich_MLE
-      }
-      out$ase_MLE = ase_MLE
-      out$sandwich_MLE = sand_MLE
-      out$singular_flag = sing_flag
-      out$convergence_MLE <- conv_mle
-      out$weights_MLE <- w_final
-      out$residuals_MLE <- r_final
-    }
-    
-  } # end MLE block
-  
-  #  MAP
-  # Supported: Rasch, 1PL, 2PL, GRM
-  if("MAP" %in% est.type){
-    
-    deriv_fn <- if(model=="GRM") grm_derivs else dich_derivs
-    
-    theta_map <- rep(NA, N)
-    conv_map <- rep(0, N)
-    w_final<-matrix(NA, N, J)
-    r_final<-matrix(NA, N, J)
-    
-    for(i in 1:N){
-      th_i <- get_init(i, 1)
-      P0 <- 0
-      
-      for(k in 1:iter){
-        w_i <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-        dv <- deriv_fn(th_i, dat[i,], ipars_use, w_i, bayes = TRUE)
-        
-        if(!is.finite(dv$D1) || !is.finite(dv$D2) || abs(dv$D2) < 1e-14){
-          conv_map[i] <- 1
-          break
-        }
-        
-        th_new <- th_i-dv$D1 / dv$D2
-        if(!is.finite(th_new)){ 
-          conv_map[i] <- 1
-          break 
-        }
-        
-        # Convergence check with change in log-posterior
-        P_cur <- if(model == "GRM"){
-          pmax(dv$Pk, 1e-12)
-        }else{
-          pmax(ifelse(dat[i,] == 1, dv$P_i, 1 - dv$P_i), 1e-12)
-        }
-        log_like <- sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
-        P0 <- P_cur
-        th_i <- th_new
-        
-        if(k > 1 && abs(log_like) < tol) break
-        if(k == iter) conv_map[i] <- 1
-      }
-      
-      w_final[i,] <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-      r_final[i,] <- as.numeric(residual(matrix(th_i, 1), model, ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]])
-      theta_map[i] <- ifelse(conv_map[i] == 1, NA, pmax(low.bound, pmin(up.bound, th_i)))
-    }
-    
-    out$theta_MAP <- matrix(theta_map, ncol = 1)
     
     
-    # Compute SEs for converged subjects
-    conv_idx <- which(conv_map==0 & !is.na(theta_map))
-    ase_MAP <- rep(NA, N)
-    sand_MAP <- rep(NA, N)
-    
-    if(length(conv_idx) > 0){
-      se.all <- standard.errors(theta_map[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
-                                weight.type, tuning.par, custom.weights, resid, "MAP", prior, eap.quad.pts)
-      ase_MAP[conv_idx] <- se.all$asymptotic_MAP
-      sand_MAP[conv_idx] <- se.all$sandwich_MAP
-    }
-    out$post_sd_MAP <- matrix(ase_MAP, ncol = 1)
-    out$sandwich_MAP  <- matrix(sand_MAP, ncol = 1)
-    
-    out$convergence_MAP <- matrix(conv_map, ncol = 1)
-    out$weights_MAP <- w_final
-    out$residuals_MAP <- r_final
-  } # end MAP block
-  
-  ##### EAP (Rasch, 1PL, 2PL only) #####
-  if("EAP" %in% est.type){
-    
-    f_x <- dnorm(eap.quad.pts, mu, sqrt(sigma2))
-    probs_q <- item.prob(eap.quad.pts, model, ipars_use, D) 
-    Q <- length(eap.quad.pts)
-    
-    theta_eap <- rep(NA, N)
-    w_final <- matrix(NA, N, J)
-    r_final <- matrix(NA, N, J)
-    
-    for(i in 1:N){
-      th_i <- get_init(i, 1)[1]
-      P0 <- 0
-      
-      for(k in 1:iter){
-        w_i <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-        
-        # Weighted likelihood at each quadrature point
-        lik_q <- apply(probs_q, 1, function(pj)
-          prod((pj^dat[i,]*(1 - pj)^(1 - dat[i,]))^w_i))
-        
-        denom <- sum(lik_q*f_x)
-        if(!is.finite(denom) || denom == 0) break
-        
-        th_new <- sum(eap.quad.pts*lik_q*f_x) / denom
-        
-        P_cur <- pmax(ifelse(dat[i,] == 1,
-                                item.prob(th_i, model, ipars_use, D),
-                                1 - item.prob(th_i, model, ipars_use, D)), 1e-12)
-        log_like <- sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
-        P0 <- P_cur
-        th_i <- th_new
-        
-        if(k > 1 && abs(log_like) < tol) break
-      }
-      
-      w_final[i,]<-w_i_f <- as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-      r_final[i,] <- as.numeric(residual(matrix(th_i, 1), model, ipars_use, matrix(dat[i,], 1), resid, D=D)[[1]])
-      lik_f <- apply(probs_q, 1, function(pj) prod((pj^dat[i,]*(1 - pj)^(1 - dat[i,]))^w_i_f))
-      denom_f <- sum(lik_f*f_x)
-      
-      if(is.finite(denom_f) && denom_f > 0){
-        th_eap_i <- sum(eap.quad.pts*lik_f*f_x) / denom_f
-        
-        theta_eap[i] <- pmax(low.bound, pmin(up.bound, th_i))
-      }
-    }
-    
-    out$theta_EAP <- matrix(theta_eap, ncol = 1)
-    
-    # Compute SEs for converged subjects
-    conv_idx <- which(conv_map==0 & !is.na(theta_eap))
-    ase_EAP <- rep(NA, N)
-    sand_EAP <- rep(NA, N)
-    
-    if(length(conv_idx) > 0){
-      se.all <- standard.errors(theta_eap[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
-                                weight.type, tuning.par, custom.weights, resid, "EAP", prior, eap.quad.pts)
-      ase_EAP[conv_idx] <- se.all$asymptotic_EAP
-      sand_EAP[conv_idx] <- se.all$sandwich_EAP
-    }
-    out$post_sd_EAP <- matrix(ase_EAP, ncol = 1)
-    out$sandwich_EAP  <- matrix(sand_EAP, ncol = 1)
-    
-    out$weights_EAP <- w_final
-    out$residuals_EAP <- r_final
-  } # end EAP block
-  
-  # Attach final weights and residuals 
-  if(exists("w_final", inherits = FALSE)){
-    out$weights <- w_final
-    out$residuals <- r_final
-  }
+  } # end WLE block
   
   return(out)
 }
-
+                               
 
 #' Ability Estimation Function Using Robust Estimation (GRM)
 #'
