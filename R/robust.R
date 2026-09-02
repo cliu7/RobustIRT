@@ -2418,7 +2418,7 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
 #' \eqn{L_w(\boldsymbol{x}|\boldsymbol{\gamma}) = \prod_{i=1}^N L(\boldsymbol{x}_i|\boldsymbol{\gamma})^{w_i},}
 #' where \eqn{L(\boldsymbol{x}_i|\boldsymbol{\gamma})} is the likelihood of the response vector \eqn{\boldsymbol{x}_i} for examinee \eqn{i} (\eqn{i=1,...,N}) given \eqn{\boldsymbol{\gamma},} the matrix of item parameters for the test. The EM algorithm proceeds, maximizing this weighted likelihood.
 #' 
-#' Hong and Cheng (2019) derive weights based on the person-fit statistic \eqn{l_z^{`*`}, where lower values indicate greater misfit between the response pattern and the model (Snijders, 2001). Since \eqn{l_z^{`*`} follows the asymptotic standard normal distribution, weights were derived as the normalized \emph{p}-value of the residual under a one-sided alternative hypothesis, e.g.,
+#' Hong and Cheng (2019) derive weights based on the person-fit statistic \eqn{l_z^{`*`}}, where lower values indicate greater misfit between the response pattern and the model (Snijders, 2001). Since \eqn{l_z^{`*`}} follows the asymptotic standard normal distribution, weights were derived as the normalized \emph{p}-value of the residual under a one-sided alternative hypothesis, e.g.,
 #' \eqn{w_i = \frac{\Phi(l^{`*`}_{zi})}{\sum_{i=1}^N \Phi(l^{`*`}_{zi})},}
 #' where \eqn{\Phi(\cdot)} is the CDF of the standard normal distribution. Note that the user may define different weights with the argument \code{survey.weights}.
 #' 
