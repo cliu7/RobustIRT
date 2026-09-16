@@ -1282,12 +1282,12 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'     standard error depending on if the conditions presented in Magis (2014) are met
 #'     (see Details).}
 #'   \item{\code{sandwich_MLE}}{(\eqn{N \times L}) Huber-White sandwich standard error.}
-#'   \item{\code{convergence_MLE}}{(\eqn{N \times L}) 0 = converged, 1 = failed.}
+#'   \item{\code{convergence_MLE}}{(\eqn{N \times L}) 0 = converged, 1 = did not converge, 2 = converged outside of bounds \code{low.bound} and \code{up.bound}. }
 #'   \item{\code{theta_MAP}}{(\eqn{N \times 1}) Robust MAP estimates.
 #'     Rasch/1PL/2PL/GRM only.}
 #'   \item{\code{post_sd_MAP}}{(\eqn{N \times 1}) Posterior standard deviation of the MAP.}
 #'   \item{\code{sandwich_MAP}}{(\eqn{N \times 1}) Sandwich equivalent of the posterior standard deviation.}
-#'   \item{\code{convergence_MAP}}{(\eqn{N \times 1}) Nonconvergence indicators: 0 = converged, 1 = failed..}
+#'   \item{\code{convergence_MAP}}{(\eqn{N \times 1}) Nonconvergence indicators: 0 = converged, 1 = did not converge, 2 = converged outside of bounds \code{low.bound} and \code{up.bound}}
 #'   \item{\code{theta_EAP}}{(\eqn{N \times 1}) Robust EAP estimates.
 #'     Rasch/1PL/2PL only.}
 #'   \item{\code{post_sd_EAP}}{(\eqn{N \times 1}) Posterior standard deviation of the EAP.}
@@ -1920,7 +1920,14 @@ robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized"
       sand_MLE<-matrix(NA, N, L)
       
       if(length(conv_idx) > 0){
-        se.all<-standard.errors(theta_mle[conv_idx,], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
+        # make sure formatting of thetas is proper
+        if(length(conv_idx)==1){
+          th_converged<-matrix(theta_mle[conv_idx,], nrow = 1)
+        }else{
+          th_converged<-theta_mle[conv_idx,]
+        }
+      
+        se.all<-standard.errors(th_converged, ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
                                   weight.type, tuning.par, custom.weights, resid, "MLE", prior, eap.quad.pts)
         ase_MLE[conv_idx,]<-se.all$asymptotic_MLE
         sand_MLE[conv_idx,]<-se.all$sandwich_MLE
