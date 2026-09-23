@@ -215,7 +215,7 @@
 #' @format A list containing:
 #' \describe{
 #'   \item{\code{dat}}{ (\eqn{500 \times 39}) matrix of simulated dichotomous data.}
-#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: \eqn{a_j} and \eqn{b_j}.}
+#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
 #'  }
 #' 
@@ -237,7 +237,7 @@
 #' @format A list containing:
 #' \describe{
 #'   \item{\code{dat}}{ (\eqn{150 \times 30}) matrix of simulated dichotomous data.}
-#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: \eqn{a_j} and \eqn{b_j}.}
+#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
 #'  }
 #' 
@@ -252,3 +252,111 @@
 #'
 #' 
 "simBRR2PL"
+#' Simulated 2PL data with cheating / spuriously high responses
+#' 
+#' @description
+#' Data simulated from a 2PL model for 1000 subjects on 30 items. For the 20% of examinees with the lowest true \eqn{\theta}, they received correct responses on the most difficult 10% of items.  
+#' @format A list containing:
+#' \describe{
+#'   \item{\code{dat}}{ (\eqn{1000 \times 30}) matrix of simulated dichotomous data.}
+#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
+#'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the aberrant examinees.}
+#'  }
+#' 
+#' @references Wang, C., Xu, G., Shang, Z., & Kuncel, N. (2018). Detecting Aberrant Behavior and Item Preknowledge: A Comparison of Mixture Modeling Method and Residual Method. Journal of Educational and Behavioral Statistics, 43(4), 469–501. https://doi.org/10.3102/1076998618767123
+#' 
+#' @usage data(simCheating2PL)
+#'
+#' @examples
+#'
+#' ## Not run: 
+#'
+#' 
+"simCheating2PL"
+#' Simulated 2PL data with warm-up / sleeping behavior
+#' 
+#' @description
+#' Data simulated from a 2PL model for 1000 subjects on 30 items. For 30% of examinees, they received an incorrect response on the first 30% of items as if they were "warming" or "waking" up to the test content or format.
+#' @format A list containing:
+#' \describe{
+#'   \item{\code{dat}}{ (\eqn{1000 \times 30}) matrix of simulated dichotomous data.}
+#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
+#'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
+#'  }
+#' 
+#' @references Meijer, R. R. (2002). Outlier Detection in High-Stakes Certification Testing. Journal of Educational Measurement, 39(3), 219–233. https://doi.org/10.1111/j.1745-3984.2002.tb01175.x
+#' 
+#' @usage data(simWarmUp2PL)
+#'
+#' @examples
+#'
+#' ## Not run: 
+#'
+#' 
+"simWarmUp2PL"
+#' Simulated GRM data with improper reverse coding
+#' 
+#' @description
+#' Data simulated from a GRM model for 1000 subjects on 30 items. Likert-type responses are scored 1 to 5. For 20% of examinees, their responses to 30% of items were reverse coded as if they were inatentive to the reverse-wording of the item.
+#' @format A list containing:
+#' \describe{
+#'   \item{\code{dat}}{ (\eqn{1000 \times 30}) matrix of simulated Likert-type data.}
+#'   \item{\code{ipars}}{ (\eqn{30 \times 5}) data frame of true item parameters for the GRM: one column for item discrimination and four columns for the four category thresholds.}
+#'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
+#'  }
+#' 
+#' @references Hughes, G. D. (2009). The Impact of Incorrect Responses to Reverse-Coded Survey Items. Research in the Schools, 14
+#' 
+#' @usage data(simReverseGRM)
+#'
+#' @examples
+#'
+#' ## Not run: 
+#'
+#' 
+"simReverseGRM"
+#' Simulated MGRM data with back random responding
+#' 
+#' @description
+#' Data simulated from a MGRM model for 2000 subjects on 50 items. Likert-type responses are scored 1 to 5, and the model follows a 3-dimensional simple structure in which each item loads onto only one dimension. 
+#' For 40% of examinees, their responses to the last 40% of items were generated as if they were randomly responding, with a uniform probability of selecting any of the five categories.
+#' @format A list containing:
+#' \describe{
+#'   \item{\code{dat}}{ (\eqn{2000 \times 50}) matrix of simulated Likert-type data.}
+#'   \item{\code{ipars}}{ (\eqn{50 \times 7}) data frame of true item parameters for the GRM: three columns for item discrimination and four columns for the four category thresholds.}
+#'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
+#'  }
+#' 
+#' @references Clark, M. E., Gironda, R. J., & Young, R. W. (2003). Detection of back random responding: Effectiveness of MMPI-2 and Personality Assessment Inventory validity indices. Psychological Assessment, 15(2), 223–234. https://doi.org/10.1037/1040-3590.15.2.223
+#' @references Yu, X., & Cheng, Y. (2019). A change-point analysis procedure based on weighted residuals to detect back random responding. Psychological Methods, 24(5), 658–674. https://doi.org/10.1037/met0000212
+#' 
+#' @usage data(simBRRMGRM)
+#'
+#' @examples
+#'
+#' ## Not run: 
+#'
+#' 
+"simBRRMGRM"
+#' Simulated MIRT data with cheating
+#' 
+#' @description
+#' Data simulated from a MGRM model for 2000 subjects on 50 items. The model is 2-dimensional, following a complex structure in which each item is allowed to load onto each dimension. For the 20% of examinees with the lowest \eqn{\theta}, their responses to the most difficult 20% of items were coded as correct, as if they had cheated to obtain the correct answer.
+#' @format A list containing:
+#' \describe{
+#'   \item{\code{dat}}{ (\eqn{2000 \times 50}) matrix of simulated Likert-type data.}
+#'   \item{\code{ipars}}{ (\eqn{50 \times 3}) data frame of true item parameters for the GRM: two columns for item discrimination and one column for item threshold.}
+#'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
+#'  }
+#' 
+#' @references Meijer, R. R. (1996). Person-Fit Research: An Introduction. Applied Measurement in Education, 9(1), 3–8. https://doi.org/10.1207/s15324818ame0901
+#' 
+#' @usage data(simCheatingMIRT)
+#'
+#' @examples
+#'
+#' ## Not run: 
+#'
+#' 
+"simCheatingMIRT"
+
