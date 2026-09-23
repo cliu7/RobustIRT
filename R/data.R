@@ -57,85 +57,85 @@
 #' Items marked with an 'R' are negatively worded and were properly reverse coded for this dataset.
 #' 
 #' \itemize{
-#'   \item{\code{id}}{Participant ID}.
-#'   \item{\code{pilot}}{Data collection phase}.
-#'   \item{\code{current_age_years_n}}{Current age in years}.
-#'   \item{\code{biological_sex_c}}{Biological sex}.
-#'   \item{\code{expected_education_c}}{Highest level of expected education}.
-#'   \item{\code{parent_education_c}}{Highest level of education obtained by parents}.
-#'   \item{\code{free_reduced_lunch_c}}{Indicator of eligibility for free or reduced lunch}.
-#'   \item{\code{race_AmerIn1}}{American Indian or Alaska Native (1 = Yes).}
-#'   \item{\code{race_Asian1}}{Asian (1 = Yes).}
-#'   \item{\code{race_Black1}}{Black or African American (1 = Yes).}
-#'   \item{\code{race_Hawa1}}{Native Hawaiian or Pacific Islander (1 = Yes).}
-#'   \item{\code{race_White1}}{White (1 = Yes).}
-#'   \item{\code{race_MexAmer1}}{Mexican American (1 = Yes).}
-#'   \item{\code{race_Puerto1}}{Puerto Rican (1 = Yes).}
-#'   \item{\code{race_HispOther1}}{Other Hispanic origin (1 = Yes).}
-#'   \item{\code{race_HispAny1}}{Any Hispanic origin (1 = Yes).}
-#'   \item{\code{race_Other1}}{Other race (1 = Yes).}
-#'   \item{\code{race_PreferNot1}}{Prefer not to respond (1 = Yes).}
-#'   \item{\code{race_Multi1}}{Multiracial (1 = Yes).}
-#'   \item{\code{t1_bfi_E1}}{Is outgoing, sociable.}.
-#'   \item{\code{t1_bfi_A1}}{Is compassionate.}.
-#'   \item{\code{t1_bfi_C1R}}{Tends to be disorganized. [R]}.
-#'   \item{\code{t1_bfi_N1R}}{Is relaxed, handles stress well. [R]}.
-#'   \item{\code{t1_bfi_O1R}}{Has few artistic interests. [R]}.
-#'   \item{\code{t1_bfi_E2}}{Has an assertive personality.}.
-#'   \item{\code{t1_bfi_A2}}{Treats others with respect.}.
-#'   \item{\code{t1_bfi_C2R}}{Tends to be lazy. [R]}.
-#'   \item{\code{t1_bfi_N2R}}{Stays optimistic after experiencing a setback. [R]}.
-#'   \item{\code{t1_bfi_O2}}{Is curious about many different things.}.
-#'   \item{\code{t1_bfi_E3R}}{Rarely feels excited or eager. [R]}.
-#'   \item{\code{t1_bfi_A3R}}{Tends to find fault with others. [R]}.
-#'   \item{\code{t1_bfi_C3}}{Is dependable, steady.}.
-#'   \item{\code{t1_bfi_N3}}{Is moody, has up and down mood swings.}.
-#'   \item{\code{t1_bfi_O3}}{Is inventive, finds clever ways to do things.}.
-#'   \item{\code{t1_bfi_E4R}}{Tends to be quiet. [R]}.
-#'   \item{\code{t1_bfi_A4R}}{Feels little sympathy for others. [R]}.
-#'   \item{\code{t1_bfi_C4}}{Is systematic, likes to keep things in order.}.
-#'   \item{\code{t1_bfi_N4}}{Can be tense.}.
-#'   \item{\code{t1_bfi_O4}}{Is fascinated by art, music, or literature.}.
-#'   \item{\code{t1_bfi_E5}}{Is dominant, acts as a leader.}.
-#'   \item{\code{t1_bfi_A5R}}{Starts arguments with others. [R]}.
-#'   \item{\code{t1_bfi_C5R}}{Has difficulty getting started on tasks. [R]}.
-#'   \item{\code{t1_bfi_N5R}}{Feels secure, comfortable with self. [R]}.
-#'   \item{\code{t1_bfi_O5R}}{Avoids intellectual, philosophical discussions. [R]}.
-#'   \item{\code{t1_bfi_E6R}}{Is less active than other people. [R]}.
-#'   \item{\code{t1_bfi_A6}}{Has a forgiving nature.}.
-#'   \item{\code{t1_bfi_C6R}}{Can be somewhat careless. [R]}.
-#'   \item{\code{t1_bfi_N6R}}{Is emotionally stable, not easily upset. [R]}.
-#'   \item{\code{t1_bfi_O6R}}{Has little creativity. [R]}.
-#'   \item{\code{t1_bfi_E7R}}{Is sometimes shy, introverted. [R]}.
-#'   \item{\code{t1_bfi_A7}}{Is helpful and unselfish with others.}.
-#'   \item{\code{t1_bfi_C7}}{Keeps things neat and tidy.}.
-#'   \item{\code{t1_bfi_N7}}{Worries a lot.}.
-#'   \item{\code{t1_bfi_O7}}{Values art and beauty.}.
-#'   \item{\code{t1_bfi_E8R}}{Finds it hard to influence people. [R]}.
-#'   \item{\code{t1_bfi_A8R}}{Is sometimes rude to others. [R]}.
-#'   \item{\code{t1_bfi_C8}}{Is efficient, gets things done.}.
-#'   \item{\code{t1_bfi_N8}}{Often feels sad.}.
-#'   \item{\code{t1_bfi_O8}}{Is complex, a deep thinker.}.
-#'   \item{\code{t1_bfi_E9}}{Is full of energy.}.
-#'   \item{\code{t1_bfi_A9R}}{Is suspicious of others' intentions. [R]}.
-#'   \item{\code{t1_bfi_C9}}{Is reliable, can always be counted on.}.
-#'   \item{\code{t1_bfi_N9R}}{Keeps their emotions under control. [R]}.
-#'   \item{\code{t1_bfi_O9R}}{Has difficulty imagining things. [R]}.
-#'   \item{\code{t1_bfi_E10}}{Is talkative.}.
-#'   \item{\code{t1_bfi_A10R}}{Can be cold and uncaring. [R]}.
-#'   \item{\code{t1_bfi_C10R}}{Leaves a mess, doesn't clean up. [R]}.
-#'   \item{\code{t1_bfi_N10R}}{Rarely feels anxious or afraid. [R]}.
-#'   \item{\code{t1_bfi_O10R}}{Thinks poetry and plays are boring. [R]}.
-#'   \item{\code{t1_bfi_E11R}}{Prefers to have others take charge. [R]}.
-#'   \item{\code{t1_bfi_A11}}{Is polite, courteous to others.}.
-#'   \item{\code{t1_bfi_C11}}{Is persistent, works until the task is finished.}.
-#'   \item{\code{t1_bfi_N11}}{Tends to feel depressed, blue.}.
-#'   \item{\code{t1_bfi_O11R}}{Has little interest in abstract ideas. [R]}.
-#'   \item{\code{t1_bfi_E12}}{Shows a lot of enthusiasm.}.
-#'   \item{\code{t1_bfi_A12}}{Assumes the best about people.}.
-#'   \item{\code{t1_bfi_C12R}}{Sometimes behaves irresponsibly. [R]}.
-#'   \item{\code{t1_bfi_N12}}{Is temperamental, gets emotional easily.}.
-#'   \item{\code{t1_bfi_O12}}{Is original, comes up with new ideas.}.
+#'   \item{\code{id}}{ Participant ID}.
+#'   \item{\code{pilot}}{ Data collection phase}.
+#'   \item{\code{current_age_years_n}}{ Current age in years}.
+#'   \item{\code{biological_sex_c}}{ Biological sex}.
+#'   \item{\code{expected_education_c}}{ Highest level of expected education}.
+#'   \item{\code{parent_education_c}}{ Highest level of education obtained by parents}.
+#'   \item{\code{free_reduced_lunch_c}}{ Indicator of eligibility for free or reduced lunch}.
+#'   \item{\code{race_AmerIn1}}{ American Indian or Alaska Native (1 = Yes).}
+#'   \item{\code{race_Asian1}}{ Asian (1 = Yes).}
+#'   \item{\code{race_Black1}}{ Black or African American (1 = Yes).}
+#'   \item{\code{race_Hawa1}}{ Native Hawaiian or Pacific Islander (1 = Yes).}
+#'   \item{\code{race_White1}}{ White (1 = Yes).}
+#'   \item{\code{race_MexAmer1}}{ Mexican American (1 = Yes).}
+#'   \item{\code{race_Puerto1}}{ Puerto Rican (1 = Yes).}
+#'   \item{\code{race_HispOther1}}{ Other Hispanic origin (1 = Yes).}
+#'   \item{\code{race_HispAny1}}{ Any Hispanic origin (1 = Yes).}
+#'   \item{\code{race_Other1}}{ Other race (1 = Yes).}
+#'   \item{\code{race_PreferNot1}}{ Prefer not to respond (1 = Yes).}
+#'   \item{\code{race_Multi1}}{ Multiracial (1 = Yes).}
+#'   \item{\code{t1_bfi_E1}}{ Is outgoing, sociable.}.
+#'   \item{\code{t1_bfi_A1}}{ Is compassionate.}.
+#'   \item{\code{t1_bfi_C1R}}{ Tends to be disorganized. [R]}.
+#'   \item{\code{t1_bfi_N1R}}{ Is relaxed, handles stress well. [R]}.
+#'   \item{\code{t1_bfi_O1R}}{ Has few artistic interests. [R]}.
+#'   \item{\code{t1_bfi_E2}}{ Has an assertive personality.}.
+#'   \item{\code{t1_bfi_A2}}{ Treats others with respect.}.
+#'   \item{\code{t1_bfi_C2R}}{ Tends to be lazy. [R]}.
+#'   \item{\code{t1_bfi_N2R}}{ Stays optimistic after experiencing a setback. [R]}.
+#'   \item{\code{t1_bfi_O2}}{ Is curious about many different things.}.
+#'   \item{\code{t1_bfi_E3R}}{ Rarely feels excited or eager. [R]}.
+#'   \item{\code{t1_bfi_A3R}}{ Tends to find fault with others. [R]}.
+#'   \item{\code{t1_bfi_C3}}{ Is dependable, steady.}.
+#'   \item{\code{t1_bfi_N3}}{ Is moody, has up and down mood swings.}.
+#'   \item{\code{t1_bfi_O3}}{ Is inventive, finds clever ways to do things.}.
+#'   \item{\code{t1_bfi_E4R}}{ Tends to be quiet. [R]}.
+#'   \item{\code{t1_bfi_A4R}}{ Feels little sympathy for others. [R]}.
+#'   \item{\code{t1_bfi_C4}}{ Is systematic, likes to keep things in order.}.
+#'   \item{\code{t1_bfi_N4}}{ Can be tense.}.
+#'   \item{\code{t1_bfi_O4}}{ Is fascinated by art, music, or literature.}.
+#'   \item{\code{t1_bfi_E5}}{ Is dominant, acts as a leader.}.
+#'   \item{\code{t1_bfi_A5R}}{ Starts arguments with others. [R]}.
+#'   \item{\code{t1_bfi_C5R}}{ Has difficulty getting started on tasks. [R]}.
+#'   \item{\code{t1_bfi_N5R}}{ Feels secure, comfortable with self. [R]}.
+#'   \item{\code{t1_bfi_O5R}}{ Avoids intellectual, philosophical discussions. [R]}.
+#'   \item{\code{t1_bfi_E6R}}{ Is less active than other people. [R]}.
+#'   \item{\code{t1_bfi_A6}}{ Has a forgiving nature.}.
+#'   \item{\code{t1_bfi_C6R}}{ Can be somewhat careless. [R]}.
+#'   \item{\code{t1_bfi_N6R}}{ Is emotionally stable, not easily upset. [R]}.
+#'   \item{\code{t1_bfi_O6R}}{ Has little creativity. [R]}.
+#'   \item{\code{t1_bfi_E7R}}{ Is sometimes shy, introverted. [R]}.
+#'   \item{\code{t1_bfi_A7}}{ Is helpful and unselfish with others.}.
+#'   \item{\code{t1_bfi_C7}}{ Keeps things neat and tidy.}.
+#'   \item{\code{t1_bfi_N7}}{ Worries a lot.}.
+#'   \item{\code{t1_bfi_O7}}{ Values art and beauty.}.
+#'   \item{\code{t1_bfi_E8R}}{ Finds it hard to influence people. [R]}.
+#'   \item{\code{t1_bfi_A8R}}{ Is sometimes rude to others. [R]}.
+#'   \item{\code{t1_bfi_C8}}{ Is efficient, gets things done.}.
+#'   \item{\code{t1_bfi_N8}}{ Often feels sad.}.
+#'   \item{\code{t1_bfi_O8}}{ Is complex, a deep thinker.}.
+#'   \item{\code{t1_bfi_E9}}{ Is full of energy.}.
+#'   \item{\code{t1_bfi_A9R}}{ Is suspicious of others' intentions. [R]}.
+#'   \item{\code{t1_bfi_C9}}{ Is reliable, can always be counted on.}.
+#'   \item{\code{t1_bfi_N9R}}{ Keeps their emotions under control. [R]}.
+#'   \item{\code{t1_bfi_O9R}}{ Has difficulty imagining things. [R]}.
+#'   \item{\code{t1_bfi_E10}}{ Is talkative.}.
+#'   \item{\code{t1_bfi_A10R}}{ Can be cold and uncaring. [R]}.
+#'   \item{\code{t1_bfi_C10R}}{ Leaves a mess, doesn't clean up. [R]}.
+#'   \item{\code{t1_bfi_N10R}}{ Rarely feels anxious or afraid. [R]}.
+#'   \item{\code{t1_bfi_O10R}}{ Thinks poetry and plays are boring. [R]}.
+#'   \item{\code{t1_bfi_E11R}}{ Prefers to have others take charge. [R]}.
+#'   \item{\code{t1_bfi_A11}}{ Is polite, courteous to others.}.
+#'   \item{\code{t1_bfi_C11}}{ Is persistent, works until the task is finished.}.
+#'   \item{\code{t1_bfi_N11}}{ Tends to feel depressed, blue.}.
+#'   \item{\code{t1_bfi_O11R}}{ Has little interest in abstract ideas. [R]}.
+#'   \item{\code{t1_bfi_E12}}{ Shows a lot of enthusiasm.}.
+#'   \item{\code{t1_bfi_A12}}{ Assumes the best about people.}.
+#'   \item{\code{t1_bfi_C12R}}{ Sometimes behaves irresponsibly. [R]}.
+#'   \item{\code{t1_bfi_N12}}{ Is temperamental, gets emotional easily.}.
+#'   \item{\code{t1_bfi_O12}}{ Is original, comes up with new ideas.}.
 #' }
 #'  
 #' @details The BFI2 is a 60‑item personality assessment measuring the Big Five domains: Agreeableness, Conscientiousness, Extraversion, Negative Emotionality, and Open‑Mindedness. 
@@ -158,40 +158,40 @@
 #' @format 
 #' A data frame with 1402 rows (participants) and 34 columns (survey items and follow-up information). 
 #' \itemize{
-#'   \item{\code{country}}{The country the user's network connection was based.}
-#'   \item{\code{engnat}}{Whether the respondent reported English as their native language (0 = no, 1 = yes).}
-#'   \item{\code{age}}{Age in years.}
-#'   \item{\code{gender}}{Gender indicator.)}
-#'   \item{\code{Q1}}{I am tall.}
-#'   \item{\code{Q2}}{I am short.}
-#'   \item{\code{Q3}}{I have to stand on a stool to reach tall kitchen shelves.}
-#'   \item{\code{Q4}}{I have to stand in the back in group photos to not cover up other people.}
-#'   \item{\code{Q5}}{I hit my head on low ceilings.}
-#'   \item{\code{Q6}}{I rarely meet people with more height than me.}
-#'   \item{\code{Q7}}{I'm kind of a midget.}
-#'   \item{\code{Q8}}{Airplane seats never have enough room for my long legs.}
-#'   \item{\code{Q9}}{When I hug people, my head is underneath their chin.}
-#'   \item{\code{Q10}}{I have gangly limbs.}
-#'   \item{\code{Q11}}{I have been sent to the hospital by an electric shock.}
-#'   \item{\code{Q12}}{I own a goat.}
-#'   \item{\code{Q13}}{I know the 'happy birthday to you..' song.}
-#'   \item{\code{Q14}}{I have been asked for money by beggars.}
-#'   \item{\code{Q15}}{I prefer to play it safe and avoid danger.}
-#'   \item{\code{Q16}}{I prefer variety to routine.}
-#'   \item{\code{Q17}}{I rarely clean house.}
-#'   \item{\code{Q18}}{I rarely complain.}
-#'   \item{\code{Q19}}{I rarely overindulge.}
-#'   \item{\code{Q20}}{I accept what others say.}
-#'   \item{\code{Q21}}{I enjoy being part of a loud crowd.}
-#'   \item{\code{Q22}}{I offend no one.}
-#'   \item{\code{Q23}}{I see that nobody gets left out.}
-#'   \item{\code{Q24}}{I try not to deceive others.}
-#'   \item{\code{Q25}}{I try out new things.}
-#'   \item{\code{Q26}}{I will push people around to get what I want.}
-#'   \item{\code{feet}}{Height reported in feet (if the respondent used imperial units).}
-#'   \item{\code{inch}}{Height reported in inches (if the respondent used imperial units).}
-#'   \item{\code{cm}}{Height reported in centimeters (if the respondent used metric units).}
-#'   \item{\code{submittime}}{The time (PST) the survey was submitted.}
+#'   \item{\code{country}}{ The country the user's network connection was based.}
+#'   \item{\code{engnat}}{ Whether the respondent reported English as their native language (0 = no, 1 = yes).}
+#'   \item{\code{age}}{ Age in years.}
+#'   \item{\code{gender}}{ Gender indicator.)}
+#'   \item{\code{Q1}}{ I am tall.}
+#'   \item{\code{Q2}}{ I am short.}
+#'   \item{\code{Q3}}{ I have to stand on a stool to reach tall kitchen shelves.}
+#'   \item{\code{Q4}}{ I have to stand in the back in group photos to not cover up other people.}
+#'   \item{\code{Q5}}{ I hit my head on low ceilings.}
+#'   \item{\code{Q6}}{ I rarely meet people with more height than me.}
+#'   \item{\code{Q7}}{ I'm kind of a midget.}
+#'   \item{\code{Q8}}{ Airplane seats never have enough room for my long legs.}
+#'   \item{\code{Q9}}{ When I hug people, my head is underneath their chin.}
+#'   \item{\code{Q10}}{ I have gangly limbs.}
+#'   \item{\code{Q11}}{ I have been sent to the hospital by an electric shock.}
+#'   \item{\code{Q12}}{ I own a goat.}
+#'   \item{\code{Q13}}{ I know the 'happy birthday to you..' song.}
+#'   \item{\code{Q14}}{ I have been asked for money by beggars.}
+#'   \item{\code{Q15}}{ I prefer to play it safe and avoid danger.}
+#'   \item{\code{Q16}}{ I prefer variety to routine.}
+#'   \item{\code{Q17}}{ I rarely clean house.}
+#'   \item{\code{Q18}}{ I rarely complain.}
+#'   \item{\code{Q19}}{ I rarely overindulge.}
+#'   \item{\code{Q20}}{ I accept what others say.}
+#'   \item{\code{Q21}}{ I enjoy being part of a loud crowd.}
+#'   \item{\code{Q22}}{ I offend no one.}
+#'   \item{\code{Q23}}{ I see that nobody gets left out.}
+#'   \item{\code{Q24}}{ I try not to deceive others.}
+#'   \item{\code{Q25}}{ I try out new things.}
+#'   \item{\code{Q26}}{ I will push people around to get what I want.}
+#'   \item{\code{feet}}{ Height reported in feet (if the respondent used imperial units).}
+#'   \item{\code{inch}}{ Height reported in inches (if the respondent used imperial units).}
+#'   \item{\code{cm}}{ Height reported in centimeters (if the respondent used metric units).}
+#'   \item{\code{submittime}}{ The time (PST) the survey was submitted.}
 #'}
 #' @details 
 #' The item data followed a 5-point Likert scale, with the following labels: 1 = Strongly disagree, 2 = Disagree, 3 = Neither agree nor disagree, 4 = Agree, and 5 = Strongly agree. A 0 indicates no response.
@@ -206,3 +206,49 @@
 #' 
 #' @usage data(MTurkHeight)
 "MTurkHeight"
+#' Simulated 2PL data with suboptimal responses
+#' 
+#' @description
+#' Data simulated from a 2PL model for 500 subjects on 30 items. For 40% of examinees, data was generated as if the subject responded under suboptimal ability. 
+#' For these individuals, data was generated according to \eqn{\theta_{new} = \theta_{true} - 1}, where \eqn{\theta_{true}} is the true latent trait.
+#'
+#' @format A list containing:
+#' \describe{
+#'   \item{\code{dat}}{ (\eqn{500 \times 39}) matrix of simulated dichotomous data.}
+#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: \eqn{a_j} and \eqn{b_j}.}
+#'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
+#'  }
+#' 
+#' @references C. Schuster and K.-H. Yuan. Robust Estimation of Latent Ability in Item Response Models. Journal of Educational and Behavioral Statistics, 36(6):720–735, Dec. 2011. ISSN 1076-9986, 1935-1054. doi: 10.3102/1076998610396890. 
+#' 
+#' @usage data(simSuboptimal2PL)
+#'
+#' @examples
+#'
+#' ## Not run: 
+#'
+#' 
+"simSuboptimal2PL"
+#' Simulated 2PL data with back random responses
+#' 
+#' @description
+#' Data simulated from a 2PL model for 1500 subjects on 30 items. For 20% of examinees on the last 30% of items, correct responses were generated with a 20% success rate. 
+#'
+#' @format A list containing:
+#' \describe{
+#'   \item{\code{dat}}{ (\eqn{150 \times 30}) matrix of simulated dichotomous data.}
+#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: \eqn{a_j} and \eqn{b_j}.}
+#'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
+#'  }
+#' 
+#' @references Clark, M. E., Gironda, R. J., & Young, R. W. (2003). Detection of back random responding: Effectiveness of MMPI-2 and Personality Assessment Inventory validity indices. Psychological Assessment, 15(2), 223–234. https://doi.org/10.1037/1040-3590.15.2.223
+#' @references Yu, X., & Cheng, Y. (2019). A change-point analysis procedure based on weighted residuals to detect back random responding. Psychological Methods, 24(5), 658–674. https://doi.org/10.1037/met0000212
+#' 
+#' @usage data(simBRR2PL)
+#'
+#' @examples
+#'
+#' ## Not run: 
+#'
+#' 
+"simBRR2PL"
