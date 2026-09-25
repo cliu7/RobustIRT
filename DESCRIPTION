@@ -1,11 +1,10 @@
 Package: RobustIRT
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Robust Estimation of IRT Models
 Version: 0.1.1
-Author: Audrey Filonczuk, Cheng Liu, Madelynn Denner and Ying Cheng
+Author: Audrey Filonczuk, Meredith Sanders, Cheng Liu, and Ying Cheng
 Maintainer: Cheng Liu <cliu7@nd.edu>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: Robust estimation of IRT and related models
 License: GPL (>=2)
 Encoding: UTF-8
 LazyData: true
