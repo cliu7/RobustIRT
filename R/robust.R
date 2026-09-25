@@ -2487,7 +2487,7 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
 #' @references Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
 #' @references Snijders, T. A. (2001). Asymptotic null distribution of person fit statistics with estimated person parameter. Psychometrika, 66(3), 331-342.
 #' 
-#' @return 
+#' @return An object of class \code{mirt}
 #' 
 #' @examples
 #' # Load package and example data set 
