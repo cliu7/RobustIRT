@@ -1136,9 +1136,10 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #' Robust Latent Trait Estimation
 #'
 #' Estimates latent trait(s) under robust weighting for the Rasch, 1PL, 2PL, MIRT,
-#' GRM, and MGRM item response models. The function supports MLE and MAP estimation
-#' (for only unidimensional models) and returns standard
-#' errors alongside the ability estimates.
+#' GRM, and MGRM item response models. The function supports robust ML estimation 
+#' for all models, MAP and EAP estimation for unidimensional models, and WLE 
+#' estimation for the Rasch-2PL models. Standard errors are returned
+#' alongside the ability estimates.
 #' 
 #' @param dat An \eqn{N \times J} matrix of item responses (\eqn{N} subjects,
 #'   \eqn{J} items). Responses for dichotomous models must be 0/1. Responses for
@@ -1193,6 +1194,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'               and the Huber weighting function (Huber, 1981)
 #'                 \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
 #'               Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+#'               Convergence occurs when the absolute change in the log-likelihood is below \code{tol} AND the absolute change in the score function is below \code{score.tol} between two iterations, not exceeding the maximum number of iterations specified in \code{iter}.
 #' 
 #' @section Estimation types:
 #' \itemize{
@@ -1287,7 +1289,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'     standard error depending on if the conditions presented in Magis (2014) are met
 #'     (see Details).}
 #'   \item{\code{sandwich_MLE}}{(\eqn{N \times L}) Huber-White sandwich standard error.}
-#'   \item{\code{convergence_MLE}}{(\eqn{N \times L}) 0 = converged, 1 = did not converge, 2 = converged outside of bounds \code{low.bound} and \code{up.bound}. }
+#'   \item{\code{convergence_MLE}}{(\eqn{N \times L}) Nonconvergence indicators: 0 = converged, 1 = did not converge, 2 = converged outside of bounds \code{low.bound} and \code{up.bound}. }
 #'   \item{\code{theta_MAP}}{(\eqn{N \times 1}) Robust MAP estimates.
 #'     Rasch/1PL/2PL/GRM only.}
 #'   \item{\code{post_sd_MAP}}{(\eqn{N \times 1}) Posterior standard deviation of the MAP.}
@@ -1302,7 +1304,7 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'     at the iteration of convergence.}
 #' }
 #' @examples
-#' ## 2PL MLE + MAP with Huber weights (information residual) (OK)
+#' ## 2PL MLE + MAP with Huber weights (information residual)
 #' set.seed(25)
 #' N<-50 
 #' J<-20
@@ -2484,7 +2486,9 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
 #' 
 #' @references Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
 #' @references Snijders, T. A. (2001). Asymptotic null distribution of person fit statistics with estimated person parameter. Psychometrika, 66(3), 331-342.
-#' @export
+#' 
+#' @return 
+#' 
 #' @examples
 #' # Load package and example data set 
 #' library(mirt) 
@@ -2495,6 +2499,7 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
 #' Multidimensional GRM example: 5 Factors
 #' data(BFI2)
 #' robust.item(BFI2[,20:79], model=5, TOL=0.001, method="QMCEM")
+#' @export
 robust.item<-function(dat, survey.weights=NULL, ...){
   
   if(is.null(survey.weights)){
@@ -2524,11 +2529,12 @@ robust.item<-function(dat, survey.weights=NULL, ...){
 #' The robust maximum likelihood estimate of \eqn{\tau} is 
 #' \eqn{\hat{\tau}^{RML} = \frac{\sum_{j=1}^J w(r_j) \alpha_j^2 (\Beta_j - \log t_j)}{\sum_{j=1}^J w(r_j) \alpha_j^2 }}
 #' where weights \eqn{w(\cdot)} are defined by either the Huber (Huber, 1981) or bisquare (Mosteller & Tukey, 1977) weight functions (see \code{huber()} and \code{bisquare()} functions for more detail).
+#' A residual capturing the difference between the observed and model-expected response time is calculated with \eqn{r_j = \alpha_j(\log(t_{ij}) - \Beta_j - \tau_i)}.
 #' Although \eqn{\hat{\tau}^{RML}} yields a closed-form solution, the residuals and corresponding weights are updated based on the previously estimated \eqn{\hat{\tau}^{RML}} in an iterative manner, with the initial value set at the maximum likelihood estimate (where all weights are fixed at 1).
 #' Convergence occurs when the absolute change in \eqn{\hat{\tau}^{RML}} between two iterations is within the specified tolerance.
 #' 
 #' @param dat A \eqn{N\times J} matrix of numerical response time data
-#' @param ipars Item-level parameters for the log-normal model, structured with the first column containing time-intensity parameters \eqn{\Beta_j} and the second column containing discrimination parameters \eqn{\alpha_j} for \eqn{j=1,...,J}
+#' @param ipars Item-level parameters for the log-normal model, structured with the first column containing discrimination parameters \eqn{\alpha_j} and the second column containing time-intensity parameters \eqn{\Beta_j} for \eqn{j=1,...,J}.
 #' @param weight.type Weighting scheme: \code{"equal"} (default), \code{"Huber"},
 #'   \code{"bisquare"}, or \code{"custom"}.
 #' @param tuning.par Tuning parameter for Huber or bisquare weights.  Required when
@@ -2538,16 +2544,41 @@ robust.item<-function(dat, survey.weights=NULL, ...){
 #' @param iter Maximum number of iterations. Default is 30.
 #' @param tol Convergence tolerance on the absolute change in working speed estimate between two iterations.
 #'   Default is 0.0001.
-#' @details 
-#' 
+#' @details The working speed parameter, \eqn{tau}, captures how "speedily" a subject responds. 
+#'          In effect, a larger \eqn{tau} corresponds to quicker responses, while lower \eqn{tau}s correspond to slower responses.
+#'          When an anomalous handful of response times are spuriously quicker than others, the MLE of \eqn{tau} may become inflated (suggesting more speediness), and the robust estimate counteracts this bias, yielding a smaller estimate.
+#'          Conversely, spuriously slower responses may yield a smaller MLE than the true working speed, while the robust estimate works to increase the MLE closer to the truth.
+#'          For identifiability purposes, \eqn{tau} is assumed to have a mean of 0.
 #' 
 #' @references Huber, P. (1981). \emph{Robust Statistics}. John Wiley & Sons, Inc.
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}.
 #'   Addison-Wesley Publishing Company.
-#' @return 
-#' 
+#' @return A list containing
+#' \describe{
+#'   \item{\code{tau}}{ (\eqn{N \times 1}) matrix of working speed estimates.}
+#'   \item{\code{residuals}}{ (\eqn{N \times J}) matrix of item-level residuals (\eqn{r_j}) capturing the difference between the observed and model-expected response time for each individual.}
+#'   \item{\code{nonconvergence}}{ (\eqn{N \times 1}) Nonconvergence indicator (0 = converged, 1 = not converged).}
+#' }
 #' @examples
 #' 
+#' # Example with Canadian PISA data
+#' library(pisaRT)
+#' dat<- pisaW[,26:37]
+#' # Estimate item parameters for the log-normal model under normal responding
+#' library(LNIRT)
+#' mod.ln <- LNRT(RT = dat, data = dat)$Post.Means
+#' ipars<-cbind(mod.ln$Time.Discrimination, mod.ln$Time.Intensity)
+#' # Reduce response time by 1/4 for people as if they had item preknowledge on items 2, 4, 6, 8
+#' dat[,c(2, 4, 6, 8)]<-dat[,c(2, 4, 6, 8)] - log(4)
+#' 
+#' # Robust estimation of tau with aberrant data
+#' out.rt.ab<-robust.rt(dat = exp(dat), ipars, weight.type = "bisquare", tuning.par = 4)
+#' 
+#' # Robust estimation of tau with normal response data
+#' out.rt<-robust.rt(dat = exp(dat), ipars, weight.type = "equal")
+#' head(cbind(out.rt.ab$tau, out.rt$tau))
+#' 
+#' # Robust estimates are lower, while MLEs suggest speedier responses
 #' 
 #' @export
 
@@ -2567,8 +2598,8 @@ robust.rt<-function(dat, ipars, weight.type = "equal", tuning.par = NULL, custom
   J<-ncol(dat)
   N<-nrow(dat)
   
-  alphas<-ipars[,2]
-  betas<-ipars[,1]
+  alphas<-ipars[,1]
+  betas<-ipars[,2]
   
   # Item-level weight given residual vector
   compute.weights<-function(r_mat){
@@ -2584,7 +2615,7 @@ robust.rt<-function(dat, ipars, weight.type = "equal", tuning.par = NULL, custom
   # Matrices for output
   tau<-matrix(NA, N)
   convergence<-matrix(1, N)
-  resids<-matrix(NA, N, J)
+  residual_1<-matrix(NA, N, J)
   
   ##### Begin Computation #####
   for(i in 1:N){
@@ -2602,12 +2633,12 @@ robust.rt<-function(dat, ipars, weight.type = "equal", tuning.par = NULL, custom
       }
       tau0<-tau1
     }
-    tau[i,]<-tau1
-    resids[i,]<-alphas*(log(dat_i)-(betas-tau0))
+    tau[i]<-tau1
+    residual_1[i,]<-as.matrix(alphas*(log(dat_i)-(betas-tau0)))
     
   } # end person loop of computations
   
-  return(list(tau = tau, residuals = resids, nonconvergence = convergence))
+  return(list(tau = tau, residuals = residual_1, nonconvergence = convergence))
 }
 
 #' Plot histogram of residuals along plot of the weight function
@@ -2745,6 +2776,7 @@ choose.tuco<-function(r, H=NULL, B=NULL, x.axis=NULL){
 #' # 2Pl Example
 #' 
 #' # MGRM Example: Different Plots
+#' library(mirt)
 #' data(BFI2)
 #' dat<-BFI2[,20:79]
 #' specific<- rep(1:5, 12) #which factor each item loads on
@@ -2752,14 +2784,15 @@ choose.tuco<-function(r, H=NULL, B=NULL, x.axis=NULL){
 #' ipars<-coef(mod, simplify=T)$items
 #' ipars<-cbind(ipars[,1:5], -ipars[,6:9]/rowSums(ipars[,1:5])) # reparameterize
 #' out <- robust.theta.comparisons(dat, ipars, model= "MGRM", weight.type = "bisquare", tuning.par = 4, resid = "standardized", dimen=5, D=1)
-#' out$`Summary Statistics`
+#' head(out$`Summary Statistics`)
 #' out$`Dimension 1`
 #' out$`Dimension 2`
 #' 
 #' @export
    
-robust.theta.comparisons<-function(dat, ipars, model, weight.type, tuning.par, same.plot.dim = FALSE, ids = NULL, ab.ids = NULL, ...){
+robust.theta.comparisons<-function(dat, ipars, model, weight.type, tuning.par, est.type = "MLE", same.plot.dim = FALSE, ids = NULL, ab.ids = NULL, ...){
   
+  th.est.type<-paste0("theta_", est.type)
   ##### Latent trait estimation
   
   # Equal weight
@@ -2778,11 +2811,11 @@ robust.theta.comparisons<-function(dat, ipars, model, weight.type, tuning.par, s
   ##### Create summary statistic table
   
   #Euclidean distance between robust and nonrobust estimate
-  euc.dist <- sqrt(rowSums(as.matrix((th.eq$theta_MLE - th.rob$theta_MLE)^2)))
+  euc.dist <- sqrt(rowSums(as.matrix((th.eq[[th.est.type]] - th.rob[[th.est.type]])^2)))
   
   sum.stats<-data.frame(Distance=euc.dist,
-                        Robust=th.rob$theta_MLE,
-                        Equal=th.eq$theta_MLE,
+                        Robust=th.rob[[th.est.type]],
+                        Equal=th.eq[[th.est.type]],
                         dat)
   
   # If IDs are supplied, create a column with them
@@ -2798,7 +2831,7 @@ robust.theta.comparisons<-function(dat, ipars, model, weight.type, tuning.par, s
   ##### Create plots
   
   if(same.plot.dim){ # If estimates for all dimensions of the latent trait are to be plotted jointly on one plot
-    df<-data.frame(x=c(th.eq$theta_MLE), y=c(th.rob$theta_MLE))
+    df<-data.frame(x=c(th.eq[[th.est.type]]), y=c(th.rob[[th.est.type]]))
     
     if(!is.null(ab.ids)){
       df<-cbind(df, Status = ifelse(ids%in%ab.ids, "Flagged", "Not Flagged"))
@@ -2825,12 +2858,12 @@ robust.theta.comparisons<-function(dat, ipars, model, weight.type, tuning.par, s
     
   }else{ # If estimates are to be plotted on separate plots for different latent trait dimensions
     
-    dimen<-ncol(th.rob$theta_MLE)
+    dimen<-ncol(th.rob[[th.est.type]])
     out<-vector("list", dimen+1)
     names(out) <- c(paste0("Dimension ", 1:dimen), "Summary Statistics")
     
     for(i in 1:dimen){
-      df<-data.frame(x=th.eq$theta_MLE[,i], y=th.rob$theta_MLE[,i])
+      df<-data.frame(x=th.eq[[th.est.type]][,i], y=th.rob[[th.est.type]][,i])
       
       if(!is.null(ab.ids)){
         df<-cbind(df, Status = ifelse(ids%in%ab.ids, "Flagged", "Not Flagged"))
@@ -2868,9 +2901,16 @@ robust.theta.comparisons<-function(dat, ipars, model, weight.type, tuning.par, s
 #' @param ... Additional arguments to be passed to \code{mirt()}
 #' 
 #' @references Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
-#' @details 
+#' @details When the model fits the data, item parameters estimated with RMML should be approximately equivalent to those estimated with MML, thereby roughly following the identity line. 
+#'          When the two estimates differ greatly for a parameter on an item, aberrant responding may be present such that its effects are mitigated by robust weighting. 
+#'          The plots returned by \code{robust.item.plots()} can therefore be used to spot items that are greatly affected by robust estimation, for further investigation.
 #' 
-#' @return 
+#' @return A list containing one plot for each item parameter, structured as \code{`Parameter Estimates for a1`}, \code{`Parameter Estimates for d`}, etc., in addition to
+#' \describe{
+#'   \item{\code{`MML Item Parameter Estimates`}}{ Matrix of item parameter estimates obtained with MML as defined by \code{mirt()}, each row corresponding to an item.}
+#'   \item{\code{`RMML Item Parameter Estimates`}}{ Matrix of item parameter estimates obtained with robust MML as defined by \code{mirt()}, each row corresponding to an item.}
+#' }
+#' 
 #' 
 #' @examples
 #' 
@@ -2934,18 +2974,28 @@ robust.item.plots<-function(dat, ...){
 #' where \eqn{\Phi(\cdot)} is the CDF of the standard normal distribution. 
 #' 
 #' @param dat A \eqn{N\times J} matrix of response data
+#' @param freq Logical; if \code{TRUE}, the histogram graphic is a representation of frequencies; if \code{FALSE}, probability densities are plotted (so that the histogram has a total area of one). Defaults to \code{TRUE}.
 #' @param ... Additional arguments to be passed to \code{mirt()}
 #' 
 #' @references Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
 #' @references Snijders, T. A. (2001). Asymptotic null distribution of person fit statistics with estimated person parameter. Psychometrika, 66(3), 331-342.
-#' @details 
+#' @references Sinharay, S. (2016). The choice of the ability estimate with asymptotically correct standardized person-fit statistics. British Journal of Mathematical and Statistical Psychology, 69(2), 175–193. https://doi.org/10.1111/bmsp.12067.
+#' @details The IRT model is estimated with, first, MML and, second, RMML. Four histograms are returned. Two histograms display the distribution of person-fit residuals, \eqn{l^{`*`}_{zi}}, 
+#'          across the sample. In the first of these histograms, \eqn{l^{`*`}_{zi}} is calculated from item parameters estimated with MML, while the second histogram displays the residuals calculated using robust MML item parameter estimates.
+#'          As RMML reduces the bias in item parameter estimates due to aberrant responding, it is expected that person-fit residuals consequently are more accurate (e.g., see ).  
+#'          Likewise, the latter two histograms display the distribution of person-specific weights, with the first graph utilizing MML and the second graph utilizing robust MML item parameter estimates.
+#'          Under the null hypothesis, the p-values for a continuous test statistic are said to follow a standard normal distribution. 
+#'          Given that the weights recommended for robust MML estimation are proportional to the p-values of \eqn{l^{`*`}_{zi}} according to the standard normal distribution, it is expected that, under model fit, the weights produce an approximately uniform distribution.
+#'          Deviations from the uniform distribution, under appropriately large sample sizes, may provide insight into the behavior of the examinees, e.g., a large uptick near 0 may indicate prevalent aberrant responding.
+#'          As with the residuals, these weights are expected to become more accurate after robust weighting and may reveal anomalous patterns more closely.
+#'          Note that the distribution of weights may differ from \eqn{U(0,1)} due to the inverse weighting of the p-value by the sum of weights across the sample.
 #' 
 #' @return List with four histograms
 #'  \describe{
-#'    \item{\code{Person-Fit (MMLE)}}{Histogram of person-fit residuals \eqn{l_z^{`*`}} across individuals based on the IRT model estimated with MML.}
+#'    \item{\code{Person-Fit Indices (MMLE)}}{Histogram of person-fit residuals \eqn{l_z^{`*`}} across individuals based on the IRT model estimated with MML.}
 #'    \item{\code{Person-Fit Indices (RMMLE)}}{Histogram of person-fit residuals \eqn{l_z^{`*`}} across individuals based on the IRT model estimated with robust MML.}
 #'    \item{\code{Subject-Level Weights (MMLE)}}{(\eqn{N \times L}) Histogram of person-level weights based on the IRT model estimated with MML.}
-#'    \item{\code{Subject-Level Weights (RMMLE)}}{(\eqn{N \times L}) Histogram of person-level weights based on the IRT model estimated with robust MML. }
+#'    \item{\code{Subject-Level Weights (RMMLE)}}{(\eqn{N \times L}) Histogram of person-level weights based on the IRT model estimated with robust MML.}
 #' }
 #' @examples
 #' 
@@ -2965,7 +3015,7 @@ robust.item.plots<-function(dat, ...){
 #' 
 #' @export
 
-hist.weights<-function(dat, ...){
+hist.weights<-function(dat, freq = TRUE, ...){
   
   # Initial Model Estimation 
   mod <- mirt(dat, ...) 
@@ -2981,10 +3031,10 @@ hist.weights<-function(dat, ...){
   # Weight  
   weight2 <- pnorm(per.fit2)*nrow(dat)/ sum(pnorm(per.fit2)) 
   
-  return(list(`Person-Fit (MMLE)` = hist(per.fit), 
-              `Person-Fit Indices (RMMLE)` = hist(per.fit2), 
-              `Subject-Level Weights (MMLE)` = hist(weight), 
-              `Subject-Level Weights (RMMLE)` = hist(weight2)))
+  return(list(`Person-Fit Indices (MMLE)` = hist(per.fit, main = "Histogram of Person-Fit Residuals (MMLE)", xlab = "Residuals", freq=freq)$hist, 
+              `Person-Fit Indices (RMMLE)` = hist(per.fit2, main = "Histogram of Person-Fit Residuals (RMMLE)", xlab = "Residuals", freq=freq)$hist, 
+              `Subject-Level Weights (MMLE)` = hist(weight, main = "Histogram of Subject-Level Weights (MMLE)", xlab = "Weights", freq=freq)$hist, 
+              `Subject-Level Weights (RMMLE)` = hist(weight2, main = "Histogram of Subject-Level Weights (RMMLE)", xlab = "Weights", freq=freq)$hist))
   
 }
-
+                                    
