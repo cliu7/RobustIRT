@@ -2,9 +2,9 @@
 % Please edit documentation in R/robust.R
 \name{choose.tuco}
 \alias{choose.tuco}
-\title{Plot histogram of residuals along plot of weight (dependent on TuCo) vs residuals}
+\title{Plot histogram of residuals along plot of the weight function}
 \usage{
-choose.tuco(r, H = NULL, B = NULL)
+choose.tuco(r, H = NULL, B = NULL, x.axis = NULL)
 }
 \arguments{
 \item{r}{A vector of residuals}
@@ -12,6 +12,8 @@ choose.tuco(r, H = NULL, B = NULL)
 \item{H}{Huber tuning parameter}
 
 \item{B}{Bisquare tuning parameter}
+
+\item{x.axis}{A vector containing two values: the lower and upper limits for the x-axis. Default is the minimum and maximum values of the residuals supplied in \code{r}, excluding infinite values.}
 }
 \value{
 Histogram plot of residuals beneath a graph of the weight functions vs. the residuals.
@@ -20,79 +22,35 @@ Histogram plot of residuals beneath a graph of the weight functions vs. the resi
 Plot a histogram of residuals along the graph of the weighting function (dependent on the tuning parameter) as a function of the residual
 }
 \details{
-The goal of this plot is to visualize the proportion of residuals that are downweighted based on the tuning parameter and allow the researcher to choose a tuning parameter that suits their data well.
-              For a set of residuals with larger variance, a larger tuning parameter should be used.
-              Generally, the tail end of the weighting function should approach the tail end of the distribution of residuals.
-              To increase the downweighting applied in estimation, use a smaller tuning parameter. To decrease the amount of downweighting, use a greater tuning parameter.
-              The function will plot the histogram of residuals below (1) the Huber weight curve (Huber, 1981) if \emph{H} is supplied to the function, (2) Tukey's bisquare weight curve (Mosteller & Tukey, 1977) if \emph{B} is supplied, or (3) both the Huber and bisquare weight curves if both tuning parameters are supplied.
-              If \emph{H} is supplied, vertical lines will be displayed at \emph{H} and \emph{-H} to highlight the amount of data that is downweighted (a residual greater than \emph{|H|}) versus not downweighted.
-              If no tuning parameter is supplied, just the histogram of residuals is generated.
+This function allows the user to visualize the amount of downweighting applied to their data in robust latent trait estimation based on the tuning parameter and item-level residuals, in order to choose a tuning parameter that suits their data well.
+              The values \eqn{H=1} and \eqn{B=4} are recommended for Huber (Huber, 1981) and bisquare (Mosteller & Tukey, 1977) weighting, respectively, but the amount of downweighting can be made more conservative or more liberal depending on the research goals.
+              To increase the downweighting applied in estimation, use a smaller tuning parameter. To decrease the amount of downweighting, apply a greater tuning parameter.
+              The histogram of residuals is plotted below a plot of the weight curve(s) at the tuning parameter. If \emph{H} is supplied to the function, the Huber curve is plotted, and, if \emph{B} is supplied, Tukey's bisquare weight is plotted. If both \emph{H} and \emph{B} are supplied, the weights are plotted simultaneously.
+              If \emph{H} is supplied, dotted vertical lines at \emph{H} and \emph{-H} reveal the cut between data that is downweighted (\eqn{|r_ij|>H}) and data that is not downweighted (\eqn{|r_ij|<H}), e.g., receives full weighting (\eqn{w_ij=1.0}).
+              If \emph{B} is supplied, dotted vertical lines at \emph{B} and \emph{-B} reveal the cut between data that receives some weight (\eqn{|r_ij|<B}) and data that is removed (\eqn{|r_ij|>B}), e.g., receives a weight of 0.
+              If no tuning parameter is supplied, the histogram of residuals is provided.
 }
 \examples{
-## Unidimensional IRT Example
-n=40
-# Generate real thetas
-thetas<-matrix(seq(0,2, by=.05), ncol=1)
-# Set item slope and difficulty
-a<-matrix(runif(n, .5, 1.5), ncol=1) 
-b<-rnorm(n)
 
-# Introduce response disturbances: working at a suboptimal level (theta minus 1 standard deviation), for last 40\% of items
-theta.drop<-1
-chng.pt<-0.6
-probs<-cbind(item.prob(thetas, "2PL", cbind(a[1:(chng.pt*n)], b[1:(chng.pt*n)])), 
-             item.prob(thetas-theta.drop, "2PL", cbind(a[(chng.pt*n+1):n], b[(chng.pt*n+1):n])))
-dat<-apply(probs, c(1, 2), function(x) rbinom(1, 1, x))
+### Visualize Huber weight function
+##  Use residual() function
+thetas<-c(-2, -1, 0, 1, 2)
+ipars<-data.frame(a = c(1, 1.2, 1.5, 1, 1.2, 1.5, 1, 1.2, 1.5), b = c(-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2))
+info_r<-residual(thetas, "2PL", ipars, resid = "information")
+choose.tuco(info_r, H=1)
 
-Estimate thetas
-example<-theta.est(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL)
-choose.tuco(r=matrix(na.omit(example$residual), ncol=1), B=4)
 
-## GRM example
-n=40
-nthresh<-4
-# Generate real thetas
-thetas<-seq(-2,2.1, by=.1)
+### Compare Huber and bisquare weights
+##  Use robust.theta() output
+data(BFI2)
+dat<-BFI2[,20:79]
+specific<- rep(1:5, 12) #which factor each item loads on
+mod<-mirt(dat, specific, TOL=0.001, method="QMCEM")
+ipars<-coef(mod, simplify=T)$items
+ipars<-cbind(ipars[,1:5], -ipars[,6:9]/rowSums(ipars[,1:5])) # reparameterize
+out <- robust.theta(dat, ipars, model= "MGRM", resid = "standardized", dimen=5, D=1)
 
-# Set item slope
-a<-runif(n, .90, 2.15) 
-# Set category threshold parameters
-b<- matrix(runif(n*nthresh, -2.5,2.5), nrow = n, ncol =nthresh)
-b<-t(apply(b, 1, sort)) 
-
-# Calculate response probabilities and generate data
-probs<-item.prob(thetas, "GRM", cbind(a, b))
-dat<-data.gen(probs$P)
-
-Introduce response disturbance: random guessing for latter 40\% of the exam
-abdat<-dat
-chng.pt<-.6 
-abdat[(chng.pt*n+1):n, ]<-sample(c(1:(nthresh+1)), length(thetas)*(n-chng.pt*n), replace = T)
-Calculate ability estimates and residuals
-mle<-theta.est.grm(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal")
-choose.tuco(matrix(mle$residual), H=.1, B=.8)
-
-## MIRT Example
-data(SAT12)
-SAT12[SAT12 == 8] <- NA #set 8 as a missing value
-
-# Correct answer key
-key <- c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5)
-scoredSAT12 <- key2binary(SAT12, key)
-specific <- c(2, 3, 2, 3, 3, 2, 1, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 3, 2, 3, 1,2) #which factor each item loads on
-b_mod1 <- mirt(scoredSAT12, specific)
-ipars<-matrix(unlist(coef(b_mod1))[1:(32*6)], nrow = length(key), byrow=T) #item parameters
-
-## Set Parameters
-a <- ipars[,1:3]
-d<- ipars[,4]
-# Remove vectors with missing data
-dat<-scoredSAT12[!is.na(rowSums(scoredSAT12)),] 
-colnames(dat)<-NULL
-
-# Calculate theta estimates and residuals
-out<-theta.est(t(dat), a, d, iter=30, cutoff=.01, weight.type="equal")
-choose.tuco(matrix(out$residual[,,2]), H=1, B=4)
+choose.tuco(r=out$residuals_MLE, H=1, B=4, c(-6, 6))
 }
 \references{
 Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250

@@ -8,7 +8,7 @@ residual(
   theta,
   model,
   ipars,
-  dat,
+  dat = NULL,
   resid = c("standardized", "msr", "information"),
   D = 1.7
 )
@@ -41,7 +41,7 @@ The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat
 The MSR replaces the variance term with the conditional probability of the observed response category,
 \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
 The information residual is available for dichotomous models only, capturing the difference between the person ability parameter and the difficulty parameter of an item, weighted by the item discrimination:
-\eqn{a_j(\theta -b_j)} for unidimensional models and \eqn{\boldsymbol{a}_j \boldsymbol{\theta} +d_j)} for the MIRT model.
+\eqn{a_j(\theta -b_j)} for unidimensional models and \eqn{\boldsymbol{a}_j' \boldsymbol{\theta} +d_j)} for the MIRT model.
 See \code{item.prob} for description of models and structure of \code{ipars}.
 }
 \examples{
@@ -73,14 +73,14 @@ residual(theta, model = "MIRT", ipars=ipars, dat=dat)
 
 
 # GRM model
-dat <- matrix(c(0,1,2, 1,2,3), nrow = 2, byrow = TRUE)
+dat <- matrix(c(4,1, 2,3), nrow = 2, byrow = TRUE)
 theta <- c(-0.5, 1.0)
 
 ipars <- rbind(
   c(a = 1.0, b1 = -2.0, b2 = -1.0, b3 = 0.0),
-  c(a = 0.5, b1 = -1.0, b2 =  0.0, b3 = 1.0)
+  c(a = 0.5, b1 = -1.0, b2 =  0.0, b3 = 1.0))
 
-residual(theta, model = "GRM", ipars=ipars, dat=dat)
+grm.resid<-residual(theta, model = "GRM", ipars=ipars, dat=dat, resid="standardized")
 }
 \references{
 Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.

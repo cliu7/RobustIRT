@@ -18,8 +18,11 @@ robust.theta(
   prior = c(0, 1),
   eap.quad.pts = seq(-4, 4, length.out = 41),
   init.val = 0,
+  up.bound = 3,
+  low.bound = -3,
   iter = 30,
-  tol = 0.01
+  tol = 0.01,
+  score.tol = tol
 )
 }
 \arguments{
@@ -46,8 +49,11 @@ to 1.0 for the logistic scale.}
 \item{custom.weights}{An \eqn{N \times J} numeric matrix of user-specified weights
 in \eqn{[0, 1]}.  Required when \code{weight.type = "custom"}.}
 
-\item{est.type}{Estimation methods: \code{"MLE"}, \code{"MAP"}, \code{"EAP"}.
+\item{est.type}{Estimation methods: \code{"MLE"}, \code{"MAP"}, \code{"EAP"}, \code{"WLE"}.
 Can specify more than one in a vector (e.g., \code{c("MLE","MAP")}) for supported models.}
+
+\item{dimen}{Numeric integer specifying the number of dimensions for the IRT model.
+Required when using the MGRM.}
 
 \item{prior}{Length-2 numeric vector \code{c(mu, sigma2)} for the normal prior
 used in MAP and EAP.  Default is the standard normal \code{c(0, 1)}.}
@@ -59,10 +65,19 @@ equally spaced points in the interval \eqn{[-4, 4]}.}
 scalar (applied to all subjects and dimensions), a length-\eqn{L} vector for \eqn{L} dimensions
 (applied to all subjects), or an \eqn{N \times L} matrix.  Default is 0.}
 
+\item{up.bound}{Upper bound for truncating \eqn{\hat{\theta}}. Any converged 
+estimate greater than \code{up.bound} is replaced by the specified value. Default is 3.0.}
+
+\item{low.bound}{Lower bound for truncating \eqn{\hat{\theta}}. Any converged 
+estimate less than \code{low.bound} is replaced by the specified value. Default is -3.0.}
+
 \item{iter}{Maximum number of Newton–Raphson iterations.  Default is 30.}
 
 \item{tol}{Convergence tolerance on the absolute change in log-likelihood.
 Default is 0.01.}
+
+\item{score.tol}{Convergence tolerance on the absolute change in the score function.
+Default is \code{tol}.}
 
 \item{residual}{The residual used to compute weights:
 \code{"standardized"} (default), \code{"msr"}, \code{"information"}, or \code{"dual"}.}
@@ -75,12 +90,12 @@ A named list. Elements present depend on \code{est.type}:
     standard error depending on if the conditions presented in Magis (2014) are met
     (see Details).}
   \item{\code{sandwich_MLE}}{(\eqn{N \times L}) Huber-White sandwich standard error.}
-  \item{\code{convergence_MLE}}{(\eqn{N \times L}) 0 = converged, 1 = failed.}
+  \item{\code{convergence_MLE}}{(\eqn{N \times L}) Nonconvergence indicators: 0 = converged, 1 = did not converge, 2 = converged outside of bounds \code{low.bound} and \code{up.bound}. }
   \item{\code{theta_MAP}}{(\eqn{N \times 1}) Robust MAP estimates.
     Rasch/1PL/2PL/GRM only.}
   \item{\code{post_sd_MAP}}{(\eqn{N \times 1}) Posterior standard deviation of the MAP.}
   \item{\code{sandwich_MAP}}{(\eqn{N \times 1}) Sandwich equivalent of the posterior standard deviation.}
-  \item{\code{convergence_MAP}}{(\eqn{N \times 1}) Nonconvergence indicators: 0 = converged, 1 = failed..}
+  \item{\code{convergence_MAP}}{(\eqn{N \times 1}) Nonconvergence indicators: 0 = converged, 1 = did not converge, 2 = converged outside of bounds \code{low.bound} and \code{up.bound}}
   \item{\code{theta_EAP}}{(\eqn{N \times 1}) Robust EAP estimates.
     Rasch/1PL/2PL only.}
   \item{\code{post_sd_EAP}}{(\eqn{N \times 1}) Posterior standard deviation of the EAP.}
@@ -92,9 +107,10 @@ A named list. Elements present depend on \code{est.type}:
 }
 \description{
 Estimates latent trait(s) under robust weighting for the Rasch, 1PL, 2PL, MIRT,
-GRM, and MGRM item response models. The function supports MLE and MAP estimation
-(for only unidimensional models) and returns standard
-errors alongside the ability estimates.
+GRM, and MGRM item response models. The function supports robust ML estimation 
+for all models, MAP and EAP estimation for unidimensional models, and WLE 
+estimation for the Rasch-2PL models. Standard errors are returned
+alongside the ability estimates.
 }
 \details{
 The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta_i}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
@@ -112,16 +128,18 @@ The goal of robust estimation is to downweigh potentially aberrant responses to 
               and the Huber weighting function (Huber, 1981)
                 \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
               Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
-Need to add more about literature of robust estimation in IRT
+              Convergence occurs when the absolute change in the log-likelihood is below \code{tol} AND the absolute change in the score function is below \code{score.tol} between two iterations, not exceeding the maximum number of iterations specified in \code{iter}.
 }
 \section{Estimation types}{
 
 \itemize{
   \item \code{"MLE"} — Maximum likelihood estimation with the Newton–Raphson algorithm.
   \item \code{"MAP"} — Maximum a posteriori (Bayesian mode) with the Newton–Raphson algorithm
-        under a normal prior.  Available for Rasch, 1PL, 2PL, and GRM only.
+        under a normal prior. Available for Rasch, 1PL, 2PL, and GRM only.
   \item \code{"EAP"} — Expected a posteriori under a normal prior using Gauss–Hermite-style quadrature.
         Available for Rasch, 1PL, and 2PL only.
+  \item \code{"WLE"} - Weighted likelihood estimation (Warm, 1989) with the Newton-Raphson algorithm,
+        equivalent to the MAP estimate under Jeffreys' prior. Available for Rasch, 1PL, and 2PL only.
 }
 }
 
@@ -129,7 +147,7 @@ Need to add more about literature of robust estimation in IRT
 
 \itemize{
   \item \code{"information"} — Information residual \eqn{r_{ij} = a_j(\theta_i - b_j)}
-        or \eqn{r_{ij} = \boldsymbol{a}_j\boldsymbol{\theta}_i + d_j} in the 
+        or \eqn{r_{ij} = \boldsymbol{a}_j'\boldsymbol{\theta}_i + d_j} in the 
         multidimensional case. Available only for the Rasch, 1PL, 2PL, and 
         MIRT models. The information residual detects anomalies in the predictor 
         space (i.e., \eqn{\boldsymbol{\theta}}) to produce Mallows-class weights) 
@@ -181,13 +199,13 @@ of the ability estimate, along with the traditionally reported value:
 \examples{
 ## 2PL MLE + MAP with Huber weights (information residual)
 set.seed(25)
-N <- 50 
-J <- 20
-ipars <- cbind(a = runif(J, 0.8, 2), b = rnorm(J))
-theta_true <- rnorm(N)
-P <- item.prob(theta_true, "2PL", ipars)
-dat <- dat.gen(P)
-out <- robust.theta(dat, ipars, model = "2PL", resid = "information", weight.type = "Huber", 
+N<-50 
+J<-20
+ipars<-cbind(a = runif(J, 0.8, 2), b = rnorm(J))
+theta_true<-rnorm(N)
+P<-item.prob(theta_true, "2PL", ipars)
+dat<-dat.gen(P)
+out<-robust.theta(dat, ipars, model = "2PL", resid = "information", weight.type = "Huber", 
                     tuning.par = 1, est.type = c("MLE", "MAP"))
 head(out$theta_MLE)
 head(out$ase_MLE)
@@ -195,48 +213,59 @@ head(out$post_sd_MAP)
 
 ## GRM MLE with standardized residual + bisquare weights 
 set.seed(24)
-J <- 15
-K <- 5 
-N <- 100
-a <- runif(J, 0.8, 2)
-b <- t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
-ip <- cbind(a, b)
-th <- rnorm(N)
-P <- item.prob(th, "GRM", ip)
-dat <- dat.gen(P$P, anchor = 1)
-out_grm <- robust.theta(dat, ip, model = "GRM", resid = "standardized", weight.type = "bisquare", tuning.par = 4, est.type = "MLE")
+J<-15
+K<-5 
+N<-100
+a<-runif(J, 0.8, 2)
+b<-t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
+ip<-cbind(a, b)
+th<-rnorm(N)
+P<-item.prob(th, "GRM", ip)
+dat<-dat.gen(P$P, anchor = 1)
+out_grm<-robust.theta(dat, ip, model = "GRM", resid = "standardized", weight.type = "bisquare", tuning.par = 4, est.type = "MLE")
 head(out_grm$theta_MLE)
 
-## MIRT MLE with information residual 
+## MIRT MLE with information residual Error 
 set.seed(26)
-L <- 2
-J <- 50
-N <- 80
-a <- matrix(runif(J*L, 0.5, 1.5), J, L)
-d <- rnorm(J)
-ip <- cbind(a, d)
-th <- matrix(rnorm(N*L), N, L)
-P <- item.prob(th, "MIRT", ip)
-dat <- dat.gen(P)
-out_mirt <- robust.theta(dat, ip, model = "MIRT", resid = "information", 
-                          weight.type = "Huber", tuning.par = 1, est.type = "MLE")
+L<-2
+J<-50
+N<-80
+a<-matrix(runif(J*L, 0.5, 1.5), J, L)
+d<-rnorm(J)
+ip<-cbind(a, d)
+th<-matrix(rnorm(N*L), N, L)
+P<-item.prob(th, "MIRT", ip)
+dat<-dat.gen(P)
+out_mirt<-robust.theta(dat, ip, model = "MIRT", resid = "information", 
+                          weight.type = "Huber", tuning.par = 1, est.type = "MLE", score.tol = 0.1)
 head(out_mirt$theta_MLE)
 
 ## MGRM MLE with standardized residual 
 set.seed(27)
-L <- 2
-K <- 5
-J <- 50
-N <- 20
-a <- matrix(runif(J*L, 0.5, 1.5), J, L)
-d <- t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
-ip <- cbind(a, d)
-th <- matrix(rnorm(N*L), N, L)
-P <- item.prob(th, "MGRM", ip)$P
-dat <- dat.gen(P, anchor=1)
-out_mgrm <- robust.theta(dat, ip, model = "MGRM", resid = "standardized", dimen=2,
+L<-2
+K<-5
+J<-50
+N<-20
+a<-matrix(runif(J*L, 0.5, 1.5), J, L)
+d<-t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
+ip<-cbind(a, d)
+th<-matrix(rnorm(N*L), N, L)
+P<-item.prob(th, "MGRM", ip)$P
+dat<-dat.gen(P, anchor=1)
+out_mgrm<-robust.theta(dat, ip, model = "MGRM", resid = "standardized", dimen=2,
                           weight.type = "Huber", tuning.par = 1, est.type = "MLE")
 head(out_mgrm$theta_MLE)
+
+## WLE Example: 2PL 
+set.seed(20)
+thetas<-c(-4, -3, -2, -1, 0, 1, 2, 3, 4)
+a<-runif(15, 0.8, 2)
+b<-rnorm(15)
+P<-item.prob(thetas, "2PL", cbind(a, b))
+dat<-dat.gen(P, anchor = 0)
+out_wle<-robust.theta(dat, cbind(a, b), model = "2PL", resid = "information", 
+                          weight.type = "Huber", tuning.par = 1, est.type = "WLE")
+head(out_wle$theta_WLE)
 }
 \references{
 Chen, J., Cheng, Y., & Li, Z. (2025). Dual-weight robust estimation of
@@ -274,4 +303,7 @@ White, H. (1980). A Heteroskedasticity-Consistent Covariance Matrix
 Yu, X., & Cheng, Y. (2019). A change-point analysis procedure based on
   weighted residuals to detect back random responding.
   \emph{Psychological Methods, 24}(5), 658–674.
+
+Warm, T.A. Weighted likelihood estimation of ability in item 
+  response theory. Psychometrika 54, 427–450 (1989).
 }

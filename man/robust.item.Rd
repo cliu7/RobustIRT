@@ -4,13 +4,28 @@
 \alias{robust.item}
 \title{Robust Estimation of Item Parameters}
 \usage{
-robust.item(dat)
+robust.item(dat, survey.weights = NULL, ...)
 }
 \arguments{
-\item{dat}{A \eqn{N\times J} matrix of dichotomous response data}
+\item{dat}{A \eqn{N\times J} matrix of response data}
+
+\item{survey.weights}{Optional argument to assign user-specified weights. Default weights are calculated based on \eqn{l^{`*`}_{zi}.}}
+
+\item{...}{Additional arguments to be passed to \code{mirt()}}
+}
+\value{
+An object of class \code{mirt}
 }
 \description{
-Robust Estimation of Item Parameters
+The robust marginal maximum likelihood (RMML) estimator (Hong & Cheng, 2019) provides estimates of item parameters for various IRT models when both item and latent trait parameters are unknown. The robust algorithm is designed to reduce the bias in item parameter estimates due to aberrant responding.
+A weight, \eqn{w_i}, is assigned to each examinee such that smaller weights reflect larger model misfit for the examinee. The weights are then applied to the likelihood according to 
+\eqn{L_w(\boldsymbol{x}|\boldsymbol{\gamma}) = \prod_{i=1}^N L(\boldsymbol{x}_i|\boldsymbol{\gamma})^{w_i},}
+where \eqn{L(\boldsymbol{x}_i|\boldsymbol{\gamma})} is the likelihood of the response vector \eqn{\boldsymbol{x}_i} for examinee \eqn{i} (\eqn{i=1,...,N}) given \eqn{\boldsymbol{\gamma},} the matrix of item parameters for the test. The EM algorithm proceeds, maximizing this weighted likelihood.
+}
+\details{
+Hong and Cheng (2019) derive weights based on the person-fit statistic \eqn{l_z^{`*`}}, where lower values indicate greater misfit between the response pattern and the model (Snijders, 2001). Since \eqn{l_z^{`*`}} follows the asymptotic standard normal distribution, weights were derived as the normalized \emph{p}-value of the residual under a one-sided alternative hypothesis, e.g.,
+\eqn{w_i = \frac{\Phi(l^{`*`}_{zi})}{\sum_{i=1}^N \Phi(l^{`*`}_{zi})},}
+where \eqn{\Phi(\cdot)} is the CDF of the standard normal distribution. Note that the user may define different weights with the argument \code{survey.weights}.
 }
 \examples{
 # Load package and example data set 
@@ -18,7 +33,13 @@ library(mirt)
 data(Science) 
 # Robust estimation of item parameters
 robust.item(Science)
+
+Multidimensional GRM example: 5 Factors
+data(BFI2)
+robust.item(BFI2[,20:79], model=5, TOL=0.001, method="QMCEM")
 }
 \references{
 Hong, M., & Cheng, Y. (2019). Robust maximum marginal likelihood (RMML) estimation for item response theory models. Behavior Research Methods, 51(2), 573–588. https://doi.org/10.3758/s13428-018-1150-4
+
+Snijders, T. A. (2001). Asymptotic null distribution of person fit statistics with estimated person parameter. Psychometrika, 66(3), 331-342.
 }
