@@ -1410,10 +1410,10 @@ robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized"
   if(any(!(est.type %in% c("MLE", "MAP", "EAP", "WLE"))))
     stop("est.type must be one or more of 'MLE', 'MAP', 'EAP', 'WLE'.")
   
-  if("EAP" %in% est.type && !(model %in% dich.mods))
+  if("EAP" %in% est.type && !(model %in% c(dich.mods, "GRM")))
     stop("EAP estimation is only available for Rasch, 1PL, and 2PL models.")
   
-  if("MAP" %in% est.type && !(model %in% dich.mods))
+  if("MAP" %in% est.type && !(model %in% c(dich.mods, "GRM")))
     stop("MAP estimation is only available for Rasch, 1PL, and 2PL models.")
   
   if("WLE" %in% est.type && !(model %in% dich.mods))
@@ -1522,7 +1522,7 @@ robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized"
     
     if (bayes) {
       D1<-D1-(theta_i-mu)/sigma2
-      D2<-D2 + 1/sigma2
+      D2<-D2 - 1/sigma2
     }
     list(D1 = D1, D2 = D2, Pk = Pk, ps0 = ps0, ps1 = ps1, info_j = info_j)
   }
@@ -1654,12 +1654,14 @@ robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized"
           gd<-grm_derivs(th_i, dat[i,], ipars_use, w_i)
           
           if(!is.finite(gd$D1) || !is.finite(gd$D2) || abs(gd$D2) < 1e-14){
+            th_i<-NA
             conv_mle[i]<-1
             break
           }
           
           th_new<-th_i- gd$D1/gd$D2
-          if(!is.finite(th_new)){ 
+          if(!is.finite(abs(th_new))){ 
+            th_i<-NA
             conv_mle[i]<-1
             break 
           }
@@ -1997,17 +1999,20 @@ robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized"
       P0<-0
       
       for(k in 1:iter){
+        
         w_i<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
         dv<-deriv_fn(th_i, dat[i,], ipars_use, w_i, bayes = TRUE)
         
         if(!is.finite(dv$D1) || !is.finite(dv$D2) || abs(dv$D2) < 1e-14){
           conv_map[i]<-1
+          th_i<-NA
           break
         }
         
         th_new<-th_i-dv$D1 / dv$D2
         if(!is.finite(th_new)){ 
           conv_map[i]<-1
+          th_i<-NA
           break 
         }
         
@@ -2031,12 +2036,9 @@ robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized"
         }
       }
     #Check for convergence outside bounds (convergence code = 2)
-    if(!is.na(th_i) & th_i<low.bound){
-      th_i<-low.bound
-      conv_mle[i]<-2
-    }else if(!is.na(th_i) & th_i > up.bound){
-      th_i<-up.bound
-      conv_mle[i]<-2
+    if(!is.na(th_i)){
+      theta_map[i]<-pmax(low.bound, pmin(up.bound, th_i))
+      conv_map[i]<-ifelse((th_i>up.bound||th_i<low.bound), 2, conv_map[i])
     }
       # Calculate final item-level weights and residuals
       if(is.na(th_i)){
@@ -2073,13 +2075,16 @@ robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized"
   ##### EAP (Rasch, 1PL, 2PL) #####
   if("EAP" %in% est.type){
     
+    # Initialize matrices for output
+    theta_eap<-rep(NA, N)
+    conv_eap<-rep(0, N)
+    w_final<-matrix(NA, N, J)
+    r_final<-matrix(NA, N, J)
+    
+    # Density at quadrature points
     f_x<-dnorm(eap.quad.pts, mu, sqrt(sigma2))
     probs_q<-item.prob(eap.quad.pts, model, ipars_use, D) 
     Q<-length(eap.quad.pts)
-    
-    theta_eap<-rep(NA, N)
-    w_final<-matrix(NA, N, J)
-    r_final<-matrix(NA, N, J)
     
     for(i in 1:N){
       th_i<-get_init(i, 1)[1]
@@ -2089,52 +2094,90 @@ robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized"
         w_i<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
         
         # Weighted likelihood at each quadrature point
-        lik_q<-apply(probs_q, 1, function(pj)
-          prod((pj^dat[i,]*(1 - pj)^(1 - dat[i,]))^w_i))
+        if(model%in%dich.mods){
+          lik_q<-apply(probs_q, 1, function(pj) prod((pj^dat[i,]*(1 - pj)^(1 - dat[i,]))^w_i))
+        }else if(model == "GRM"){
+          lik_q<-c()
+          for(q in 1:Q){ # for each quadrature point:
+            # extract the probability of responding in category of observed data
+            # weight each item accordingly, and take product for likelihood of quad pt
+            lik_q<-c(lik_q, prod(probs_q$P[cbind(1:J, dat[i,], rep(q, J))]^w_i))
+          }
+        }
         
         denom<-sum(lik_q*f_x)
-        if(!is.finite(denom) || denom == 0) break
         
+        # Check for stable denominator
+        if(!is.finite(denom) || denom == 0){
+          th_i<-NA
+          conv_eap[i]<-1
+          break
+        } 
+        
+        # Calculate theta
         th_new<-sum(eap.quad.pts*lik_q*f_x) / denom
         
-        P_cur<-pmax(ifelse(dat[i,] == 1,
-                                item.prob(th_i, model, ipars_use, D),
-                                1 - item.prob(th_i, model, ipars_use, D)), 1e-12)
-        log_like<-sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
+        # Check for NAs or infinite theta ests
+        if(is.na(th_i) || !is.finite(th_i)){
+          th_i<-NA
+          conv_eap[i]<-1
+          break
+        } 
+        
+        # Check convergence of log-likelihood at theta estimate
+        if(model%in%dich.mods){
+          probs_i<-item.prob(th_new, model, ipars_use, D)
+          P_cur<-probs_i^dat[i,]*(1-probs_i)^(1-dat[i,])
+          log_like<-sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
+        }else if(model == "GRM"){
+          P_cur<-item.prob(th_new, model, ipars_use, D)$P[cbind(1:J, dat[i,])]
+          log_like<-sum(log(P_cur)) - sum(log(pmax(P0, 1e-12)))
+        }
+        
         P0<-P_cur
         th_i<-th_new
         
+        # If convergence is reached, break
         if(k > 1 && abs(log_like) < tol) break
-      }
-      
-      w_final[i,]<-w_i_f<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
-      r_final[i,]<-as.numeric(residual(matrix(th_i, 1), model, ipars_use, matrix(dat[i,], 1), resid, D=D))
-      lik_f<-apply(probs_q, 1, function(pj) prod((pj^dat[i,]*(1 - pj)^(1 - dat[i,]))^w_i_f))
-      denom_f<-sum(lik_f*f_x)
-      
-      if(is.finite(denom_f) && denom_f > 0){
-        th_eap_i<-sum(eap.quad.pts*lik_f*f_x) / denom_f
         
-        theta_eap[i]<-pmax(low.bound, pmin(up.bound, th_i))
+        # Check for reaching max # of iterations
+        if(k == iter){
+          conv_eap[i]<-1
+          th_i<-NA
+        }
       }
+      
+      
+      # Check for thetas converged outside bounds
+      if(!is.na(th_i)){
+        theta_eap[i]<-pmax(low.bound, pmin(up.bound, th_i))
+        conv_eap[i]<-ifelse((th_i>up.bound||th_i<low.bound), 2, conv_eap[i])
+        w_final[i,]<-as.numeric(person.weights(th_i, dat[i,], model, ipars_use))
+        r_final[i,]<-as.numeric(residual(matrix(th_i, 1), model, ipars_use, matrix(dat[i,], 1), resid, D=D))
+      }else{
+        w_final[i,]<-rep(NA, J)
+        r_final[i,]<-rep(NA, J)
+        
+      }
+      
     }
     
     out$theta_EAP<-matrix(theta_eap, ncol = 1)
     
     # Compute SEs for converged subjects
-    conv_idx<-which(conv_map==0 & !is.na(theta_eap))
-    ase_EAP<-rep(NA, N)
+    conv_idx<-which(conv_eap==0 & !is.na(theta_eap))
+    post_EAP<-rep(NA, N)
     sand_EAP<-rep(NA, N)
     
     if(length(conv_idx) > 0){
       se.all<-standard.errors(theta_eap[conv_idx], ipars_use, dat[conv_idx, , drop = FALSE], model, D, 
                                 weight.type, tuning.par, custom.weights, resid, "EAP", prior, eap.quad.pts)
-      ase_EAP[conv_idx]<-se.all$asymptotic_EAP
+      post_EAP[conv_idx]<-se.all$post_sd_EAP
       sand_EAP[conv_idx]<-se.all$sandwich_EAP
     }
-    out$post_sd_EAP<-matrix(ase_EAP, ncol = 1)
+    out$post_sd_EAP<-matrix(post_EAP, ncol = 1)
     out$sandwich_EAP <-matrix(sand_EAP, ncol = 1)
-    
+    out$convergence_EAP<-matrix(conv_eap, ncol = 1)
     out$weights_EAP<-w_final
     out$residuals_EAP<-r_final
   } # end EAP block
