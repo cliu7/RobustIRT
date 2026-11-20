@@ -2,7 +2,7 @@
 #' 
 #' @description
 #' Data obtained from the TESTFACT (Woods et al., 2003) manual, with 32 response pattern scored items for a grade 12 science assessment test (SAT) measuring topics of chemistry, biology, and physics. 
-#' The scoring key for these data is [1, 4, 5, 2, 3, 1, 2, 1, 3, 1, 2, 4, 2, 1, 5, 3, 4, 4, 1, 4, 3, 3, 4, 1, 3, 5, 1, 3, 1, 5, 4, 5], respectively. 
+#' The scoring key for the data is [1, 4, 5, 2, 3, 1, 2, 1, 3, 1, 2, 4, 2, 1, 5, 3, 4, 4, 1, 4, 3, 3, 4, 1, 3, 5, 1, 3, 1, 5, 4, 5]. 
 #' However, careful analysis using the nominal response model suggests that the scoring key for item 32 may be incorrect, and should be changed from 5 to 3.
 #'
 #' @format A data frame with 600 examinees and 32 scored item responses. Each column corresponds to one item, coded as integers 1–5 representing the selected response option.
@@ -24,25 +24,20 @@
 #'
 #' ## Not run: 
 #'
-#' itemstats(SAT12, use_ts = FALSE)
+#' ## Obtain robust item parameter estimates
 #'
+#' library(mirt)
 #' #  score the data (missing scored as 0)
-#' head(SAT12)
 #' dat <- key2binary(SAT12,
-#'                  key = c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5))
-#' head(dat)
-#' itemstats(dat)
+#'                   key = c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5))
+#' mod1<-robust.item(dat)
+#' ipars<-coef(mod1, simplify=T)$items[,1:2]
+#' ipars[,2]<- -ipars[,2]/ipars[,1]
+#' head(ipars)
 #'
-#' # score the data, missing (value of 8) treated as NA
-#' SAT12missing <- SAT12
-#' SAT12missing[SAT12missing == 8] <- NA
-#' dat <- key2binary(SAT12missing,
-#'                  key = c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5))
-#' head(dat)
-#'
-#' # potentially better scoring for item 32 (based on nominal model finding)
-#' dat <- key2binary(SAT12,
-#'                  key = c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,3))
+#' ## Obtain robust estimates of the latent trait
+#' person.par<-robust.theta(dat, ipars, D=1.0, resid = "information", weight.type = "Huber", tuning.par = 1)
+#' head(person.par$theta_MLE)
 #'
 "SAT12"
 #' BFI2 data
@@ -51,76 +46,73 @@
 #' 
 #' @description 
 #' Data obtained from the Big Five Inventory-2 (BFI-2; Soto & John, 2017), collected from adolescents ages 14 to 17 years old enrolled in a high school AP Statistics course (Ober et al., 2021). 
-#' The inventory contains 60 items on a 5-point Likert scale, where exactly 12 items load onto each of the five personality factors in the BFI-2 (Extraversion, Agreeableness, Conscientiousness, Negative Emotionality, and Open-Mindedness).  
-#' Data for 838 subjects is contained, after removing four subjects with missing data. No missing data remains. 
+#' The inventory contains 60 items on a 5-point Likert scale ranging from 1 to 5, where exactly 12 items load onto each of the five personality factors in the BFI-2 (Extraversion, Agreeableness, Conscientiousness, Negative Emotionality, and Open-Mindedness).  
+#' Responses from 838 subjects are included, after removing four subjects with missing data. No missing data remains. 
 #' Variables are labeled by the first letter of the personality factor (e.g., E = Extraversion, A = Agreeableness, etc.) and item number 1 through 12.
-#' Items marked with an 'R' are negatively worded and were properly reverse coded for this dataset.
+#' Items marked with an 'R' are negatively worded and were reverse coded for this dataset.
 #' 
 #' \itemize{
-#'   \item{\code{E1}}{ Is outgoing, sociable.}.
-#'   \item{\code{A1}}{ Is compassionate.}.
-#'   \item{\code{C1R}}{ Tends to be disorganized. [R]}.
-#'   \item{\code{N1R}}{ Is relaxed, handles stress well. [R]}.
-#'   \item{\code{O1R}}{ Has few artistic interests. [R]}.
-#'   \item{\code{E2}}{ Has an assertive personality.}.
-#'   \item{\code{A2}}{ Treats others with respect.}.
-#'   \item{\code{C2R}}{ Tends to be lazy. [R]}.
-#'   \item{\code{N2R}}{ Stays optimistic after experiencing a setback. [R]}.
-#'   \item{\code{O2}}{ Is curious about many different things.}.
-#'   \item{\code{E3R}}{ Rarely feels excited or eager. [R]}.
-#'   \item{\code{A3R}}{ Tends to find fault with others. [R]}.
-#'   \item{\code{C3}}{ Is dependable, steady.}.
-#'   \item{\code{N3}}{ Is moody, has up and down mood swings.}.
-#'   \item{\code{O3}}{ Is inventive, finds clever ways to do things.}.
-#'   \item{\code{E4R}}{ Tends to be quiet. [R]}.
-#'   \item{\code{A4R}}{ Feels little sympathy for others. [R]}.
-#'   \item{\code{C4}}{ Is systematic, likes to keep things in order.}.
-#'   \item{\code{N4}}{ Can be tense.}.
-#'   \item{\code{O4}}{ Is fascinated by art, music, or literature.}.
-#'   \item{\code{E5}}{ Is dominant, acts as a leader.}.
-#'   \item{\code{A5R}}{ Starts arguments with others. [R]}.
-#'   \item{\code{C5R}}{ Has difficulty getting started on tasks. [R]}.
-#'   \item{\code{N5R}}{ Feels secure, comfortable with self. [R]}.
-#'   \item{\code{O5R}}{ Avoids intellectual, philosophical discussions. [R]}.
-#'   \item{\code{E6R}}{ Is less active than other people. [R]}.
-#'   \item{\code{A6}}{ Has a forgiving nature.}.
-#'   \item{\code{C6R}}{ Can be somewhat careless. [R]}.
-#'   \item{\code{N6R}}{ Is emotionally stable, not easily upset. [R]}.
-#'   \item{\code{O6R}}{ Has little creativity. [R]}.
-#'   \item{\code{E7R}}{ Is sometimes shy, introverted. [R]}.
-#'   \item{\code{A7}}{ Is helpful and unselfish with others.}.
-#'   \item{\code{C7}}{ Keeps things neat and tidy.}.
-#'   \item{\code{N7}}{ Worries a lot.}.
-#'   \item{\code{O7}}{ Values art and beauty.}.
-#'   \item{\code{E8R}}{ Finds it hard to influence people. [R]}.
-#'   \item{\code{A8R}}{ Is sometimes rude to others. [R]}.
-#'   \item{\code{C8}}{ Is efficient, gets things done.}.
-#'   \item{\code{N8}}{ Often feels sad.}.
-#'   \item{\code{O8}}{ Is complex, a deep thinker.}.
-#'   \item{\code{E9}}{ Is full of energy.}.
-#'   \item{\code{A9R}}{ Is suspicious of others' intentions. [R]}.
-#'   \item{\code{C9}}{ Is reliable, can always be counted on.}.
-#'   \item{\code{N9R}}{ Keeps their emotions under control. [R]}.
-#'   \item{\code{O9R}}{ Has difficulty imagining things. [R]}.
-#'   \item{\code{E10}}{ Is talkative.}.
-#'   \item{\code{A10R}}{ Can be cold and uncaring. [R]}.
-#'   \item{\code{C10R}}{ Leaves a mess, doesn't clean up. [R]}.
-#'   \item{\code{N10R}}{ Rarely feels anxious or afraid. [R]}.
-#'   \item{\code{O10R}}{ Thinks poetry and plays are boring. [R]}.
-#'   \item{\code{E11R}}{ Prefers to have others take charge. [R]}.
-#'   \item{\code{A11}}{ Is polite, courteous to others.}.
-#'   \item{\code{C11}}{ Is persistent, works until the task is finished.}.
-#'   \item{\code{N11}}{ Tends to feel depressed, blue.}.
-#'   \item{\code{O11R}}{ Has little interest in abstract ideas. [R]}.
-#'   \item{\code{E12}}{ Shows a lot of enthusiasm.}.
-#'   \item{\code{A12}}{ Assumes the best about people.}.
-#'   \item{\code{C12R}}{ Sometimes behaves irresponsibly. [R]}.
-#'   \item{\code{N12}}{ Is temperamental, gets emotional easily.}.
-#'   \item{\code{O12}}{ Is original, comes up with new ideas.}.
+#'   \item{\code{E1}}{ Is outgoing, sociable.}
+#'   \item{\code{A1}}{ Is compassionate.}
+#'   \item{\code{C1R}}{ Tends to be disorganized. [R]}
+#'   \item{\code{N1R}}{ Is relaxed, handles stress well. [R]}
+#'   \item{\code{O1R}}{ Has few artistic interests. [R]}
+#'   \item{\code{E2}}{ Has an assertive personality.}
+#'   \item{\code{A2}}{ Treats others with respect.}
+#'   \item{\code{C2R}}{ Tends to be lazy. [R]}
+#'   \item{\code{N2R}}{ Stays optimistic after experiencing a setback. [R]}
+#'   \item{\code{O2}}{ Is curious about many different things.}
+#'   \item{\code{E3R}}{ Rarely feels excited or eager. [R]}
+#'   \item{\code{A3R}}{ Tends to find fault with others. [R]}
+#'   \item{\code{C3}}{ Is dependable, steady.}
+#'   \item{\code{N3}}{ Is moody, has up and down mood swings.}
+#'   \item{\code{O3}}{ Is inventive, finds clever ways to do things.}
+#'   \item{\code{E4R}}{ Tends to be quiet. [R]}
+#'   \item{\code{A4R}}{ Feels little sympathy for others. [R]}
+#'   \item{\code{C4}}{ Is systematic, likes to keep things in order.}
+#'   \item{\code{N4}}{ Can be tense.}
+#'   \item{\code{O4}}{ Is fascinated by art, music, or literature.}
+#'   \item{\code{E5}}{ Is dominant, acts as a leader.}
+#'   \item{\code{A5R}}{ Starts arguments with others. [R]}
+#'   \item{\code{C5R}}{ Has difficulty getting started on tasks. [R]}
+#'   \item{\code{N5R}}{ Feels secure, comfortable with self. [R]}
+#'   \item{\code{O5R}}{ Avoids intellectual, philosophical discussions. [R]}
+#'   \item{\code{E6R}}{ Is less active than other people. [R]}
+#'   \item{\code{A6}}{ Has a forgiving nature.}
+#'   \item{\code{C6R}}{ Can be somewhat careless. [R]}
+#'   \item{\code{N6R}}{ Is emotionally stable, not easily upset. [R]}
+#'   \item{\code{O6R}}{ Has little creativity. [R]}
+#'   \item{\code{E7R}}{ Is sometimes shy, introverted. [R]}
+#'   \item{\code{A7}}{ Is helpful and unselfish with others.}
+#'   \item{\code{C7}}{ Keeps things neat and tidy.}
+#'   \item{\code{N7}}{ Worries a lot.}
+#'   \item{\code{O7}}{ Values art and beauty.}
+#'   \item{\code{E8R}}{ Finds it hard to influence people. [R]}
+#'   \item{\code{A8R}}{ Is sometimes rude to others. [R]}
+#'   \item{\code{C8}}{ Is efficient, gets things done.}
+#'   \item{\code{N8}}{ Often feels sad.}
+#'   \item{\code{O8}}{ Is complex, a deep thinker.}
+#'   \item{\code{E9}}{ Is full of energy.}
+#'   \item{\code{A9R}}{ Is suspicious of others' intentions. [R]}
+#'   \item{\code{C9}}{ Is reliable, can always be counted on.}
+#'   \item{\code{N9R}}{ Keeps their emotions under control. [R]}
+#'   \item{\code{O9R}}{ Has difficulty imagining things. [R]}
+#'   \item{\code{E10}}{ Is talkative.}
+#'   \item{\code{A10R}}{ Can be cold and uncaring. [R]}
+#'   \item{\code{C10R}}{ Leaves a mess, doesn't clean up. [R]}
+#'   \item{\code{N10R}}{ Rarely feels anxious or afraid. [R]}
+#'   \item{\code{O10R}}{ Thinks poetry and plays are boring. [R]}
+#'   \item{\code{E11R}}{ Prefers to have others take charge. [R]}
+#'   \item{\code{A11}}{ Is polite, courteous to others.}
+#'   \item{\code{C11}}{ Is persistent, works until the task is finished.}
+#'   \item{\code{N11}}{ Tends to feel depressed, blue.}
+#'   \item{\code{O11R}}{ Has little interest in abstract ideas. [R]}
+#'   \item{\code{E12}}{ Shows a lot of enthusiasm.}
+#'   \item{\code{A12}}{ Assumes the best about people.}
+#'   \item{\code{C12R}}{ Sometimes behaves irresponsibly. [R]}
+#'   \item{\code{N12}}{ Is temperamental, gets emotional easily.}
+#'   \item{\code{O12}}{ Is original, comes up with new ideas.}
 #' }
-#'  
-#' @details The BFI2 is a 60‑item personality assessment measuring the Big Five domains: Agreeableness, Conscientiousness, Extraversion, Negative Emotionality, and Open‑Mindedness. 
-#' Each domain contains 12 items, organized into 15 facets (e.g., Compassion, Organization, Anxiety). Items are scored on a 1–5 Likert scale and include both positively and negatively keyed statements.
 #'
 #' @source \url{https://osf.io/awvnd}
 #' 
@@ -132,9 +124,7 @@
 #' MTurk Height Data
 #' 
 #' @description
-#' A dataset containing 26 survey items collected from Amazon Mechanical Turk (AMT). Additional demographic variables are also included.
-#' Respondents were recruited from MTurk and were paid $0.20 to participate. To qualify, workers were required to have completed at least 100 prior human intelligence tasks (HITs)  
-#' with an acceptance rate of 97% or higher.
+#' A dataset containing polytomous responses to 26 survey items measuring height and general personality characteristics, collected from Amazon Mechanical Turk (AMT). Additional demographic variables are also included.
 #'
 #' @format 
 #' A data frame with 1402 rows (participants) and 34 columns (survey items and follow-up information). 
@@ -142,7 +132,7 @@
 #'   \item{\code{country}}{ The country the user's network connection was based.}
 #'   \item{\code{engnat}}{ Whether the respondent reported English as their native language (0 = no, 1 = yes).}
 #'   \item{\code{age}}{ Age in years.}
-#'   \item{\code{gender}}{ Gender indicator.)}
+#'   \item{\code{gender}}{ Gender indicator.}
 #'   \item{\code{Q1}}{ I am tall.}
 #'   \item{\code{Q2}}{ I am short.}
 #'   \item{\code{Q3}}{ I have to stand on a stool to reach tall kitchen shelves.}
@@ -174,18 +164,41 @@
 #'   \item{\code{cm}}{ Height reported in centimeters (if the respondent used metric units).}
 #'   \item{\code{submittime}}{ The time (PST) the survey was submitted.}
 #'}
-#' @details 
+#' @details
+#'
+#' Respondents were recruited from MTurk and were paid $0.20 to participate. To qualify, workers were required to have completed at least 100 prior human intelligence tasks (HITs)  
+#' with an acceptance rate of 97% or higher.
+#' 
 #' The item data followed a 5-point Likert scale, with the following labels: 1 = Strongly disagree, 2 = Disagree, 3 = Neither agree nor disagree, 4 = Agree, and 5 = Strongly agree. A 0 indicates no response.
 #' The first four items include demographic information. Q1 through Q10 measure height, while Q13 through Q26 measure general personality characteristics. 
 #' The last four items ask users to report their hight and contain a record of submission time. 
 #' Q11 and Q12 are bogus items, designed to detect inattentive responders, or those who endorse the item although it is unlikely to be true.
 #' Due to factors such as disengagement and low motivation that are common on low stakes assessment, MTurk data may be especially susceptible to aberrant response behavior. 
 #' When fitting an item response theory model, robust estimation may be applied to reduce bias in the latent trait estimate for respondents exhibiting aberrant responses.
-#' However, when a subject's response pattern contains aberrant responses for the majority of or all items (e.g., "bot" responding), robust estimation will not be effective in mitigating the aberrances and unable to reduce the bias in the latent trait.
+#' However, when a subject's response pattern contains aberrant responses for the majority of or all items (such as "bot" responses), robust estimation will not be effective in mitigating the aberrances and unable to reduce the bias in the latent trait.
+#'
+#' Note that some items measuring height may be negatively worded and require reverse coding.
 #'
 #' @source Open Psychometrics (2019, December 29). A quality comparison of data collected on this website to data collected on Amazon Mechanical Turk. https://openpsychometrics.org/_rawdata/validity/
 #' 
 #' @usage data(MTurkHeight)
+#'
+#' @examples
+#'
+#' # Reverse code negatively worded items
+#' dat<-MTurkHeight[,5:14]
+#' dat[,c(2, 3, 7, 9)]<-6-dat[,c(2, 3, 7, 9)]
+#' 
+#' # Robust estimation of item parameters
+#' 
+#' mod1<-robust.item(dat)
+#' ipars<-coef(mod1, simplify=T)$items
+#' ipars[,2:6]<- -ipars[,2:6]/ipars[,1]
+#' 
+#' # Robust estimation of latent traits
+#' person.par<-robust.theta(dat, ipars, model = "GRM", D=1.0, weight.type = "bisquare", tuning.par = 4)
+#' head(person.par$theta_MLE)
+#'
 "MTurkHeight"
 #' Simulated 2PL data with suboptimal responses
 #' 
@@ -195,8 +208,8 @@
 #'
 #' @format A list containing:
 #' \describe{
-#'   \item{\code{dat}}{ (\eqn{500 \times 39}) matrix of simulated dichotomous data.}
-#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
+#'   \item{\code{dat}}{ \eqn{500 \times 39} matrix of simulated dichotomous data.}
+#'   \item{\code{ipars}}{ \eqn{30 \times 2} data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
 #'  }
 #' 
@@ -217,8 +230,8 @@
 #'
 #' @format A list containing:
 #' \describe{
-#'   \item{\code{dat}}{ (\eqn{150 \times 30}) matrix of simulated dichotomous data.}
-#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
+#'   \item{\code{dat}}{ \eqn{150 \times 30} matrix of simulated dichotomous data.}
+#'   \item{\code{ipars}}{ \eqn{30 \times 2} data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
 #'  }
 #' 
@@ -229,7 +242,17 @@
 #'
 #' @examples
 #'
-#' ## Not run: 
+#' ## Not run:
+#'
+#' # Robust estimation of latent traits
+#' ests<-robust.theta(simBRR2PL$dat, simBRR2PL$ipars, "2PL", resid = "information", 
+#'              weight.type = "Huber", tuning.par = 1)
+#' head(ests$theta_MLE)
+#' 
+#' # Compare robust estimates with non-robust estimates
+#' robust.theta.comparisons(simBRR2PL$dat, simBRR2PL$ipars, "2PL", resid = "information", 
+#'                          weight.type = "Huber", tuning.par = 1, ab.ids = simBRR2PL$ab.indices)
+#' 
 #'
 #' 
 "simBRR2PL"
@@ -239,8 +262,8 @@
 #' Data simulated from a 2PL model for 1000 subjects on 30 items. For the 20% of examinees with the lowest true \eqn{\theta}, they received correct responses on the most difficult 10% of items.  
 #' @format A list containing:
 #' \describe{
-#'   \item{\code{dat}}{ (\eqn{1000 \times 30}) matrix of simulated dichotomous data.}
-#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
+#'   \item{\code{dat}}{ \eqn{1000 \times 30} matrix of simulated dichotomous data.}
+#'   \item{\code{ipars}}{ \eqn{30 \times 2} data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the aberrant examinees.}
 #'  }
 #' 
@@ -252,6 +275,14 @@
 #'
 #' ## Not run: 
 #'
+#' # Robust estimation of latent traits
+#' ests<-robust.theta(simCheating2PL$dat, simCheating2PL$ipars, "2PL", resid = "information", 
+#'                    weight.type = "Huber", tuning.par = 1)
+#' head(ests$theta_MLE)
+#' 
+#' # Compare robust estimates with non-robust estimates
+#' robust.theta.comparisons(simCheating2PL$dat, simCheating2PL$ipars, "2PL", resid = "information", 
+#'                          weight.type = "Huber", tuning.par = 1, ab.ids = simCheating2PL$ab.indices)
 #' 
 "simCheating2PL"
 #' Simulated 2PL data with warm-up / sleeping behavior
@@ -260,8 +291,8 @@
 #' Data simulated from a 2PL model for 1000 subjects on 30 items. For 30% of examinees, they received an incorrect response on the first 30% of items as if they were "warming" or "waking" up to the test content or format.
 #' @format A list containing:
 #' \describe{
-#'   \item{\code{dat}}{ (\eqn{1000 \times 30}) matrix of simulated dichotomous data.}
-#'   \item{\code{ipars}}{ (\eqn{30 \times 2}) data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
+#'   \item{\code{dat}}{ \eqn{1000 \times 30} matrix of simulated dichotomous data.}
+#'   \item{\code{ipars}}{ \eqn{30 \times 2} data frame of true item parameters for the 2PL model: one column for item discrimination and one column for item difficulty.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
 #'  }
 #' 
@@ -273,6 +304,15 @@
 #'
 #' ## Not run: 
 #'
+#' # Robust estimation of latent traits
+#' ests<-robust.theta(simWarmUp2PL$dat, simWarmUp2PL$ipars, "2PL", 
+#`              resid = "information",  weight.type = "Huber", tuning.par = 1)
+#' head(ests$theta_MLE)
+#' 
+#' # Compare robust estimates with non-robust estimates
+#' robust.theta.comparisons(simWarmUp2PL$dat, simWarmUp2PL$ipars, "2PL", 
+#'                          resid = "information",  weight.type = "Huber", 
+#`                          tuning.par = 1, ab.ids = simWarmUp2PL$ab.indices)
 #' 
 "simWarmUp2PL"
 #' Simulated GRM data with improper reverse coding
@@ -281,8 +321,8 @@
 #' Data simulated from a GRM model for 1000 subjects on 30 items. Likert-type responses are scored 1 to 5. For 20% of examinees, their responses to 30% of items were reverse coded as if they were inatentive to the reverse-wording of the item.
 #' @format A list containing:
 #' \describe{
-#'   \item{\code{dat}}{ (\eqn{1000 \times 30}) matrix of simulated Likert-type data.}
-#'   \item{\code{ipars}}{ (\eqn{30 \times 5}) data frame of true item parameters for the GRM: one column for item discrimination and four columns for the four category thresholds.}
+#'   \item{\code{dat}}{ \eqn{1000 \times 30} matrix of simulated Likert-type data.}
+#'   \item{\code{ipars}}{ \eqn{30 \times 5} data frame of true item parameters for the GRM: one column for item discrimination and four columns for the four category thresholds.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
 #'  }
 #' 
@@ -291,10 +331,16 @@
 #' @usage data(simReverseGRM)
 #'
 #' @examples
-#'
-#' ## Not run: 
-#'
 #' 
+#' ## Not run: 
+#' 
+#' # Robust estimation of latent traits
+#' ests<-robust.theta(simReverseGRM$dat, as.matrix(simReverseGRM$ipars), "GRM", resid = "standardized",  weight.type = "bisquare", tuning.par = 4)
+#' head(ests$theta_MLE)
+#' 
+#' # Compare robust estimates with non-robust estimates
+#' robust.theta.comparisons(simReverseGRM$dat, as.matrix(simReverseGRM$ipars), "GRM", resid = "standardized",  weight.type = "bisquare", tuning.par = 4, ab.ids = simReverseGRM$ab.indices)
+#`
 "simReverseGRM"
 #' Simulated MGRM data with back random responding
 #' 
@@ -303,8 +349,8 @@
 #' For 40% of examinees, their responses to the last 40% of items were generated as if they were randomly responding, with a uniform probability of selecting any of the five categories.
 #' @format A list containing:
 #' \describe{
-#'   \item{\code{dat}}{ (\eqn{2000 \times 50}) matrix of simulated Likert-type data.}
-#'   \item{\code{ipars}}{ (\eqn{50 \times 7}) data frame of true item parameters for the GRM: three columns for item discrimination and four columns for the four category thresholds.}
+#'   \item{\code{dat}}{ \eqn{2000 \times 50} matrix of simulated Likert-type data.}
+#'   \item{\code{ipars}}{ \eqn{50 \times 7} data frame of true item parameters for the GRM: three columns for item discrimination and four columns for the four category thresholds.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
 #'  }
 #' 
@@ -317,6 +363,15 @@
 #'
 #' ## Not run: 
 #'
+#' # Robust estimation of latent traits
+#' ests<-robust.theta(simBRRMGRM$dat, as.matrix(simBRRMGRM$ipars), "MGRM", resid = "standardized",  
+#`                    weight.type = "bisquare", tuning.par = 4, dimen = 3)
+#' head(ests$theta_MLE)
+#' 
+#' # Compare robust estimates with non-robust estimates
+#' robust.theta.comparisons(simBRRMGRM$dat, as.matrix(simBRRMGRM$ipars), "MGRM", 
+#`                          resid = "standardized",  weight.type = "bisquare", 
+#`                          tuning.par = 4, dimen = 3, ab.ids = simBRRMGRM$ab.indices)
 #' 
 "simBRRMGRM"
 #' Simulated MIRT data with cheating
@@ -325,8 +380,8 @@
 #' Data simulated from a MGRM model for 2000 subjects on 50 items. The model is 2-dimensional, following a complex structure in which each item is allowed to load onto each dimension. For the 20% of examinees with the lowest \eqn{\theta}, their responses to the most difficult 20% of items were coded as correct, as if they had cheated to obtain the correct answer.
 #' @format A list containing:
 #' \describe{
-#'   \item{\code{dat}}{ (\eqn{2000 \times 50}) matrix of simulated Likert-type data.}
-#'   \item{\code{ipars}}{ (\eqn{50 \times 3}) data frame of true item parameters for the GRM: two columns for item discrimination and one column for item threshold.}
+#'   \item{\code{dat}}{ \eqn{2000 \times 50} matrix of simulated Likert-type data.}
+#'   \item{\code{ipars}}{ \eqn{50 \times 3} data frame of true item parameters for the GRM: two columns for item discrimination and one column for item threshold.}
 #'   \item{\code{ab.indices}}{ Vector of row numbers corresponding to the designated aberrant examinees.}
 #'  }
 #' 
@@ -338,6 +393,15 @@
 #'
 #' ## Not run: 
 #'
+#' # Robust estimation of latent traits
+#' ests<-robust.theta(simCheatingMIRT$dat, as.matrix(simCheatingMIRT$ipars), "MIRT", 
+#`              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2)
+#' head(ests$theta_MLE)
+#' 
+#' # Compare robust estimates with non-robust estimates
+#' robust.theta.comparisons(simCheatingMIRT$dat, as.matrix(simCheatingMIRT$ipars), "MIRT", 
+#`              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2, 
+#`              ab.ids = simCheatingMIRT$ab.indices)
 #' 
 "simCheatingMIRT"
 
