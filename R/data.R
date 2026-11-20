@@ -120,19 +120,19 @@
 #' @references Soto, C. J., & John, O. P. (2017). The next Big Five Inventory (BFI-2): Developing and assessing a hierarchical model with 15 facets to enhance bandwidth, fidelity, and predictive power. \emph{Journal of Personality and Social Psychology, 113}, 117–143. \url{http://dx.doi.org/10.1037/pspp0000096}
 #' 
 #' @usage data(BFI2)
-#`
-#` @examples
-#`
-#` # Item parameter robust estimation
+#'
+#' @examples
+#'
+#' # Item parameter robust estimation
 #' specific<- rep(1:5, 12) #which factor each item loads on
 #' mod<-mirt(BFI2, specific, TOL=0.001, method="QMCEM")
 #' ipars<-coef(mod, simplify=T)$items
 #' ipars<-cbind(ipars[,1:5], -ipars[,6:9]/rowSums(ipars[,1:5])) # reparameterize
-#`
-#` # Latent Trait Robust Estimation
+#'
+#' # Latent Trait Robust Estimation
 #' out <- robust.theta(BFI2, ipars, model= "MGRM", weight.type = "bisquare", tuning.par = 4, dimen=5, D=1)
-#` head(out$theta_MLE)
-#` 
+#' head(out$theta_MLE)
+#' 
 "BFI2"
 #' MTurk Height Data
 #' 
@@ -319,13 +319,13 @@
 #'
 #' # Robust estimation of latent traits
 #' ests<-robust.theta(simWarmUp2PL$dat, simWarmUp2PL$ipars, "2PL", 
-#`              resid = "information",  weight.type = "Huber", tuning.par = 1)
+#'              resid = "information",  weight.type = "Huber", tuning.par = 1)
 #' head(ests$theta_MLE)
 #' 
 #' # Compare robust estimates with non-robust estimates
 #' robust.theta.comparisons(simWarmUp2PL$dat, simWarmUp2PL$ipars, "2PL", 
 #'                          resid = "information",  weight.type = "Huber", 
-#`                          tuning.par = 1, ab.ids = simWarmUp2PL$ab.indices)
+#'                          tuning.par = 1, ab.ids = simWarmUp2PL$ab.indices)
 #' 
 "simWarmUp2PL"
 #' Simulated GRM data with improper reverse coding
@@ -353,7 +353,7 @@
 #' 
 #' # Compare robust estimates with non-robust estimates
 #' robust.theta.comparisons(simReverseGRM$dat, as.matrix(simReverseGRM$ipars), "GRM", resid = "standardized",  weight.type = "bisquare", tuning.par = 4, ab.ids = simReverseGRM$ab.indices)
-#`
+#'
 "simReverseGRM"
 #' Simulated MGRM data with back random responding
 #' 
@@ -378,13 +378,13 @@
 #'
 #' # Robust estimation of latent traits
 #' ests<-robust.theta(simBRRMGRM$dat, as.matrix(simBRRMGRM$ipars), "MGRM", resid = "standardized",  
-#`                    weight.type = "bisquare", tuning.par = 4, dimen = 3)
+#'                    weight.type = "bisquare", tuning.par = 4, dimen = 3)
 #' head(ests$theta_MLE)
 #' 
 #' # Compare robust estimates with non-robust estimates
 #' robust.theta.comparisons(simBRRMGRM$dat, as.matrix(simBRRMGRM$ipars), "MGRM", 
-#`                          resid = "standardized",  weight.type = "bisquare", 
-#`                          tuning.par = 4, dimen = 3, ab.ids = simBRRMGRM$ab.indices)
+#'                          resid = "standardized",  weight.type = "bisquare", 
+#'                          tuning.par = 4, dimen = 3, ab.ids = simBRRMGRM$ab.indices)
 #' 
 "simBRRMGRM"
 #' Simulated MIRT data with cheating
@@ -408,13 +408,13 @@
 #'
 #' # Robust estimation of latent traits
 #' ests<-robust.theta(simCheatingMIRT$dat, as.matrix(simCheatingMIRT$ipars), "MIRT", 
-#`              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2)
+#'              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2)
 #' head(ests$theta_MLE)
 #' 
 #' # Compare robust estimates with non-robust estimates
 #' robust.theta.comparisons(simCheatingMIRT$dat, as.matrix(simCheatingMIRT$ipars), "MIRT", 
-#`              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2, 
-#`              ab.ids = simCheatingMIRT$ab.indices)
+#'              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2, 
+#'              ab.ids = simCheatingMIRT$ab.indices)
 #' 
 "simCheatingMIRT"
 
