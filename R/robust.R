@@ -146,59 +146,46 @@ pstar_to_p<-function(Pstar){
 #' }
 #' 
 #' @examples
-#' # Rasch case
+#' 
+#' # Rasch
 #' N <- 3
 #' J <- 5
-#' theta <- rnorm(N) # generate ability values
-#' ipars <- rnorm(J)  # generate item difficulties
+#' theta <- rnorm(N) # simulate ability values
+#' ipars <- rnorm(J)  # simulate item difficulties
 #' item.prob(theta, "Rasch", ipars)
-                        
-#' # 1PL case
-#' N <- 4 # subjects
-#' J <- 6 # items
-#' theta <- rnorm(N) # generate ability values
-#' ipars <- cbind(a = rep(1.2, J), # set item discrimination
-#'                b = rnorm(J)) # generate item difficulties
-#' item.prob(theta, "1PL", ipars)
-
-#' # 2PL case
-#' N <- 3 # subjects
-#' J <- 5 # items
-#' theta <- rnorm(N) # generate ability values
-#' ipars <- cbind(a = runif(J, 0.5, 2), # generate item discrimination
-#'                b = rnorm(J)) # generate item difficulty
-#' item.prob(theta, "2PL", ipars) 
- 
-#' # MIRT case
-#' N <- 2 # subjects
-#' J <- 7 # items
-#' L <- 3 # dimensions
-#' theta <- matrix(rnorm(N * L), ncol = L) # N x L ability matrix
-#' ipars <- cbind(matrix(runif(J * L, 0, 1), ncol = L), d = rnorm(J)) # generate slopes + intercept
-#' item.prob(theta, "MIRT", ipars)
-
-#' # GRM case
-#' N <- 3 # subjects
-#' J <- 5 # items
-#' K <- 4 # categories
-#' theta <- rnorm(N)
-#' a <- runif(J, 0.5, 2) # J discriminations
-#' b_raw <- matrix(rnorm(J * (K - 1)), nrow = J)  
-#' b <- t(apply(b_raw, 1, sort)) # Sort thresholds within each item (row-wise)
-#' ipars <- cbind(a, b) # Combine into a J x K matrix
-#' item.prob(theta, "GRM", ipars)
- 
-#' # MGRM case
-#' N <- 3 # subjects
-#' J <- 5 # items
-#' L <- 2 # dimensions
-#' K <- 4 # categories
-#' theta <- matrix(rnorm(N * L), ncol = L) 
-#' a <- matrix(runif(J * L, 0, 1), ncol = L) # slopes 
-#' b_raw <- matrix(rnorm(J * (K - 1)), nrow = J) # thresholds
-#' b <- t(apply(b_raw, 1, sort))
-#' ipars <- cbind(a, b)
-#' item.prob(theta, "MGRM", ipars)
+#' 
+#' # 2PL
+#' 
+#' data(simBRR2PL)
+#' ests<-robust.theta(simBRR2PL$dat, simBRR2PL$ipars, "2PL", resid = "information", 
+#'              weight.type = "Huber", tuning.par = 1)
+#' probs2PL<-item.prob(ests$theta_MLE, "2PL", simBRR2PL$ipars) 
+#' head(probs2PL)
+#' 
+#' # MIRT
+#' 
+#' data(simCheatingMIRT)
+#' ests<-robust.theta(simCheatingMIRT$dat, as.matrix(simCheatingMIRT$ipars), "MIRT", 
+#'              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2)
+#' probs_mirt<-item.prob(ests$theta_MLE, "MIRT", as.matrix(simCheatingMIRT$ipars))
+#' head(probs_mirt)
+#' 
+#' # GRM
+#' 
+#' data(simReverseGRM)
+#' ests<-robust.theta(simReverseGRM$dat, as.matrix(simReverseGRM$ipars), "GRM", resid = "standardized",  weight.type = "bisquare", tuning.par = 4)
+#' 
+#' probs<-item.prob(ests$theta_MLE, "GRM", as.matrix(simReverseGRM$ipars))
+#' head(probs)
+#' 
+#' # MGRM
+#' 
+#' data(simBRRMGRM)
+#' ests<-robust.theta(simBRRMGRM$dat, as.matrix(simBRRMGRM$ipars), "MGRM", resid = "standardized",  
+#'                    weight.type = "bisquare", tuning.par = 4, dimen = 3)
+#' probs<-item.prob(ests$theta_MLE, "MGRM", as.matrix(simBRRMGRM$ipars))
+#' head(probs)
+#' 
 #' @export
 
 item.prob<-function(theta, model, ipars, D=1.7){
@@ -285,18 +272,18 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' 
 #' Computes the standardized and modified standardized residuals (MSRs; Yu & Cheng, 2019) for dichotomous and polytomous IRT models. For each observed response 
 #' \eqn{y_j} to item \eqn{j}, the standardized residual and the MSR reflect the difference between the observed score and the model-implied expected value given the person’s estimated ability \eqn{\hat{\theta}}.
-#' The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
+#' The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}},} where the expectation and variance are computed under the specified IRT model.
 #' The MSR replaces the variance term with the conditional probability of the observed response category,
-#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
+#' \eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}.}
 #' The information residual is available for dichotomous models only, capturing the difference between the person ability parameter and the difficulty parameter of an item, weighted by the item discrimination:
-#' \eqn{a_j(\theta -b_j)} for unidimensional models and \eqn{\boldsymbol{a}_j' \boldsymbol{\theta} +d_j)} for the MIRT model.
+#' \deqn{a_j(\theta -b_j)} for unidimensional models and \deqn{\boldsymbol{a}_j' \boldsymbol{\theta} +d_j} for the MIRT model.
 #' See \code{item.prob} for description of models and structure of \code{ipars}.
 #' @references Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
 #' @param theta An \eqn{N \times L} matrix of latent trait values, where \eqn{L} is the number of dimensions.
 #' @param model Character string specifying the IRT model. See \code{item.prob} for supported models.
 #' @param ipars A matrix or list of item parameters passed to \code{item.prob}. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.
 #' @param dat An \eqn{N \times J} response matrix, with \eqn{N} respondents and \eqn{J} items.
-#' @param residual Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.
+#' @param residual Character string indicating which residual type to return: "standardized", "msr", and/or "information". Can specify multiple in a vector. Defaults to all three.
 #' @param D Positive scaling constant for the normal-ogive approximation. Defaults to 1.7, otherwise often set to 1.0.
 
 #' @return A list containing \eqn{N \times J} matrix for each residual specified:
@@ -308,41 +295,29 @@ item.prob<-function(theta, model, ipars, D=1.7){
 #' 
 #' @examples
 #' # 2PL model
-#' dat <- matrix(c(1, 0, 1, 1), ncol = 1)
-#' theta <- c(-1.0, 0.0, 0.5, 1.0)
-#' ipars <- cbind(a = 1.0, b = -0.5)
+#' 
+#' data(simCheating2PL)
+#' ests<-robust.theta(simCheating2PL$dat, simCheating2PL$ipars, "2PL")
 #'
-#' residual(theta, model = "2PL", ipars=ipars, dat=dat)
-#'
+#' resids<-residual(ests$theta_MLE, "2PL", simCheating2PL$ipars, simCheating2PL$dat)
+#' head(resids$standardized)
 #'
 #' # MIRT model
-#' dat <- matrix(c(1, 0, 1, 1, 0, 1, 0, 1), nrow = 4, byrow = TRUE)
-#'
-#' theta <- matrix(c(
-#'   -1.0,  0,
-#'    0,  0.5,
-#'    1, -0.5,
-#'    0.5, 1.0
-#' ), ncol = 2, byrow = TRUE)
-#'
-#' ipars <- cbind(
-#'   a1 = c(1.0, 2.0),
-#'   a2 = c(0.5, 1.0),
-#'   b  = c(-0.5, 0.5)
-#' )
-#'
-#' residual(theta, model = "MIRT", ipars=ipars, dat=dat)
-#'
-#'
-#' # GRM model
-#' dat <- matrix(c(4,1, 2,3), nrow = 2, byrow = TRUE)
-#' theta <- c(-0.5, 1.0)
 #' 
-#' ipars <- rbind(
-#'   c(a = 1.0, b1 = -2.0, b2 = -1.0, b3 = 0.0),
-#'   c(a = 0.5, b1 = -1.0, b2 =  0.0, b3 = 1.0))
+#' data(simCheatingMIRT)
+#' ests<-robust.theta(simCheatingMIRT$dat, as.matrix(simCheatingMIRT$ipars), "MIRT", 
+#'              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2)
 #'
-#' grm.resid<-residual(theta, model = "GRM", ipars=ipars, dat=dat, resid="standardized")
+#' resids<-residual(ests$theta_MLE, "MIRT", as.matrix(simCheatingMIRT$ipars), simCheatingMIRT$dat)
+#' head(resids$information)
+#'
+#' # GRM 
+#'
+#' data(simReverseGRM)
+#' ests<-robust.theta(simReverseGRM$dat, as.matrix(simReverseGRM$ipars), "GRM", resid = "standardized",  weight.type = "bisquare", tuning.par = 4)
+#' 
+#' grm.resid<-residual(ests$theta_MLE, "GRM", as.matrix(simReverseGRM$ipars), simReverseGRM$dat, resid="standardized")
+#' head(grm.resid)
 #' @export
 
 
@@ -455,12 +430,12 @@ residual<-function(theta, model, ipars, dat=NULL, resid = c("standardized", "msr
 #' @examples 
 #' 
 #' # 1-person case
-#' r <- c(-2, -1, 0, 1, 3)
+#' r <- c(-2, -1, 0, 1, 3) # residuals
 #' B <- 4
 #' bisquare(r, B)
 #' 
 #' # multi-person, multi-item case
-#' r <- matrix(c( -2, -1, 0, 1, 
+#' r <- matrix(c( -2, -1, 0, 1, # residuals
 #'                1, 0.5, -0.2, 3, 
 #'                0, 2.5, -3, 1 ), 
 #'                nrow = 3, byrow = TRUE) 
@@ -703,26 +678,24 @@ dat.gen<-function(P, anchor = 0, polytomous = FALSE, seed=NULL){
 #' GRM_ipars <- coef(GRM_fit, IRTpars = TRUE, simplify = TRUE)$items
 #' GRM_SE <- standard.errors(theta = GRM_theta, ipars = GRM_ipars, dat = as.matrix(A_items), model = "GRM", est.type = c("MLE", "MAP", "EAP"), weight.type = "Huber", tuning.par = 1)
 #' 
-#' # MGRM Model Example
-#' library(readr)
-#' library(dplyr)
-#' library(mirt)
-#' bfi <- read_csv("p234_bfi_demog_2020-04-24.csv")
-#' MGRM_items <- bfi %>% select(starts_with("t1_bfi"))
-#' names(MGRM_items) <- gsub("t1_bfi_", "", names(MGRM_items))
-#' names(MGRM_items)<- gsub("R", "", names(MGRM_items))
-#'
-#' MGRM_model <- "A = A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12
-#'                C = C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12
-#'                E = E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12
-#'                N = N1, N2, N3, N4, N5, N6, N7, N8, N9, N10, N11, N12
-#'                O = O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12"
-#' MGRM_fit <- mirt(MGRM_items, model = MGRM_model, itemtype = "graded", method = "QMCEM", technical = list(NCYCLES = 500))
-#' MGRM_theta <- fscores(MGRM_fit)
-#' MGRM_ipars <- coef(MGRM_fit, IRTpars = TRUE, simplify = TRUE)$items
-#' MGRM_dat <- as.matrix(MGRM_items)
-#' MGRM_SE <- standard.errors(theta = MGRM_theta, ipars = MGRM_ipars, dat = MGRM_dat, model = "MGRM", est.type = "MLE", weight.type = "Huber", tuning.par = 1)
-
+#' # MGRM 
+#' 
+#' load(BFI2)
+#' 
+#' # Item parameter estimation
+#' specific<- rep(1:5, 12) #which factor each item loads on
+#' mod<-mirt(BFI2, specific, TOL=0.001, method="QMCEM")
+#' ipars<-coef(mod, simplify=T)$items
+#' ipars[,6:9]<- -ipars[,6:9]/rowSums(ipars[,1:5]) # reparameterize
+#' 
+#' # Robust latent trait estimation
+#' out <- robust.theta(BFI2, ipars, model= "MGRM", dimen=5, D=1)
+#' 
+#' # Only retain converged cases
+#' thetas<-out$theta_MLE[!is.na(out$theta_MLE)]
+#' 
+#' MGRM_SE <- standard.errors(thetas, ipars, BFI2, "MGRM")
+#' 
 
 standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal", 
                           tuning.par = NULL, custom.weights = NULL, resid = "standardized", 
@@ -1304,75 +1277,40 @@ standard.errors<-function(theta, ipars, dat, model, D=1.7, weight.type = "equal"
 #'     at the iteration of convergence.}
 #' }
 #' @examples
+#' 
 #' ## 2PL MLE + MAP with Huber weights (information residual)
-#' set.seed(25)
-#' N<-50 
-#' J<-20
-#' ipars<-cbind(a = runif(J, 0.8, 2), b = rnorm(J))
-#' theta_true<-rnorm(N)
-#' P<-item.prob(theta_true, "2PL", ipars)
-#' dat<-dat.gen(P)
-#' out<-robust.theta(dat, ipars, model = "2PL", resid = "information", weight.type = "Huber", 
-#'                     tuning.par = 1, est.type = c("MLE", "MAP"))
-#' head(out$theta_MLE)
-#' head(out$ase_MLE)
-#' head(out$post_sd_MAP)
+#' 
+#' data(simCheating2PL)
+#' ests_MLE<-robust.theta(simCheating2PL$dat, simCheating2PL$ipars, "2PL", resid = "information", 
+#'                    weight.type = "Huber", tuning.par = 1)
+#' head(ests_MLE$theta_MLE)
+#' 
+#' ests_MAP<-robust.theta(simCheating2PL$dat, simCheating2PL$ipars, "2PL", resid = "information", weight.type = "Huber", tuning.par = 1, est.type = "MAP")
+#' head(ests_MAP$theta_MAP)
 #'
 #' ## GRM MLE with standardized residual + bisquare weights 
-#' set.seed(24)
-#' J<-15
-#' K<-5 
-#' N<-100
-#' a<-runif(J, 0.8, 2)
-#' b<-t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
-#' ip<-cbind(a, b)
-#' th<-rnorm(N)
-#' P<-item.prob(th, "GRM", ip)
-#' dat<-dat.gen(P$P, anchor = 1)
-#' out_grm<-robust.theta(dat, ip, model = "GRM", resid = "standardized", weight.type = "bisquare", tuning.par = 4, est.type = "MLE")
-#' head(out_grm$theta_MLE)
-#'
-#' ## MIRT MLE with information residual Error 
-#' set.seed(26)
-#' L<-2
-#' J<-50
-#' N<-80
-#' a<-matrix(runif(J*L, 0.5, 1.5), J, L)
-#' d<-rnorm(J)
-#' ip<-cbind(a, d)
-#' th<-matrix(rnorm(N*L), N, L)
-#' P<-item.prob(th, "MIRT", ip)
-#' dat<-dat.gen(P)
-#' out_mirt<-robust.theta(dat, ip, model = "MIRT", resid = "information", 
-#'                           weight.type = "Huber", tuning.par = 1, est.type = "MLE", score.tol = 0.1)
-#' head(out_mirt$theta_MLE)
+#' 
+#' ests<-robust.theta(simReverseGRM$dat, as.matrix(simReverseGRM$ipars), "GRM", resid = "standardized",  weight.type = "bisquare", tuning.par = 4)
+#' head(ests$theta_MLE)
+#' 
+#' ## MIRT MLE with information residual 
+#' 
+#' ests<-robust.theta(simCheatingMIRT$dat, as.matrix(simCheatingMIRT$ipars), "MIRT", 
+#'              resid = "information",  weight.type = "Huber", tuning.par = 1, dimen = 2)
+#' head(ests$theta_MLE)
 #' 
 #' ## MGRM MLE with standardized residual 
-#' set.seed(27)
-#' L<-2
-#' K<-5
-#' J<-50
-#' N<-20
-#' a<-matrix(runif(J*L, 0.5, 1.5), J, L)
-#' d<-t(apply(matrix(rnorm(J*(K-1)), J), 1, sort))
-#' ip<-cbind(a, d)
-#' th<-matrix(rnorm(N*L), N, L)
-#' P<-item.prob(th, "MGRM", ip)$P
-#' dat<-dat.gen(P, anchor=1)
-#' out_mgrm<-robust.theta(dat, ip, model = "MGRM", resid = "standardized", dimen=2,
-#'                           weight.type = "Huber", tuning.par = 1, est.type = "MLE")
-#' head(out_mgrm$theta_MLE)
+#' 
+#' ests<-robust.theta(simBRRMGRM$dat, as.matrix(simBRRMGRM$ipars), "MGRM", resid = "standardized",  
+#'                    weight.type = "bisquare", tuning.par = 4, dimen = 3)
+#' head(ests$theta_MLE)
 #' 
 #' ## WLE Example: 2PL 
-#' set.seed(20)
-#' thetas<-c(-4, -3, -2, -1, 0, 1, 2, 3, 4)
-#' a<-runif(15, 0.8, 2)
-#' b<-rnorm(15)
-#' P<-item.prob(thetas, "2PL", cbind(a, b))
-#' dat<-dat.gen(P, anchor = 0)
-#' out_wle<-robust.theta(dat, cbind(a, b), model = "2PL", resid = "information", 
-#'                           weight.type = "Huber", tuning.par = 1, est.type = "WLE")
-#' head(out_wle$theta_WLE)
+#' 
+#' ests<-robust.theta(simBRR2PL$dat, simBRR2PL$ipars, "2PL", resid = "information", 
+#'              weight.type = "Huber", tuning.par = 1, est.type = "WLE")
+#' head(ests$theta_WLE)
+#' 
 #' @export
 
 robust.theta<-function(dat, ipars, model= "2PL", D = 1.7, resid = "standardized", 
@@ -2541,7 +2479,8 @@ theta.est.grm <- function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.ty
 #' 
 #' Multidimensional GRM example: 5 Factors
 #' data(BFI2)
-#' robust.item(BFI2[,20:79], model=5, TOL=0.001, method="QMCEM")
+#' specific<- rep(1:5, 12) #which factor each item loads on
+#' mod<-mirt(BFI2, specific, TOL=0.001, method="QMCEM")
 #' @export
 robust.item<-function(dat, survey.weights=NULL, ...){
   
@@ -2714,12 +2653,11 @@ robust.rt<-function(dat, ipars, weight.type = "equal", tuning.par = NULL, custom
 #' ### Compare Huber and bisquare weights
 #' ##  Use robust.theta() output
 #' data(BFI2)
-#' dat<-BFI2[,20:79]
 #' specific<- rep(1:5, 12) #which factor each item loads on
-#' mod<-mirt(dat, specific, TOL=0.001, method="QMCEM")
+#' mod<-mirt(BFI2, specific, TOL=0.001, method="QMCEM")
 #' ipars<-coef(mod, simplify=T)$items
-#' ipars<-cbind(ipars[,1:5], -ipars[,6:9]/rowSums(ipars[,1:5])) # reparameterize
-#' out <- robust.theta(dat, ipars, model= "MGRM", resid = "standardized", dimen=5, D=1)
+#' ipars[,6:9]<- -ipars[,6:9]/rowSums(ipars[,1:5]) # reparameterize
+#' out <- robust.theta(BFI2, ipars, model= "MGRM", resid = "standardized", dimen=5, D=1)
 #' 
 #' choose.tuco(r=out$residuals_MLE, H=1, B=4, c(-6, 6))
 #' @export
@@ -2817,6 +2755,10 @@ choose.tuco<-function(r, H=NULL, B=NULL, x.axis=NULL){
 #' @examples
 #' 
 #' # 2Pl Example
+#' 
+#' data(simCheating2PL)
+#' robust.theta.comparisons(simCheating2PL$dat, simCheating2PL$ipars, "2PL", resid = "information", 
+#'                          weight.type = "Huber", tuning.par = 1, ab.ids = simCheating2PL$ab.indices)
 #' 
 #' # MGRM Example: Different Plots
 #' library(mirt)
