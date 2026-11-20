@@ -234,6 +234,15 @@
 #'
 #' ## Not run: 
 #'
+#' # Robust estimation of latent traits
+#' ests<-robust.theta(simBRR2PL$dat, simBRR2PL$ipars, "2PL", resid = "information", 
+#'              weight.type = "Huber", tuning.par = 1)
+#' head(ests$theta_MLE)
+#' 
+#' # Compare robust estimates with non-robust estimates
+#' robust.theta.comparisons(simBRR2PL$dat, simBRR2PL$ipars, "2PL", resid = "information", 
+#'                          weight.type = "Huber", tuning.par = 1, ab.ids = simBRR2PL$ab.indices)
+#' 
 #' 
 "simSuboptimal2PL"
 #' Simulated 2PL data with back random responses
