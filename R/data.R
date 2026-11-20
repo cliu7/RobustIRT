@@ -120,6 +120,19 @@
 #' @references Soto, C. J., & John, O. P. (2017). The next Big Five Inventory (BFI-2): Developing and assessing a hierarchical model with 15 facets to enhance bandwidth, fidelity, and predictive power. \emph{Journal of Personality and Social Psychology, 113}, 117–143. \url{http://dx.doi.org/10.1037/pspp0000096}
 #' 
 #' @usage data(BFI2)
+#`
+#` @examples
+#`
+#` # Item parameter robust estimation
+#' specific<- rep(1:5, 12) #which factor each item loads on
+#' mod<-mirt(BFI2, specific, TOL=0.001, method="QMCEM")
+#' ipars<-coef(mod, simplify=T)$items
+#' ipars<-cbind(ipars[,1:5], -ipars[,6:9]/rowSums(ipars[,1:5])) # reparameterize
+#`
+#` # Latent Trait Robust Estimation
+#' out <- robust.theta(BFI2, ipars, model= "MGRM", weight.type = "bisquare", tuning.par = 4, dimen=5, D=1)
+#` head(out$theta_MLE)
+#` 
 "BFI2"
 #' MTurk Height Data
 #' 
