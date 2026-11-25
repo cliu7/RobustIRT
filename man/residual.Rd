@@ -8,41 +8,34 @@ residual(
   theta,
   model,
   ipars,
-  dat = NULL,
-  resid = c("standardized", "msr", "information"),
+  dat,
+  residual = c("standardized", "msr"),
   D = 1.7
 )
 }
 \arguments{
-\item{theta}{An \eqn{N \times L} matrix of latent trait values, where \eqn{L} is the number of dimensions.}
+\item{theta}{An N × L matrix of latent trait values, where L is the number of dimensions.}
 
-\item{model}{Character string specifying the IRT model. See \code{item.prob} for supported models.}
+\item{model}{Character string specifying the IRT model. See `item.prob` for supported models.}
 
-\item{ipars}{A matrix or list of item parameters passed to \code{item.prob}. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.}
+\item{ipars}{A matrix or list of item parameters passed to `item.prob()`. For dichotomous models, rows contain discrimination and difficulty parameters. For polytomous models, rows contain item discriminations and category thresholds.}
 
-\item{dat}{An \eqn{N \times J} response matrix, with \eqn{N} respondents and \eqn{J} items.}
-
-\item{D}{Positive scaling constant for the normal-ogive approximation. Defaults to 1.7, otherwise often set to 1.0.}
+\item{dat}{An N × J response matrix, with N respondents and J items.}
 
 \item{residual}{Character string indicating which residual type to return: "standardized" or "msr". Defaults to both.}
+
+\item{D}{Positive scaling constant for the normal-ogive approximation. Defaults to 1.7.}
 }
 \value{
-A list containing \eqn{N \times J} matrix for each residual specified:
-\itemize{
-  \item \code{standardized} {standardized residuals}
-  \item \code{msr} {modified standardized residuals (Yu & Cheng, 2019)}
-  \item \code{information} {information residual}
-}
+A list containing two N × J matrices, each with the same dimensions as `dat`. For polytomous models, residuals are computed using expected category scores and category response probabilities.
 }
 \description{
-Computes the standardized and modified standardized residuals (MSRs; Yu & Cheng, 2019) for dichotomous and polytomous IRT models. For each observed response 
-\eqn{y_j} to item \eqn{j}, the standardized residual and the MSR reflect the difference between the observed score and the model-implied expected value given the person’s estimated ability \eqn{\hat{\theta}}.
+Computes the standardized and modified standardized residuals for dichotomous and polytomous IRT models. For each observed response 
+\eqn{y_j} to item \eqn{j}, the residual reflects the difference between the recorded score and the model’s expected value given the person’s estimated ability \eqn{\hat{\theta}}.
 The basic standardized residual is given by \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{\sqrt{\mathrm{Var}(Y_j | \hat{\theta})}}} where the expectation and variance are computed under the specified IRT model.
-The MSR replaces the variance term with the conditional probability of the observed response category,
-\eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{r_j = \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}.
-The information residual is available for dichotomous models only, capturing the difference between the person ability parameter and the difficulty parameter of an item, weighted by the item discrimination:
-\eqn{a_j(\theta -b_j)} for unidimensional models and \eqn{\boldsymbol{a}_j' \boldsymbol{\theta} +d_j)} for the MIRT model.
-See \code{item.prob} for description of models and structure of \code{ipars}.
+Modified standardized residuals (Yu & Cheng, 2019) replace the variance term with the conditional probability of the observed response category,
+\eqn{P(y_j \mid \hat{\theta})}, yielding \deqn{ \frac{y_j - E(Y_j | \hat{\theta})}{P(y_j|\hat{\theta})}}
+See `item.prob` for description of models and structure of `ipars`.
 }
 \examples{
 # 2PL model
@@ -73,14 +66,14 @@ residual(theta, model = "MIRT", ipars=ipars, dat=dat)
 
 
 # GRM model
-dat <- matrix(c(4,1, 2,3), nrow = 2, byrow = TRUE)
+dat <- matrix(c(0,1,2, 1,2,3), nrow = 2, byrow = TRUE)
 theta <- c(-0.5, 1.0)
 
 ipars <- rbind(
   c(a = 1.0, b1 = -2.0, b2 = -1.0, b3 = 0.0),
-  c(a = 0.5, b1 = -1.0, b2 =  0.0, b3 = 1.0))
+  c(a = 0.5, b1 = -1.0, b2 =  0.0, b3 = 1.0)
 
-grm.resid<-residual(theta, model = "GRM", ipars=ipars, dat=dat, resid="standardized")
+residual(theta, model = "GRM", ipars=ipars, dat=dat)
 }
 \references{
 Yu, X & Cheng, Y. A change-point analysis procedure based on weighted residuals to detect back random responding. \emph{Psychological Methods} (Oct. 2019), pp. 658–674. DOI: 10.1037/met0000212.
